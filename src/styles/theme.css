@@ -1,12 +1,19 @@
 :root{
+    /* Tokens base (ajustá si ya los tenés definidos) */
     --surface:   #F4F6F8;
     --border:    #E5E7EB;
     --text:      #0F172A;
     --muted:     #6B7280;
 
-    --brand:     #4DA851;  /* primary */
-    --brand-700: #3E8E47;  /* hover */
-    --brand-50:  #E9F7F0;  /* tonal/bg */
+    /* Verde principal */
+    --brand:     #4DA851;  /* color sólido normal */
+    --brand-700: #3E8E47;  /* hover/pressed más oscuro */
+    --brand-50:  #E9F7F0;  /* tonal */
+
+    /* Botones: podés cambiar estos si querés otra paleta */
+    --btn-bg:        var(--brand);
+    --btn-bg-hover:  var(--brand-700);
+    --btn-fg:        #ffffff;
 
     --radius-sm: 10px;
     --radius-md: 16px;
@@ -16,11 +23,10 @@
     --shadow-2: 0 8px 24px rgba(2,6,23,.08);
 }
 
-
+/* Fondo general */
 .v-application { background-color: var(--surface) !important; }
 
-.bg-surface { background-color: var(--surface); }
-
+/* Tarjetas suaves */
 .card {
     border-radius: var(--radius-md) !important;
     box-shadow: var(--shadow-1) !important;
@@ -31,21 +37,44 @@
 .card--hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-2) !important; }
 
 .btn-rounded { border-radius: 999px !important; }
-.rounded-lg  { border-radius: var(--radius-lg) !important; }
 
-/* Inputs suaves (como la 2ª imagen) */
-.v-field--variant-outlined .v-field__outline {
-    --v-field-border-opacity: 1;
-    --v-theme-overlay-multiplier: 0;
-    border-color: var(--border) !important;
-}
-.v-field--variant-outlined:hover .v-field__outline { border-color: #D1D5DB !important; }
+/* ===========================
+   Botones sólidos (global)
+   =========================== */
 
-/* chips tonales y botones ya toman el nuevo --brand */
-.v-chip--variant-tonal {
-    background-color: var(--brand-50) !important;
-    color: var(--brand-700) !important;
-    border: 1px solid rgba(77,168,81,.20) !important; /* #4DA851 con ~20% */
+/* Botón "elevated" con fondo sólido distinto al fondo de la app */
+.v-btn--variant-elevated.v-btn--has-bg {
+    background-color: var(--btn-bg) !important;
+    color: var(--btn-fg) !important;
+    border-color: transparent !important;
 }
-.v-btn--variant-elevated.v-btn--has-bg { background-color: var(--brand) !important; }
-.v-btn--variant-elevated.v-btn--has-bg:hover { background-color: var(--brand-700) !important; }
+.v-btn--variant-elevated.v-btn--has-bg:hover,
+.v-btn--variant-elevated.v-btn--has-bg:focus-visible {
+    background-color: var(--btn-bg-hover) !important;
+}
+
+/* Botón "flat" (sin sombra) también con fondo sólido */
+.v-btn--variant-flat.v-btn--has-bg {
+    background-color: var(--btn-bg) !important;
+    color: var(--btn-fg) !important;
+    border-color: transparent !important;
+}
+.v-btn--variant-flat.v-btn--has-bg:hover,
+.v-btn--variant-flat.v-btn--has-bg:focus-visible {
+    background-color: var(--btn-bg-hover) !important;
+}
+
+/* Botón outlined mantiene borde del tema; no cambiamos nada aquí */
+
+/* ===========================
+   Utilidad por si algún contenedor pisa estilos (app-bar)
+   =========================== */
+.btn-solid-primary.v-btn--has-bg {
+    background-color: var(--btn-bg) !important;
+    color: var(--btn-fg) !important;
+    border-color: transparent !important;
+}
+.btn-solid-primary:hover,
+.btn-solid-primary:focus-visible {
+    background-color: var(--btn-bg-hover) !important;
+}

@@ -15,8 +15,25 @@
     font-weight: 700; font-style: normal; font-display: swap;
 }
 
+/* Alias con el nombre que usás: HK Grotesk */
+@font-face {
+    font-family: "HK Grotesk";
+    src: url("../assets/fonts/HankenGrotesk/static/HankenGrotesk-Regular.ttf") format("truetype");
+    font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+    font-family: "HK Grotesk";
+    src: url("../assets/fonts/HankenGrotesk/static/HankenGrotesk-Medium.ttf") format("truetype");
+    font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+    font-family: "HK Grotesk";
+    src: url("../assets/fonts/HankenGrotesk/static/HankenGrotesk-Bold.ttf") format("truetype");
+    font-weight: 700; font-style: normal; font-display: swap;
+}
+
 /* Alias opcional para mantener tu nombre anterior */
 :root {
-    --font-sans: "HK Grotesk", "Hanken Grotesk", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-sans: "HK Grotesk", "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 html, body, .v-application { font-family: var(--font-sans); }
