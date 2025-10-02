@@ -1,21 +1,24 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 
-const Home        = () => import('../views/Home.vue')
-const Profile     = () => import('../views/Profile.vue')
-const Lists       = () => import('../views/Lists.vue')
-const Help        = () => import('../views/Help.vue')
-const Historial   = () => import('../views/Historial.vue')
-const Preferences = () => import('../views/Preferences.vue')
+const Home          = () => import('../views/Home.vue')
+const Profile       = () => import('../views/Profile.vue')
+const Lists         = () => import('../views/Lists.vue')
+const Help          = () => import('../views/Help.vue')
+const Historial     = () => import('../views/Historial.vue')
+const Preferences   = () => import('../views/Preferences.vue')
 const Notifications = () => import('../views/Notifications.vue')
+const Login         = () => import('../views/Login.vue')
 
 const routes = [
-    { path: '/',            name: 'home',          component: Home,          meta: { title: 'Inicio' } },
-    { path: '/profile',     name: 'profile',       component: Profile,       meta: { title: 'Perfil' } },
-    { path: '/lists',       name: 'lists',         component: Lists,         meta: { title: 'Listas' } },
-    { path: '/help',        name: 'help',          component: Help,          meta: { title: 'Ayuda' } },
-    { path: '/historial',   name: 'historial',     component: Historial,     meta: { title: 'Historial' } },
-    { path: '/preferences', name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias' } },
-    { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones' } },
+    { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio' } },
+    { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas',         requiresAuth: true } },
+    { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial',      requiresAuth: true } },
+    { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias',   requiresAuth: true } },
+    { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil',         requiresAuth: true } },
+    { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones', requiresAuth: true } },
+    { path: '/help',          name: 'help',          component: Help,          meta: { title: 'Ayuda' } },
+    { path: '/login',         name: 'login',         component: Login,         meta: { title: 'Ingresar' } },
 ]
 
 const router = createRouter({
@@ -24,6 +27,13 @@ const router = createRouter({
     scrollBehavior() {
         return { left: 0, top: 0 }
     },
+})
+
+router.beforeEach((to) => {
+    const token = localStorage.getItem('auth_token') // misma key que en services/auth.js
+    if (to.meta?.requiresAuth && !token) {
+        return { path: '/login', query: { r: to.fullPath } }
+    }
 })
 
 router.afterEach((to) => {
