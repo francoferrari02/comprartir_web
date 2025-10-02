@@ -1,13 +1,45 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compartir — Listas de compras simples</title>
+    <meta name="description" content="Organizá y compartí tus listas de compras en segundos. Minimalista, rápido y colaborativo." />
+
+
+    <!-- Favicon / Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo-192.png" />
+    <link rel="apple-touch-icon" href="/logo-180.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Compartir — Listas de compras simples" />
+    <meta property="og:description" content="Organizá y compartí tus listas de compras en segundos." />
+    <meta property="og:image" content="/og-cover.png" />
+    <meta property="og:url" content="https://tu-dominio.com/" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+
+    <!-- Datos estructurados -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Compartir",
+            "url": "https://tu-dominio.com/",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://tu-dominio.com/?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }
+        }
+    </script>
+</head>
+<body>
+<div id="app"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
 </html>

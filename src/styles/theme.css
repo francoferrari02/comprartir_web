@@ -1,0 +1,51 @@
+:root{
+    --surface:   #F4F6F8;
+    --border:    #E5E7EB;
+    --text:      #0F172A;
+    --muted:     #6B7280;
+
+    --brand:     #4DA851;  /* primary */
+    --brand-700: #3E8E47;  /* hover */
+    --brand-50:  #E9F7F0;  /* tonal/bg */
+
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+
+    --shadow-1: 0 2px 8px rgba(2,6,23,.06);
+    --shadow-2: 0 8px 24px rgba(2,6,23,.08);
+}
+
+
+.v-application { background-color: var(--surface) !important; }
+
+.bg-surface { background-color: var(--surface); }
+
+.card {
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-1) !important;
+    border: 1px solid var(--border) !important;
+    background: #fff !important;
+}
+.card--hover { transition: transform .15s ease, box-shadow .15s ease; }
+.card--hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-2) !important; }
+
+.btn-rounded { border-radius: 999px !important; }
+.rounded-lg  { border-radius: var(--radius-lg) !important; }
+
+/* Inputs suaves (como la 2ª imagen) */
+.v-field--variant-outlined .v-field__outline {
+    --v-field-border-opacity: 1;
+    --v-theme-overlay-multiplier: 0;
+    border-color: var(--border) !important;
+}
+.v-field--variant-outlined:hover .v-field__outline { border-color: #D1D5DB !important; }
+
+/* chips tonales y botones ya toman el nuevo --brand */
+.v-chip--variant-tonal {
+    background-color: var(--brand-50) !important;
+    color: var(--brand-700) !important;
+    border: 1px solid rgba(77,168,81,.20) !important; /* #4DA851 con ~20% */
+}
+.v-btn--variant-elevated.v-btn--has-bg { background-color: var(--brand) !important; }
+.v-btn--variant-elevated.v-btn--has-bg:hover { background-color: var(--brand-700) !important; }
