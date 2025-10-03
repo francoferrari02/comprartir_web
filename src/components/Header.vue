@@ -7,18 +7,8 @@
         <span class="brand text-h6 font-weight-bold d-none d-sm-inline">Compartir</span>
       </router-link>
 
-      <!-- Buscador -->
-      <v-text-field
-          v-model="search"
-          variant="outlined"
-          density="compact"
-          prepend-inner-icon="mdi-magnify"
-          placeholder="Buscar listas, personas o plantillas"
-          hide-details
-          class="search"
-      />
 
-      <!-- Nav a la derecha del buscador -->
+      <!-- Nav a la derecha -->
       <div class="nav-group">
         <v-btn to="/lists"       color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-view-list">Listas</v-btn>
         <v-btn to="/historial"   color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-history">Historial</v-btn>
@@ -78,7 +68,6 @@
 import { ref, computed } from 'vue'
 import logoSrc from '../assets/Logo_Comprartir-removebg.png'
 
-const search = ref('')
 
 /* Demo: reemplazá por tu store/fetch */
 const notifications = ref([
@@ -90,15 +79,19 @@ const unreadCount = computed(() => notifications.value.length)
 </script>
 
 <style scoped>
-.border-b { border-bottom: 1px solid #E5E7EB; }
+.border-b { 
+  border-bottom: 1px solid #E5E7EB; 
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
 
-/* Layout: brand | search (flex) | nav | notif */
+/* Layout: brand | nav | notif */
 .appbar-shell{
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px;
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 12px;
   width: 100%;
@@ -111,7 +104,6 @@ const unreadCount = computed(() => notifications.value.length)
 }
 .brand-link:focus, .brand-link:active { outline: none; }
 
-.search { width: 100%; max-width: 640px; }
 .brand { letter-spacing: .2px; }
 
 .nav-group{ display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -127,6 +119,5 @@ const unreadCount = computed(() => notifications.value.length)
   background-color: var(--btn-bg-hover, #3E8E47) !important;
 }
 
-@media (max-width: 1100px){ .search { max-width: 520px; } }
 @media (max-width: 900px){  .nav-group { display: none; } }
 </style>

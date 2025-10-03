@@ -12,11 +12,11 @@ const Login         = () => import('../views/Login.vue')
 
 const routes = [
     { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio' } },
-    { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas',         requiresAuth: true } },
-    { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial',      requiresAuth: true } },
-    { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias',   requiresAuth: true } },
-    { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil',         requiresAuth: true } },
-    { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones', requiresAuth: true } },
+    { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas' } },
+    { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial' } },
+    { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias' } },
+    { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil' } },
+    { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones' } },
     { path: '/help',          name: 'help',          component: Help,          meta: { title: 'Ayuda' } },
     { path: '/login',         name: 'login',         component: Login,         meta: { title: 'Ingresar' } },
 ]
@@ -29,12 +29,13 @@ const router = createRouter({
     },
 })
 
-router.beforeEach((to) => {
-    const token = localStorage.getItem('auth_token') // misma key que en services/auth.js
-    if (to.meta?.requiresAuth && !token) {
-        return { path: '/login', query: { r: to.fullPath } }
-    }
-})
+// Guard de navegación deshabilitado para permitir acceso sin autenticación
+// router.beforeEach((to) => {
+//     const token = localStorage.getItem('auth_token') // misma key que en services/auth.js
+//     if (to.meta?.requiresAuth && !token) {
+//         return { path: '/login', query: { r: to.fullPath } }
+//     }
+// })
 
 router.afterEach((to) => {
     if (to.meta && to.meta.title) document.title = `${to.meta.title} — Compartir`
