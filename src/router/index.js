@@ -9,6 +9,8 @@ const Historial     = () => import('../views/Historial.vue')
 const Preferences   = () => import('../views/Preferences.vue')
 const Notifications = () => import('../views/Notifications.vue')
 const Login         = () => import('../views/Login.vue')
+const Register      = () => import('../views/Register.vue')
+const ResetPassword = () => import('../views/ResetPassword.vue')
 
 const routes = [
     { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio' } },
@@ -19,6 +21,8 @@ const routes = [
     { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones' } },
     { path: '/help',          name: 'help',          component: Help,          meta: { title: 'Ayuda' } },
     { path: '/login',         name: 'login',         component: Login,         meta: { title: 'Ingresar' } },
+    { path: '/register',      name: 'register',      component: Register,      meta: { title: 'Registrarse' } },
+    { path: '/reset-password', name: 'reset-password', component: ResetPassword, meta: { title: 'Restablecer contraseña' } },
 ]
 
 const router = createRouter({

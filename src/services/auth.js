@@ -44,3 +44,40 @@ export async function logout() {
     try { await api.post('/api/users/logout', {}) } catch {}
     setAuthToken('')
 }
+
+// POST /api/users/forgot-password
+export async function sendPasswordRecoveryCode(email) {
+    const { data } = await api.post('/api/users/forgot-password', null, {
+        params: { email }
+    })
+    return data
+}
+
+// POST /api/users/reset-password
+export async function resetPassword({ code, password }) {
+    const { data } = await api.post('/api/users/reset-password', { code, password })
+    return data
+}
+
+// POST /api/users/verify-account
+export async function verifyAccount(code) {
+    const { data } = await api.post('/api/users/verify-account', { code })
+    return data
+}
+
+// POST /api/users/send-verification
+export async function sendVerificationCode(email) {
+    const { data } = await api.post('/api/users/send-verification', null, {
+        params: { email }
+    })
+    return data
+}
+
+// POST /api/users/change-password
+export async function changePassword({ currentPassword, newPassword }) {
+    const { data } = await api.post('/api/users/change-password', { 
+        currentPassword, 
+        newPassword 
+    })
+    return data
+}

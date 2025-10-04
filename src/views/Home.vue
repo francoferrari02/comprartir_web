@@ -1,6 +1,74 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <!-- Pantalla de bienvenida para usuarios no autenticados -->
+    <div v-if="!isAuthenticated && !demoMode" class="shell">
+      <v-row justify="center">
+        <v-col cols="12" md="8" lg="6">
+          <v-card class="card pa-8 text-center">
+            <v-img :src="logo" class="mx-auto mb-6" max-width="200" />
+            <h1 class="text-h4 font-weight-bold mb-4">Bienvenido a Comprartir</h1>
+            <p class="text-h6 text-medium-emphasis mb-6">
+              Organizá y compartí tus listas de compras con amigos y familiares.
+            </p>
+            
+            <!-- Botón para ver demo -->
+            <div class="d-flex justify-center ga-4 mb-6">
+              <v-btn 
+                @click="demoMode = true"
+                color="primary" 
+                variant="elevated" 
+                size="large"
+                class="btn-rounded btn-solid-primary" 
+                prepend-icon="mdi-eye"
+              >
+                Ver demo
+              </v-btn>
+            </div>
+            
+            <div class="mt-8">
+              <v-row>
+                <v-col cols="12" md="4">
+                  <v-icon color="primary" size="48">mdi-view-list</v-icon>
+                  <h3 class="text-h6 mt-3 mb-2">Crea listas</h3>
+                  <p class="text-body-2">Organiza tus compras en listas fáciles de usar</p>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-icon color="primary" size="48">mdi-share</v-icon>
+                  <h3 class="text-h6 mt-3 mb-2">Comparte</h3>
+                  <p class="text-body-2">Colabora con familia y amigos en tiempo real</p>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-icon color="primary" size="48">mdi-check-circle</v-icon>
+                  <h3 class="text-h6 mt-3 mb-2">Controla</h3>
+                  <p class="text-body-2">Marca productos como comprados y lleva el control</p>
+                </v-col>
+              </v-row>
+            </div>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
+
+    <!-- Dashboard para usuarios autenticados o en modo demo -->
+    <div v-if="isAuthenticated || demoMode" class="shell">
+      <!-- Banner de modo demo -->
+      <v-alert
+        v-if="demoMode && !isAuthenticated"
+        type="info"
+        variant="tonal"
+        border="start"
+        class="mb-4"
+        closable
+        @click:close="demoMode = false"
+      >
+        <div class="d-flex align-center justify-space-between">
+          <span>
+            <v-icon class="me-2">mdi-eye</v-icon>
+            Estás viendo el modo demo. Esta es una vista previa de cómo se ve la aplicación cuando estás logueado.
+          </span>
+        </div>
+      </v-alert>
+
       <v-row>
         <!-- COLUMNA IZQUIERDA (principal) -->
         <v-col cols="12" md="8" class="left-col">
@@ -39,7 +107,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { isLoggedIn } from '@/services/auth'
 import RecentLists from '@/components/RecentLists.vue'
 import Templates from '@/components/Templates.vue'
 import SharedWithMe from '@/components/SharedWithMe.vue'
@@ -47,6 +116,14 @@ import ActivityFeed from '@/components/ActivityFeed.vue'
 import logo from '@/assets/Logo_Comprartir.png'
 
 const q = ref('')
+const isAuthenticated = ref(false)
+const demoMode = ref(false)
+
+// Verificar autenticación al cargar
+onMounted(() => {
+  isAuthenticated.value = isLoggedIn()
+})
+
 function onNewList(){ /* abrir modal o route */ }
 function useTemplate(t){ /* crear lista desde plantilla t */ }
 </script>
