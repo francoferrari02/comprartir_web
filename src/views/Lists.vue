@@ -1,189 +1,822 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <div class="shell">
+      <!-- Error Alert -->
+      <v-alert
+        v-if="error"
+        type="error"
+        variant="tonal"
+        closable
+        class="mb-4"
+        @click:close="error = null"
+      >
+        {{ error }}
+      </v-alert>
+
+      <!-- Success Snackbar -->
+      <v-snackbar
+        v-model="snackbar.show"
+        :color="snackbar.color"
+        :timeout="3000"
+      >
+        {{ snackbar.message }}
+        <template #actions>
+          <v-btn
+            icon="mdi-close"
+            size="small"
+            @click="snackbar.show = false"
+          />
+        </template>
+      </v-snackbar>
+
       <v-row>
         <!-- COLUMNA IZQUIERDA (principal) -->
         <v-col cols="12" md="8" class="left-col">
-          <!-- Tarjeta unificada con buscador y carrousel -->
+          <!-- Tarjeta unificada con buscador, filtros y carrousel -->
           <v-card class="card card--hover mb-4">
             <!-- Buscador y nueva lista -->
             <ListSearch 
               v-model="searchQuery" 
-              @new-list="onNewList" 
+              @new-list="openCreateDialog"
               class="search-section"
             />
 
+            <!-- Filtros integrados -->
+            <div class="filters-section pa-4 bg-grey-lighten-4">
+              <div class="d-flex align-center justify-space-between mb-3">
+                <h4 class="text-subtitle-1 font-weight-bold">
+                  <v-icon size="small" class="mr-1">mdi-filter-outline</v-icon>
+                  Filtros y orden
+                </h4>
+                <v-btn
+                  variant="tonal"
+                  size="small"
+                  class="btn-pill"
+                  @click="showFilters = !showFilters"
+                >
+                  <v-icon size="small" class="mr-1">
+                    {{ showFilters ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                  </v-icon>
+                  {{ showFilters ? 'Ocultar' : 'Mostrar' }}
+                </v-btn>
+              </div>
+
+              <v-expand-transition>
+                <div v-show="showFilters">
+                  <v-row dense>
+                    <!-- Ordenar por -->
+                    <v-col cols="12" sm="6" md="3">
+                      <v-label class="text-caption font-weight-medium mb-1 d-block">
+                        Ordenar por:
+                      </v-label>
+                      <v-select
+                        v-model="filters.sort_by"
+                        :items="sortOptions"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        @update:model-value="applyFilters"
+                      />
+                    </v-col>
+
+                    <!-- Dirección -->
+                    <v-col cols="12" sm="6" md="3">
+                      <v-label class="text-caption font-weight-medium mb-1 d-block">
+                        Dirección:
+                      </v-label>
+                      <v-select
+                        v-model="filters.order"
+                        :items="orderOptions"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        @update:model-value="applyFilters"
+                      />
+                    </v-col>
+
+                    <!-- Tipo de lista -->
+                    <v-col cols="12" sm="6" md="3">
+                      <v-label class="text-caption font-weight-medium mb-1 d-block">
+                        Tipo de lista:
+                      </v-label>
+                      <v-select
+                        v-model="filters.recurring"
+                        :items="recurringOptions"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        @update:model-value="applyFilters"
+                      />
+                    </v-col>
+
+                    <!-- Botón de limpiar filtros -->
+                    <v-col cols="12" sm="6" md="3" class="d-flex align-end">
+                      <v-btn
+                        variant="tonal"
+                        size="small"
+                        block
+                        class="btn-pill"
+                        prepend-icon="mdi-filter-remove"
+                        @click="clearFilters"
+                      >
+                        Limpiar
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-expand-transition>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="loading" class="text-center py-12">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+                size="64"
+              />
+              <p class="text-body-1 mt-4">Cargando listas...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="lists.length === 0" class="text-center py-12 px-4">
+              <v-icon size="80" color="grey-lighten-1" class="mb-4">
+                mdi-clipboard-list-outline
+              </v-icon>
+              <h3 class="text-h6 mb-2">No hay listas</h3>
+              <p class="text-body-2 text-medium-emphasis mb-4">
+                {{ searchQuery ? 'No se encontraron listas con ese criterio' : 'Comienza creando tu primera lista de compras' }}
+              </p>
+              <v-btn
+                v-if="!searchQuery"
+                color="primary"
+                prepend-icon="mdi-plus"
+                @click="openCreateDialog"
+              >
+                Nueva Lista
+              </v-btn>
+            </div>
+
             <!-- Carrousel de listas -->
             <ListCarousel 
-              :lists="filteredLists" 
+              v-else
+              :lists="listsWithProgress"
               class="carousel-section"
+              @edit-list="openEditDialog"
+              @delete-list="openDeleteConfirm"
             />
+
+            <!-- Pagination -->
+            <v-divider v-if="pagination.totalPages > 1" />
+            <div v-if="pagination.totalPages > 1" class="d-flex justify-center pa-4">
+              <v-pagination
+                v-model="pagination.currentPage"
+                :length="pagination.totalPages"
+                :total-visible="5"
+                @update:model-value="onPageChange"
+              />
+            </div>
           </v-card>
         </v-col>
 
         <!-- COLUMNA DERECHA (sidebar) -->
         <v-col cols="12" md="4" class="right-col">
-          <!-- Filtros y orden -->
-          <FiltersCard 
-            v-model:sort-by="sortBy"
-            v-model:selected-tags="selectedTags"
-            :available-tags="availableTags"
-            class="card card--hover mb-4" 
-          />
-
           <!-- Resumen -->
           <SummaryCard 
             :stats="summaryStats"
-            class="card card--hover mb-4" 
+            :loading="loading"
+            class="card card--hover mb-4"
           />
         </v-col>
       </v-row>
+
+      <!-- Create List Dialog -->
+      <v-dialog v-model="createDialog" max-width="600">
+        <v-card>
+          <v-card-title class="text-h5 pa-4">
+            Nueva Lista de Compras
+          </v-card-title>
+          <v-card-text class="pa-4">
+            <v-text-field
+              v-model="newList.name"
+              label="Nombre de la lista"
+              variant="outlined"
+              density="comfortable"
+              :error-messages="newListErrors.name"
+              autofocus
+              @keyup.enter="createList"
+            />
+            <v-textarea
+              v-model="newList.description"
+              label="Descripción (opcional)"
+              variant="outlined"
+              density="comfortable"
+              rows="3"
+            />
+            <v-checkbox
+              v-model="newList.recurring"
+              label="Lista recurrente"
+              hint="Las listas recurrentes se pueden reutilizar después de comprarlas"
+              persistent-hint
+            />
+          </v-card-text>
+          <v-card-actions class="pa-4">
+            <v-spacer />
+            <v-btn
+              variant="text"
+              class="btn-rounded"
+              @click="createDialog = false"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              class="btn-rounded"
+              :loading="creating"
+              @click="createList"
+            >
+              Crear
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Edit List Dialog -->
+      <v-dialog v-model="editDialog.open" max-width="600">
+        <v-card>
+          <v-card-title class="text-h5 pa-4">
+            Editar Lista
+          </v-card-title>
+          <v-card-text class="pa-4">
+            <v-text-field
+              v-model="editDialog.form.name"
+              label="Nombre de la lista"
+              variant="outlined"
+              density="comfortable"
+              :error-messages="editDialog.errors.name"
+              autofocus
+              @keyup.enter="submitEdit"
+            />
+            <v-textarea
+              v-model="editDialog.form.description"
+              label="Descripción (opcional)"
+              variant="outlined"
+              density="comfortable"
+              rows="3"
+            />
+            <v-checkbox
+              v-model="editDialog.form.recurring"
+              label="Lista recurrente"
+              hint="Las listas recurrentes se pueden reutilizar después de comprarlas"
+              persistent-hint
+            />
+            <v-alert
+              v-if="editDialog.error"
+              type="error"
+              density="comfortable"
+              class="mt-3"
+            >
+              {{ editDialog.error }}
+            </v-alert>
+          </v-card-text>
+          <v-card-actions class="pa-4">
+            <v-spacer />
+            <v-btn
+              variant="text"
+              class="btn-rounded"
+              @click="closeEdit"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              class="btn-rounded"
+              :loading="editDialog.loading"
+              @click="submitEdit"
+            >
+              Guardar
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Delete Confirmation Dialog -->
+      <v-dialog v-model="deleteDialog.open" max-width="500">
+        <v-card>
+          <v-card-title class="text-h6 pa-4">
+            Eliminar Lista
+          </v-card-title>
+          <v-card-text class="pa-4">
+            <p class="mb-3">
+              ¿Estás seguro de que deseas eliminar la lista
+              <strong>"{{ deleteDialog.target?.name }}"</strong>?
+            </p>
+            <p class="text-body-2 text-medium-emphasis">
+              Esta acción no se puede deshacer.
+            </p>
+            <v-alert
+              v-if="deleteDialog.error"
+              type="error"
+              density="comfortable"
+              class="mt-3"
+            >
+              {{ deleteDialog.error }}
+            </v-alert>
+          </v-card-text>
+          <v-card-actions class="pa-4">
+            <v-spacer />
+            <v-btn
+              variant="text"
+              class="btn-rounded"
+              @click="closeDelete"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="error"
+              variant="flat"
+              class="btn-rounded"
+              :loading="deleteDialog.loading"
+              @click="confirmDelete"
+            >
+              Eliminar
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </div>
   </v-container>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { getShoppingLists, createShoppingList, getListItems, updateShoppingList, deleteShoppingList } from '@/services/lists'
 import ListSearch from '@/components/ListSearch.vue'
 import ListCarousel from '@/components/ListCarousel.vue'
-import FiltersCard from '@/components/FiltersCard.vue'
 import SummaryCard from '@/components/SummaryCard.vue'
 
+const router = useRouter()
+const route = useRoute()
+
 // Estado reactivo
-const searchQuery = ref('')
-const sortBy = ref('recent')
-const selectedTags = ref([])
+const loading = ref(false)
+const creating = ref(false)
+const error = ref(null)
+const lists = ref([])
+const listItemsCounts = ref({}) // Nuevo: almacenar conteos por lista
+const searchQuery = ref(route.query.search || '')
+const createDialog = ref(false)
+const showFilters = ref(true) // Controlar visibilidad de filtros
+const editDialog = ref({
+  open: false,
+  form: {
+    id: null,
+    name: '',
+    description: '',
+    recurring: false
+  },
+  errors: {
+    name: []
+  },
+  loading: false,
+  error: null
+})
+const deleteDialog = ref({
+  open: false,
+  target: null,
+  loading: false,
+  error: null
+})
 
-// Datos de ejemplo
-const lists = ref([
-  {
-    id: 1,
-    name: 'Supermercado - Semana',
-    description: 'Compras para toda la semana',
-    bought: 3,
-    total: 8,
-    lastModified: '2024-01-15',
-    tags: ['supermercado', 'semanal'],
-    sharedWith: ['Sofía', 'Juan'],
-    progress: 37.5
-  },
-  {
-    id: 2,
-    name: 'Verdulería',
-    description: 'Frutas y verduras frescas',
-    bought: 2,
-    total: 5,
-    lastModified: '2024-01-14',
-    tags: ['verdulería', 'fresco'],
-    sharedWith: [],
-    progress: 40
-  },
-  {
-    id: 3,
-    name: 'Farmacia',
-    description: 'Medicamentos y productos de higiene',
-    bought: 1,
-    total: 3,
-    lastModified: '2024-01-13',
-    tags: ['farmacia', 'salud'],
-    sharedWith: ['María'],
-    progress: 33.3
-  },
-  {
-    id: 4,
-    name: 'Cumple Emma',
-    description: 'Decoración y comida para el cumpleaños',
-    bought: 4,
-    total: 7,
-    lastModified: '2024-01-12',
-    tags: ['cumpleaños', 'decoración'],
-    sharedWith: ['Emma', 'Carlos'],
-    progress: 57.1
-  },
-  {
-    id: 5,
-    name: 'Ferretería',
-    description: 'Herramientas y materiales para el hogar',
-    bought: 0,
-    total: 4,
-    lastModified: '2024-01-11',
-    tags: ['ferretería', 'hogar'],
-    sharedWith: [],
-    progress: 0
-  }
-])
+// Filters from query params
+const filters = ref({
+  sort_by: route.query.sort_by || 'updatedAt',
+  order: route.query.order || 'DESC',
+  recurring: route.query.recurring || null,
+  owner: route.query.owner || ''
+})
 
-const availableTags = ref([
-  'supermercado', 'semanal', 'verdulería', 'fresco', 
-  'farmacia', 'salud', 'cumpleaños', 'decoración', 
-  'ferretería', 'hogar', 'trabajo', 'personal'
-])
+// Pagination
+const pagination = ref({
+  currentPage: Number(route.query.page) || 1,
+  perPage: Number(route.query.per_page) || 10,
+  totalPages: 1,
+  totalItems: 0
+})
+
+// New list form
+const newList = ref({
+  name: '',
+  description: '',
+  recurring: false
+})
+
+const newListErrors = ref({
+  name: []
+})
+
+// Snackbar
+const snackbar = ref({
+  show: false,
+  message: '',
+  color: 'success'
+})
+
+// Debounce timer for search
+let searchDebounce = null
+
+// Watch search query with debounce
+watch(searchQuery, () => {
+  clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => {
+    pagination.value.currentPage = 1
+    updateQueryParams()
+    fetchLists()
+  }, 300)
+})
 
 // Computed properties
-const filteredLists = computed(() => {
-  let filtered = lists.value
-
-  // Filtrar por búsqueda
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(list => 
-      list.name.toLowerCase().includes(query) ||
-      list.description.toLowerCase().includes(query) ||
-      list.tags.some(tag => tag.toLowerCase().includes(query))
-    )
-  }
-
-  // Filtrar por etiquetas
-  if (selectedTags.value.length > 0) {
-    filtered = filtered.filter(list => 
-      selectedTags.value.some(tag => list.tags.includes(tag))
-    )
-  }
-
-  // Ordenar
-  switch (sortBy.value) {
-    case 'recent':
-      filtered = [...filtered].sort((a, b) => 
-        new Date(b.lastModified) - new Date(a.lastModified)
-      )
-      break
-    case 'complete':
-      filtered = [...filtered].sort((a, b) => b.progress - a.progress)
-      break
-    case 'name':
-      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
-      break
-    case 'shared':
-      filtered = [...filtered].sort((a, b) => b.sharedWith.length - a.sharedWith.length)
-      break
-  }
-
-  return filtered
+const listsWithProgress = computed(() => {
+  // Calculate progress for each list (will be updated when we fetch items)
+  return lists.value.map(list => ({
+    ...list,
+    bought: listItemsCounts.value[list.id]?.bought || 0, // Obtenido del nuevo estado
+    total: listItemsCounts.value[list.id]?.total || 0,   // Obtenido del nuevo estado
+    progress: listItemsCounts.value[list.id]?.total > 0 ? (listItemsCounts.value[list.id]?.bought / listItemsCounts.value[list.id]?.total) * 100 : 0,
+    tags: list.metadata?.tags || [],
+    sharedWith: [] // TODO: fetch shared users
+  }))
 })
 
 const summaryStats = computed(() => {
-  const totalLists = lists.value.length
-  const totalItems = lists.value.reduce((sum, list) => sum + list.total, 0)
-  const completedItems = lists.value.reduce((sum, list) => sum + list.bought, 0)
+  const totalLists = pagination.value.totalItems
+  const recurringLists = lists.value.filter(l => l.recurring).length
+
+  // Calcular el total de items y items completados de todas las listas visibles
+  let totalItems = 0
+  let completedItems = 0
+  let completedLists = 0
+
+  lists.value.forEach(list => {
+    const counts = listItemsCounts.value[list.id]
+    if (counts) {
+      totalItems += counts.total
+      completedItems += counts.bought
+
+      // Una lista está completada si tiene items y todos están comprados
+      if (counts.total > 0 && counts.bought === counts.total) {
+        completedLists++
+      }
+    }
+  })
+
   const pendingItems = totalItems - completedItems
-  const sharedLists = lists.value.filter(list => list.sharedWith.length > 0).length
-  const completedLists = lists.value.filter(list => list.progress === 100).length
+  const sharedLists = lists.value.filter(l =>
+    l.shared_with && Array.isArray(l.shared_with) && l.shared_with.length > 0
+  ).length
 
   return {
     totalLists,
+    completedLists,
+    recurringLists,
     totalItems,
     completedItems,
     pendingItems,
-    sharedLists,
-    completedLists
+    sharedLists
   }
 })
 
-// Métodos
-function onNewList() {
-  // Abrir modal o navegar a crear lista
-  console.log('Crear nueva lista')
+// Opciones para los selectores
+const sortOptions = [
+  { title: 'Nombre', value: 'name' },
+  { title: 'Fecha de creación', value: 'createdAt' },
+  { title: 'Última actualización', value: 'updatedAt' },
+  { title: 'Última compra', value: 'lastPurchasedAt' },
+  { title: 'Propietario', value: 'owner' }
+]
+
+const orderOptions = [
+  { title: 'Ascendente ↑', value: 'ASC' },
+  { title: 'Descendente ↓', value: 'DESC' }
+]
+
+const recurringOptions = [
+  { title: 'Todas', value: null },
+  { title: 'Recurrentes', value: true },
+  { title: 'No recurrentes', value: false }
+]
+
+// Methods
+async function fetchLists() {
+  loading.value = true
+  error.value = null
+
+  try {
+    const params = {
+      page: pagination.value.currentPage,
+      per_page: pagination.value.perPage,
+      name: searchQuery.value,
+      sort_by: filters.value.sort_by,
+      order: filters.value.order
+    }
+
+    // Only add recurring filter if it has a value
+    if (filters.value.recurring !== null && filters.value.recurring !== '') {
+      params.recurring = filters.value.recurring
+    }
+
+    if (filters.value.owner) {
+      params.owner = filters.value.owner
+    }
+
+    const response = await getShoppingLists(params)
+
+    lists.value = response.data || []
+    if (response.pagination) {
+      pagination.value = {
+        ...pagination.value,
+        ...response.pagination
+      }
+    }
+
+    // Fetch item counts for each list
+    await fetchItemCounts()
+  } catch (err) {
+    console.error('Error fetching lists:', err)
+    error.value = err.message || 'Error al cargar las listas'
+  } finally {
+    loading.value = false
+  }
 }
+
+async function fetchItemCounts() {
+  // Fetch item counts for all visible lists in parallel
+  const counts = {}
+
+  await Promise.all(
+    lists.value.map(async (list) => {
+      try {
+        const itemsResponse = await getListItems(list.id, { per_page: 1000 })
+        const items = itemsResponse.data || []
+        counts[list.id] = {
+          bought: items.filter(item => item.purchased).length,
+          total: items.length
+        }
+      } catch (err) {
+        console.error(`Error fetching items for list ${list.id}:`, err)
+        counts[list.id] = { bought: 0, total: 0 }
+      }
+    })
+  )
+
+  listItemsCounts.value = counts
+}
+
+function updateQueryParams() {
+  const query = {
+    page: pagination.value.currentPage,
+    per_page: pagination.value.perPage,
+    sort_by: filters.value.sort_by,
+    order: filters.value.order
+  }
+
+  if (searchQuery.value) {
+    query.search = searchQuery.value
+  }
+
+  if (filters.value.recurring !== null && filters.value.recurring !== '') {
+    query.recurring = filters.value.recurring
+  }
+
+  if (filters.value.owner) {
+    query.owner = filters.value.owner
+  }
+
+  router.replace({ query })
+}
+
+function applyFilters() {
+  pagination.value.currentPage = 1
+  updateQueryParams()
+  fetchLists()
+}
+
+function clearFilters() {
+  filters.value = {
+    sort_by: 'updatedAt',
+    order: 'DESC',
+    recurring: null,
+    owner: ''
+  }
+  applyFilters()
+}
+
+function onPageChange(page) {
+  pagination.value.currentPage = page
+  updateQueryParams()
+  fetchLists()
+}
+
+function openCreateDialog() {
+  newList.value = {
+    name: '',
+    description: '',
+    recurring: false
+  }
+  newListErrors.value = { name: [] }
+  createDialog.value = true
+}
+
+async function createList() {
+  // Validate
+  newListErrors.value = { name: [] }
+  if (!newList.value.name.trim()) {
+    newListErrors.value.name = ['El nombre es requerido']
+    return
+  }
+
+  creating.value = true
+  error.value = null // Clear any previous errors
+
+  try {
+    console.log('🔄 Creating list with data:', {
+      name: newList.value.name.trim(),
+      description: newList.value.description.trim(),
+      recurring: newList.value.recurring
+    })
+
+    const created = await createShoppingList({
+      name: newList.value.name.trim(),
+      description: newList.value.description.trim(),
+      recurring: newList.value.recurring
+    })
+
+    console.log('✅ List created successfully:', created)
+
+    createDialog.value = false
+    showSnackbar('Lista creada exitosamente', 'success')
+
+    // Refresh the lists to show the new one
+    await fetchLists()
+
+    // Navigate to the new list
+    router.push(`/lists/${created.id}`)
+  } catch (err) {
+    console.error('❌ Error creating list:', err)
+
+    // Better error message handling
+    let errorMessage = 'Error al crear la lista'
+
+    if (typeof err === 'object' && err !== null) {
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error
+      }
+    } else if (typeof err === 'string') {
+      errorMessage = err
+    }
+
+    error.value = errorMessage
+    showSnackbar(errorMessage, 'error')
+  } finally {
+    creating.value = false
+  }
+}
+
+function openEditDialog(list) {
+  editDialog.value = {
+    open: true,
+    form: {
+      id: list.id,
+      name: list.name,
+      description: list.description,
+      recurring: list.recurring
+    },
+    errors: { name: [] },
+    loading: false,
+    error: null
+  }
+}
+
+function closeEdit() {
+  editDialog.value.open = false
+}
+
+async function submitEdit() {
+  // Validate
+  editDialog.value.errors = { name: [] }
+  if (!editDialog.value.form.name.trim()) {
+    editDialog.value.errors.name = ['El nombre es requerido']
+    return
+  }
+
+  editDialog.value.loading = true
+  editDialog.value.error = null // Clear any previous errors
+
+  try {
+    await updateShoppingList(editDialog.value.form.id, {
+      name: editDialog.value.form.name.trim(),
+      description: editDialog.value.form.description.trim(),
+      recurring: editDialog.value.form.recurring
+    })
+
+    showSnackbar('Lista actualizada exitosamente', 'success')
+
+    // Refresh the lists
+    await fetchLists()
+
+    // Close the dialog
+    closeEdit()
+  } catch (err) {
+    console.error('❌ Error updating list:', err)
+
+    // Better error message handling
+    let errorMessage = 'Error al actualizar la lista'
+
+    if (typeof err === 'object' && err !== null) {
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error
+      }
+    } else if (typeof err === 'string') {
+      errorMessage = err
+    }
+
+    editDialog.value.error = errorMessage
+    showSnackbar(errorMessage, 'error')
+  } finally {
+    editDialog.value.loading = false
+  }
+}
+
+function openDeleteConfirm(list) {
+  deleteDialog.value = {
+    open: true,
+    target: list,
+    loading: false,
+    error: null
+  }
+}
+
+function closeDelete() {
+  deleteDialog.value.open = false
+}
+
+async function confirmDelete() {
+  deleteDialog.value.loading = true
+  deleteDialog.value.error = null // Clear any previous errors
+
+  try {
+    await deleteShoppingList(deleteDialog.value.target.id)
+
+    showSnackbar('Lista eliminada exitosamente', 'success')
+
+    // Refresh the lists
+    await fetchLists()
+
+    // Close the dialog
+    closeDelete()
+  } catch (err) {
+    console.error('❌ Error deleting list:', err)
+
+    // Better error message handling
+    let errorMessage = 'Error al eliminar la lista'
+
+    if (typeof err === 'object' && err !== null) {
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error
+      }
+    } else if (typeof err === 'string') {
+      errorMessage = err
+    }
+
+    deleteDialog.value.error = errorMessage
+    showSnackbar(errorMessage, 'error')
+  } finally {
+    deleteDialog.value.loading = false
+  }
+}
+
+function showSnackbar(message, color = 'success') {
+  snackbar.value = { show: true, message, color }
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchLists()
+})
 </script>
 
 <style scoped>
@@ -214,7 +847,54 @@ function onNewList() {
   margin-bottom: 0;
 }
 
+.filters-section {
+  border-bottom: 1px solid var(--border);
+}
+
 .carousel-section {
   margin-top: 0;
+}
+
+/* Campos de texto con bordes más redondeados */
+:deep(.filters-section .v-field) {
+  border-radius: 8px !important;
+  background-color: white;
+}
+
+/* Botones tipo píldora para filtros */
+.btn-pill {
+  border-radius: 999px !important;
+  text-transform: none;
+  font-weight: 500;
+  font-size: 0.875rem !important;
+  height: 32px !important;
+  padding: 0 16px !important;
+}
+
+.btn-pill :deep(.v-icon) {
+  font-size: 18px !important;
+}
+
+/* Botones redondeados tipo píldora */
+.btn-rounded {
+  border-radius: 999px !important;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Estilos para modales y diálogos con bordes redondeados */
+:deep(.v-dialog > .v-overlay__content > .v-card) {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-2) !important;
+}
+
+/* Campos de texto con bordes más redondeados */
+:deep(.v-dialog .v-field) {
+  border-radius: 12px !important;
+}
+
+/* Mejorar apariencia de checkboxes */
+:deep(.v-checkbox .v-selection-control) {
+  border-radius: 8px;
 }
 </style>

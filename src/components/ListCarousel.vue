@@ -20,6 +20,7 @@
               :bought="list.bought"
               :total="list.total"
               @delete="$emit('delete-list', list)"
+              @edit="$emit('edit-list', list)"
             />
           </article>
         </div>
@@ -44,7 +45,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['open-list'])
+const emit = defineEmits(['open-list', 'delete-list', 'edit-list'])
 
 /* Drag to scroll */
 const strip = ref(null)

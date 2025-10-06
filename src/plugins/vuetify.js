@@ -14,12 +14,27 @@ export default createVuetify({
     themes: {
       light: {
         colors: {
-          // Primario azul oscuro, Secundario verde, Fondo gris claro
-          primary: '#0D47A1',
+          // Verde principal (Comprartir brand)
+          primary: '#4DA851',
           secondary: '#4CAF50',
-          background: '#F5F5F5',
+          background: '#F4F6F8',
+          surface: '#F4F6F8',
         },
       },
+    },
+  },
+  defaults: {
+    VBtn: {
+      style: 'text-transform: none; font-family: "Hanken Grotesk", sans-serif;',
+    },
+    VCard: {
+      style: 'font-family: "Hanken Grotesk", sans-serif;',
+    },
+    VTextField: {
+      style: 'font-family: "Hanken Grotesk", sans-serif;',
+    },
+    VTextarea: {
+      style: 'font-family: "Hanken Grotesk", sans-serif;',
     },
   },
 });

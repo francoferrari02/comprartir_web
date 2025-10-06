@@ -3,29 +3,65 @@
     <h3 class="text-h6 font-weight-bold mb-3">Filtros & orden</h3>
     
     <!-- Selector de ordenamiento -->
-    <div class="mb-4">
+    <div class="mb-3">
       <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
         Ordenar por:
       </v-label>
       <v-select
         :model-value="sortBy"
-        @update:model-value="$emit('update:sortBy', $event)"
+        @update:model-value="$emit('update:sortBy', $event); $emit('update')"
         :items="sortOptions"
         variant="outlined"
         density="compact"
         hide-details
-        class="sort-select"
       />
     </div>
 
-    <!-- Selector de etiquetas -->
-    <div>
+    <!-- Dirección de orden -->
+    <div class="mb-3">
+      <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
+        Dirección:
+      </v-label>
+      <v-btn-toggle
+        :model-value="order"
+        @update:model-value="$emit('update:order', $event); $emit('update')"
+        mandatory
+        divided
+        density="compact"
+        class="w-100 toggle-rounded"
+      >
+        <v-btn value="ASC" size="small" class="flex-grow-1">
+          <v-icon>mdi-arrow-up</v-icon> Ascendente
+        </v-btn>
+        <v-btn value="DESC" size="small" class="flex-grow-1">
+          <v-icon>mdi-arrow-down</v-icon> Descendente
+        </v-btn>
+      </v-btn-toggle>
+    </div>
+
+    <!-- Filtro de recurrencia -->
+    <div class="mb-3">
+      <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
+        Tipo de lista:
+      </v-label>
+      <v-select
+        :model-value="recurring"
+        @update:model-value="$emit('update:recurring', $event); $emit('update')"
+        :items="recurringOptions"
+        variant="outlined"
+        density="compact"
+        hide-details
+      />
+    </div>
+
+    <!-- Selector de etiquetas (si hay disponibles) -->
+    <div v-if="availableTags && availableTags.length > 0">
       <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
         Filtrar por etiquetas:
       </v-label>
       <v-combobox
         :model-value="selectedTags"
-        @update:model-value="$emit('update:selectedTags', $event)"
+        @update:model-value="$emit('update:selectedTags', $event); $emit('update')"
         :items="availableTags"
         variant="outlined"
         density="compact"
@@ -34,7 +70,6 @@
         closable-chips
         hide-details
         placeholder="Seleccionar etiquetas..."
-        class="tags-select"
       >
         <template #chip="{ props, item }">
           <v-chip
@@ -42,44 +77,29 @@
             size="small"
             variant="tonal"
             color="primary"
-            class="tag-chip"
+            class="chip-rounded"
           >
-            {{ item.title }}
+            {{ item.title || item }}
           </v-chip>
         </template>
       </v-combobox>
-      
-      <!-- Etiquetas populares -->
-      <div class="mt-2" v-if="popularTags.length > 0">
-        <v-label class="text-caption text-medium-emphasis mb-1 d-block">
-          Etiquetas populares:
-        </v-label>
-        <div class="d-flex flex-wrap ga-1">
-          <v-chip
-            v-for="tag in popularTags"
-            :key="tag"
-            size="x-small"
-            variant="outlined"
-            color="grey"
-            class="popular-tag"
-            @click="toggleTag(tag)"
-            :class="{ 'tag-selected': selectedTags.includes(tag) }"
-          >
-            {{ tag }}
-          </v-chip>
-        </div>
-      </div>
     </div>
   </v-card>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
+defineProps({
   sortBy: {
     type: String,
-    default: 'recent'
+    default: 'updatedAt'
+  },
+  order: {
+    type: String,
+    default: 'DESC'
+  },
+  recurring: {
+    type: [String, Boolean, Object],
+    default: null
   },
   selectedTags: {
     type: Array,
@@ -91,67 +111,49 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:sortBy', 'update:selectedTags'])
+defineEmits(['update:sortBy', 'update:order', 'update:recurring', 'update:selectedTags', 'update'])
 
 const sortOptions = [
-  { title: 'Más recientes', value: 'recent' },
-  { title: 'Más completas', value: 'complete' },
-  { title: 'Alfabético', value: 'name' },
-  { title: 'Más compartidas', value: 'shared' }
+  { title: 'Nombre', value: 'name' },
+  { title: 'Fecha de creación', value: 'createdAt' },
+  { title: 'Última actualización', value: 'updatedAt' },
+  { title: 'Última compra', value: 'lastPurchasedAt' },
+  { title: 'Propietario', value: 'owner' }
 ]
 
-// Etiquetas más populares (primeras 6)
-const popularTags = computed(() => {
-  return props.availableTags.slice(0, 6)
-})
-
-function toggleTag(tag) {
-  const currentTags = [...props.selectedTags]
-  const index = currentTags.indexOf(tag)
-  
-  if (index > -1) {
-    currentTags.splice(index, 1)
-  } else {
-    currentTags.push(tag)
-  }
-  
-  emit('update:selectedTags', currentTags)
-}
+const recurringOptions = [
+  { title: 'Todas', value: null },
+  { title: 'Recurrentes', value: true },
+  { title: 'No recurrentes', value: false }
+]
 </script>
 
 <style scoped>
-.sort-select,
-.tags-select {
-  width: 100%;
+/* Campos de texto con bordes más redondeados */
+:deep(.v-field) {
+  border-radius: 12px !important;
 }
 
-.tag-chip {
-  background-color: var(--brand-50) !important;
-  color: var(--brand-700) !important;
-  border: 1px solid rgba(77,168,81,.20) !important;
+/* Chips redondeados */
+.chip-rounded {
+  border-radius: 999px !important;
 }
 
-.popular-tag {
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Button toggle más redondeado */
+.toggle-rounded {
+  border-radius: 8px !important;
+  overflow: hidden;
 }
 
-.popular-tag:hover {
-  background-color: var(--brand-50) !important;
-  color: var(--brand-700) !important;
+:deep(.toggle-rounded .v-btn) {
+  border-radius: 0 !important;
 }
 
-.popular-tag.tag-selected {
-  background-color: var(--brand) !important;
-  color: white !important;
+:deep(.toggle-rounded .v-btn:first-child) {
+  border-radius: 8px 0 0 8px !important;
 }
 
-/* Estilo para el combobox de etiquetas */
-:deep(.v-field__input) {
-  min-height: 40px;
-}
-
-:deep(.v-chip-group) {
-  gap: 4px;
+:deep(.toggle-rounded .v-btn:last-child) {
+  border-radius: 0 8px 8px 0 !important;
 }
 </style>

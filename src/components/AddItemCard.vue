@@ -1,57 +1,171 @@
 <template>
-  <v-card class="pa-4 mb-4" elevation="2">
+  <v-card class="card card--hover pa-4 mb-4">
     <v-card-title class="text-h6 font-weight-bold">Añadir productos</v-card-title>
     <v-card-text>
-      <!-- Buscador -->
+      <!-- Product name input -->
       <v-text-field
-        v-model="model"
-        prepend-inner-icon="mdi-magnify"
-        label="Buscar producto"
+        v-model="itemName"
+        prepend-inner-icon="mdi-cart-plus"
+        label="Nombre del producto"
         variant="outlined"
         density="comfortable"
-        hide-details
+        hide-details="auto"
         clearable
-        class="mb-2"
+        class="mb-3"
+        @keyup.enter="addProduct"
       />
-      <!-- Sugerencias -->
-      <div v-if="model && suggestions.length">
-        <div class="text-caption mb-1">Sugerencias</div>
-        <v-list density="compact">
-          <v-list-item v-for="s in suggestions" :key="s" class="d-flex align-center">
-            <span class="flex-grow-1">{{ s }}</span>
-            <v-btn color="secondary" size="small" variant="flat" @click="$emit('add-item', s)">
-              <v-icon left>mdi-plus</v-icon> Añadir
-            </v-btn>
-          </v-list-item>
-        </v-list>
+
+      <!-- Quantity and unit -->
+      <div class="d-flex gap-2 mb-3">
+        <v-text-field
+          v-model.number="quantity"
+          type="number"
+          label="Cantidad"
+          variant="outlined"
+          density="comfortable"
+          hide-details
+          min="1"
+          style="max-width: 100px"
+        />
+        <v-select
+          v-model="unit"
+          :items="units"
+          label="Unidad"
+          variant="outlined"
+          density="comfortable"
+          hide-details
+        />
       </div>
-      <!-- Recomendados -->
-      <div v-else-if="recommended.length">
-        <div class="text-caption mb-1">Recomendados</div>
-        <v-list density="compact">
-          <v-list-item v-for="r in recommended" :key="r" class="d-flex align-center">
-            <span class="flex-grow-1">{{ r }}</span>
-            <v-btn color="secondary" size="small" variant="flat" @click="$emit('add-item', r)">
-              <v-icon left>mdi-plus</v-icon> Añadir
-            </v-btn>
-          </v-list-item>
-        </v-list>
+
+      <!-- Add button -->
+      <v-btn
+        block
+        color="primary"
+        variant="flat"
+        prepend-icon="mdi-plus"
+        class="btn-rounded"
+        :disabled="!itemName || !itemName.trim()"
+        :loading="loading"
+        @click="addProduct"
+      >
+        Añadir producto
+      </v-btn>
+
+      <!-- Suggestions -->
+      <div v-if="suggestions && suggestions.length" class="mt-4">
+        <div class="text-caption text-medium-emphasis mb-2">Sugerencias</div>
+        <v-chip
+          v-for="s in suggestions"
+          :key="s"
+          class="ma-1 chip-rounded"
+          size="small"
+          variant="outlined"
+          @click="quickAdd(s)"
+        >
+          <v-icon start size="small">mdi-plus-circle-outline</v-icon>
+          {{ s }}
+        </v-chip>
       </div>
-      <div v-else class="text-medium-emphasis text-caption">No hay sugerencias.</div>
+
+      <!-- Recommended -->
+      <div v-else-if="recommended && recommended.length" class="mt-4">
+        <div class="text-caption text-medium-emphasis mb-2">Recomendados</div>
+        <v-chip
+          v-for="r in recommended"
+          :key="r"
+          class="ma-1 chip-rounded"
+          size="small"
+          variant="outlined"
+          @click="quickAdd(r)"
+        >
+          <v-icon start size="small">mdi-plus-circle-outline</v-icon>
+          {{ r }}
+        </v-chip>
+      </div>
     </v-card-text>
   </v-card>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref } from 'vue'
+
 const props = defineProps({
-  modelValue: String,
-  suggestions: Array,
-  recommended: Array
+  modelValue: {
+    type: String,
+    default: ''
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  suggestions: {
+    type: Array,
+    default: () => []
+  },
+  recommended: {
+    type: Array,
+    default: () => ['Leche', 'Pan', 'Huevos', 'Arroz', 'Aceite']
+  }
 })
+
 const emit = defineEmits(['update:modelValue', 'add-item'])
-const model = computed({
-  get: () => props.modelValue ?? '',
-  set: v => emit('update:modelValue', v)
-})
+
+const itemName = ref(props.modelValue)
+const quantity = ref(1)
+const unit = ref('unidad')
+
+const units = [
+  'unidad',
+  'kg',
+  'gramos',
+  'litros',
+  'ml',
+  'paquete',
+  'caja',
+  'bolsa',
+  'docena'
+]
+
+function addProduct() {
+  if (!itemName.value || !itemName.value.trim()) return
+
+  emit('add-item', {
+    name: itemName.value.trim(),
+    quantity: quantity.value,
+    unit: unit.value
+  })
+
+  // Reset form
+  itemName.value = ''
+  quantity.value = 1
+  unit.value = 'unidad'
+}
+
+function quickAdd(productName) {
+  itemName.value = productName
+  addProduct()
+}
 </script>
+
+<style scoped>
+.gap-2 {
+  gap: 8px;
+}
+
+/* Botones redondeados */
+.btn-rounded {
+  border-radius: 999px !important;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Chips redondeados */
+.chip-rounded {
+  border-radius: 999px !important;
+}
+
+/* Campos de texto con bordes más redondeados */
+:deep(.v-field) {
+  border-radius: 12px !important;
+}
+</style>

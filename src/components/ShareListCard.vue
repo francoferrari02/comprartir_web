@@ -1,34 +1,159 @@
 <template>
-  <v-card class="pa-4" elevation="2">
-    <v-card-title class="text-h6 font-weight-bold">Compartir lista</v-card-title>
+  <v-card class="card card--hover pa-4">
+    <v-card-title class="text-h6 font-weight-bold d-flex align-center">
+      <v-icon class="mr-2">mdi-share-variant</v-icon>
+      Compartir lista
+    </v-card-title>
     <v-card-text>
-      <div class="mb-2">Agrega colaboradores en segundos</div>
-      <!-- Buscador de usuario -->
-      <v-text-field
-        v-model="userQuery"
-        prepend-inner-icon="mdi-account-search"
-        label="Buscar usuario (mail o nombre)"
-        variant="outlined"
-        density="comfortable"
-        hide-details
-        clearable
-        class="mb-2"
-      />
-      <!-- Acciones rápidas -->
-      <v-btn block color="primary" variant="tonal" prepend-icon="mdi-link-variant" class="mb-2" @click="copyLink">
+      <!-- Share by email -->
+      <div class="mb-4">
+        <v-text-field
+          v-model="email"
+          prepend-inner-icon="mdi-email"
+          label="Email del usuario"
+          variant="outlined"
+          density="comfortable"
+          hide-details="auto"
+          clearable
+          :error-messages="emailError"
+          @keyup.enter="shareWithUser"
+        />
+        <v-btn
+          block
+          color="primary"
+          variant="flat"
+          prepend-icon="mdi-account-plus"
+          class="mt-2 btn-rounded"
+          :disabled="!email || !email.trim()"
+          :loading="loading"
+          @click="shareWithUser"
+        >
+          Compartir
+        </v-btn>
+      </div>
+
+      <!-- Copy link -->
+      <v-btn
+        block
+        color="secondary"
+        variant="tonal"
+        prepend-icon="mdi-link-variant"
+        class="mb-4 btn-rounded"
+        @click="copyLink"
+      >
         Copiar enlace
       </v-btn>
-      <v-btn block color="secondary" variant="tonal" prepend-icon="mdi-account-plus">
-        Invitar por email
-      </v-btn>
+
+      <!-- Shared users list -->
+      <div v-if="sharedUsers && sharedUsers.length > 0">
+        <v-divider class="mb-3" />
+        <div class="text-subtitle-2 mb-2">
+          Compartida con ({{ sharedUsers.length }})
+        </div>
+        <v-list density="compact" class="pa-0">
+          <v-list-item
+            v-for="user in sharedUsers"
+            :key="user.id"
+            class="px-0 mb-1"
+          >
+            <template #prepend>
+              <v-avatar color="primary" size="32">
+                <v-icon size="small">mdi-account</v-icon>
+              </v-avatar>
+            </template>
+            <v-list-item-title>{{ user.name || user.email }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">
+              {{ user.email }}
+            </v-list-item-subtitle>
+            <template #append>
+              <v-btn
+                icon="mdi-close"
+                size="x-small"
+                variant="text"
+                color="error"
+                class="icon-btn-rounded"
+                :loading="loading"
+                @click="revokeAccess(user.userId)"
+              />
+            </template>
+          </v-list-item>
+        </v-list>
+      </div>
+      <div v-else class="text-caption text-medium-emphasis text-center py-2">
+        Aún no has compartido esta lista
+      </div>
     </v-card-text>
   </v-card>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-const userQuery = ref('')
+
+const props = defineProps({
+  listId: {
+    type: Number,
+    required: true
+  },
+  sharedUsers: {
+    type: Array,
+    default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['share', 'revoke'])
+
+const email = ref('')
+const emailError = ref('')
+
+function shareWithUser() {
+  if (!email.value || !email.value.trim()) return
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value.trim())) {
+    emailError.value = 'Email inválido'
+    return
+  }
+
+  emailError.value = ''
+  emit('share', email.value.trim())
+  email.value = ''
+}
+
+function revokeAccess(userId) {
+  emit('revoke', userId)
+}
+
 function copyLink() {
-  navigator.clipboard.writeText(window.location.href)
+  const url = window.location.href
+  navigator.clipboard.writeText(url).then(() => {
+    // Could emit an event to show a snackbar
+    console.log('Link copiado al portapapeles')
+  }).catch(err => {
+    console.error('Error copiando link:', err)
+  })
 }
 </script>
+
+<style scoped>
+/* Botones redondeados */
+.btn-rounded {
+  border-radius: 999px !important;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Botones de icono redondeados */
+.icon-btn-rounded {
+  border-radius: 50% !important;
+}
+
+/* Campos de texto con bordes más redondeados */
+:deep(.v-field) {
+  border-radius: 12px !important;
+}
+</style>

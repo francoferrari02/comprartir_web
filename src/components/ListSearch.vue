@@ -4,7 +4,7 @@
       <h2 class="text-h5 font-weight-bold">Todas las listas</h2>
     </div>
     
-    <div class="d-flex align-center ga-3">
+    <div class="d-flex align-center ga-3 flex-nowrap">
       <!-- Buscador personalizado -->
       <div class="search-field custom-search">
         <div class="search-input-wrapper">
@@ -54,7 +54,7 @@ defineEmits(['update:modelValue', 'new-list'])
 <style scoped>
 .search-field {
   flex: 1;
-  max-width: 500px;
+  min-width: 0;
 }
 
 .custom-search {
@@ -69,23 +69,25 @@ defineEmits(['update:modelValue', 'new-list'])
   border: 1px solid #E5E7EB;
   border-radius: 50px;
   padding: 0 16px;
-  height: 48px;
+  height: 44px;
   transition: all 0.2s ease;
 }
 
 .search-input-wrapper:focus-within {
   border-color: var(--brand);
-  box-shadow: 0 0 0 2px rgba(77, 168, 81, 0.1);
+  box-shadow: 0 0 0 3px rgba(77, 168, 81, 0.1);
 }
 
 .search-icon {
   color: #9CA3AF;
   margin-right: 8px;
   font-size: 20px;
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -104,6 +106,7 @@ defineEmits(['update:modelValue', 'new-list'])
   font-size: 18px;
   cursor: pointer;
   transition: color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .clear-icon:hover {
@@ -112,7 +115,9 @@ defineEmits(['update:modelValue', 'new-list'])
 
 .new-list-btn {
   flex-shrink: 0;
-  min-width: 140px;
+  height: 44px;
+  padding: 0 24px !important;
+  white-space: nowrap;
 }
 
 /* Botón verde con hover más oscuro */
@@ -126,18 +131,18 @@ defineEmits(['update:modelValue', 'new-list'])
   background-color: var(--brand-700) !important;
 }
 
-@media (max-width: 600px) {
-  .d-flex {
-    flex-direction: column;
-    align-items: stretch !important;
+@media (max-width: 768px) {
+  .d-flex.align-center.ga-3 {
+    flex-wrap: wrap;
   }
   
   .search-field {
-    max-width: none;
+    flex: 1 1 100%;
+    margin-bottom: 8px;
   }
   
   .new-list-btn {
-    min-width: auto;
+    flex: 1 1 100%;
   }
 }
 </style>

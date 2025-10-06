@@ -36,7 +36,7 @@
 .card--hover { transition: transform .15s ease, box-shadow .15s ease; }
 .card--hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-2) !important; }
 
-.btn-rounded { border-radius: 999px !important; }
+.btn-rounded { border-radius: 999px !important; text-transform: none; font-weight: 500; }
 
 /* ===========================
    Botones sólidos (global)
@@ -77,4 +77,56 @@
 .btn-solid-primary:hover,
 .btn-solid-primary:focus-visible {
     background-color: var(--btn-bg-hover) !important;
+}
+
+/* ===========================
+   Estilos globales para modales y menús
+   =========================== */
+
+/* Modales/Diálogos con bordes redondeados */
+.v-dialog > .v-overlay__content > .v-card,
+.v-dialog .v-card {
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-2) !important;
+}
+
+/* Menús desplegables redondeados */
+.v-menu > .v-overlay__content > .v-list,
+.v-list {
+    border-radius: 12px !important;
+}
+
+/* Campos de texto con bordes más redondeados */
+.v-field {
+    border-radius: 12px !important;
+}
+
+/* Chips redondeados */
+.v-chip {
+    border-radius: 999px !important;
+}
+
+/* Botones de iconos redondeados */
+.v-btn--icon {
+    border-radius: 50% !important;
+}
+
+/* Snackbars redondeados */
+.v-snackbar .v-snackbar__wrapper {
+    border-radius: 12px !important;
+}
+
+/* Alerts redondeados */
+.v-alert {
+    border-radius: 12px !important;
+}
+
+/* Pagination con botones redondeados */
+.v-pagination .v-btn {
+    border-radius: 8px !important;
+}
+
+/* Progress bar redondeada */
+.v-progress-linear {
+    border-radius: 999px !important;
 }

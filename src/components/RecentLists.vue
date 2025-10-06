@@ -4,12 +4,22 @@
     <div class="inner">
       <div class="d-flex align-center justify-space-between section-head">
         <div class="text-subtitle-1 font-weight-bold px-10">Tus listas recientes</div>
-        <v-btn variant="text" class="btn-rounded pe-10" size="small" to="/listas">Ver todas</v-btn>
+        <v-btn variant="text" class="btn-rounded pe-10" size="small" to="/lists">Ver todas</v-btn>
+      </div>
 
+      <!-- Loading state -->
+      <div v-if="loading" class="text-center py-8">
+        <v-progress-circular indeterminate color="primary" size="40" />
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="items.length === 0" class="text-center py-8 px-4">
+        <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-clipboard-list-outline</v-icon>
+        <p class="text-body-2 text-medium-emphasis">No hay listas recientes</p>
       </div>
 
       <!-- WRAP con fades a ambos lados -->
-      <div class="hs-wrap">
+      <div v-else class="hs-wrap">
         <!-- STRIP HORIZONTAL: centrado, con padding interno (oculto por los fades) -->
         <div
             ref="strip"
@@ -20,8 +30,8 @@
             @mouseleave="onUp"
             @wheel.passive="onWheel"
         >
-          <article v-for="it in items" :key="it.name" class="card-item">
-            <v-card class="pa-4 card">
+          <article v-for="it in items" :key="it.id" class="card-item" @click="goToList(it.id)">
+            <v-card class="pa-4 card" style="cursor: pointer;">
               <div class="d-flex justify-space-between align-start mb-1">
                 <div class="text-subtitle-1 font-weight-medium">{{ it.name }}</div>
                 <v-chip size="small" variant="tonal" color="primary" class="status-chip">
@@ -52,21 +62,83 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useTheme } from 'vuetify'
+import { useRouter } from 'vue-router'
+import { getShoppingLists, getListItems } from '@/services/lists'
 
 const theme = useTheme()
+const router = useRouter()
 const primaryBg = computed(() => theme.current.value.colors?.primaryBg || '#E9F7F0')
 
-// DEMO: cambiá por tus datos
-const items = [
-  { name: 'Supermercado - Semana', bought: 3, total: 8 },
-  { name: 'Verdulería',            bought: 2, total: 5 },
-  { name: 'Farmacia',              bought: 1, total: 3 },
-  { name: 'Cumple Emma',           bought: 4, total: 7 },
-  { name: 'Ferretería',            bought: 0, total: 4 },
-]
-const pct = (it) => Math.round((it.bought / it.total) * 100)
+const items = ref([])
+const loading = ref(false)
+
+const pct = (it) => it.total > 0 ? Math.round((it.bought / it.total) * 100) : 0
+
+// Fetch recent lists (created in last 7 days)
+async function fetchRecentLists() {
+  loading.value = true
+  try {
+    // Get lists sorted by creation date (most recent first)
+    const response = await getShoppingLists({
+      sort_by: 'createdAt',
+      order: 'DESC',
+      per_page: 10
+    })
+
+    const lists = response.data || []
+
+    // Filter lists created in the last 7 days
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+
+    const recentLists = lists.filter(list => {
+      const createdDate = new Date(list.createdAt)
+      return createdDate >= oneWeekAgo
+    })
+
+    // Fetch item counts for each list
+    const listsWithCounts = await Promise.all(
+      recentLists.map(async (list) => {
+        try {
+          const itemsResponse = await getListItems(list.id, { per_page: 1000 })
+          const listItems = itemsResponse.data || []
+          const bought = listItems.filter(item => item.purchased).length
+          const total = listItems.length
+
+          return {
+            id: list.id,
+            name: list.name,
+            bought,
+            total,
+            createdAt: list.createdAt
+          }
+        } catch (err) {
+          console.error(`Error fetching items for list ${list.id}:`, err)
+          return {
+            id: list.id,
+            name: list.name,
+            bought: 0,
+            total: 0,
+            createdAt: list.createdAt
+          }
+        }
+      })
+    )
+
+    items.value = listsWithCounts
+  } catch (err) {
+    console.error('Error fetching recent lists:', err)
+    items.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function goToList(id) {
+  router.push(`/lists/${id}`)
+}
 
 /* Drag to scroll */
 const strip = ref(null)
@@ -76,6 +148,10 @@ function onMove(e){ if(!isDown) return; strip.value.scrollLeft = startLeft - (e.
 function onUp(){ isDown = false; strip.value?.classList.remove('grabbing') }
 /* rueda vertical -> scroll horizontal */
 function onWheel(e){ if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) strip.value.scrollLeft += e.deltaY }
+
+onMounted(() => {
+  fetchRecentLists()
+})
 </script>
 
 <style scoped>
