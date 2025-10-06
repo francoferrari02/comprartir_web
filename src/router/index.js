@@ -11,10 +11,14 @@ const Notifications = () => import('../views/Notifications.vue')
 const Login         = () => import('../views/Login.vue')
 const Register      = () => import('../views/Register.vue')
 const ResetPassword = () => import('../views/ResetPassword.vue')
+const ListDetail    = () => import('../views/ListDetail.vue')
+const Categories    = () => import('../views/Categories.vue')
 
 const routes = [
     { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio' } },
     { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas' } },
+    { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista' } },
+    { path: '/categories',    name: 'categories',    component: Categories,    meta: { title: 'Categorías' } },
     { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial' } },
     { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias' } },
     { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil' } },

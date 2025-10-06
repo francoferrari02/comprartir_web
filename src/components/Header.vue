@@ -1,6 +1,6 @@
 <template>
-  <v-app-bar app color="white" elevation="1" density="comfortable" class="border-b">
-    <div class="appbar-shell">
+  <v-app-bar app color="white" elevation="1" height="64" density="comfortable" class="border-b header-fix">
+    <div class="appbar-shell header-content-fix">
       <!-- Logo como link (no queda "presionado") -->
       <router-link to="/" class="brand-link" aria-label="Inicio">
         <v-img :src="logoSrc" alt="Comprartir" width="40" class="mr-3" />
@@ -105,17 +105,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { isLoggedIn, logout, getProfile } from '@/services/auth'
 import logoSrc from '../assets/Logo_Comprartir-removebg.png'
+
+// Recibe el estado global de autenticación desde App.vue
+const isAuthenticated = inject('isAuthenticated', ref(false))
 
 const router = useRouter()
 const route = useRoute()
-
-// Estado de autenticación
-const isAuthenticated = ref(false)
-const userEmail = ref('')
 
 // Notificaciones (demo)
 const notifications = ref([
@@ -125,51 +123,13 @@ const notifications = ref([
 ])
 const unreadCount = computed(() => notifications.value.length)
 
-// Verificar estado de autenticación
-function checkAuthState() {
-  isAuthenticated.value = isLoggedIn()
-  
-  if (isAuthenticated.value) {
-    loadUserProfile()
-  } else {
-    userEmail.value = ''
-  }
+const userEmail = ref('')
+
+function handleLogout() {
+  isAuthenticated.value = false
+  userEmail.value = ''
+  router.push('/login')
 }
-
-// Cargar perfil del usuario
-async function loadUserProfile() {
-  try {
-    const profile = await getProfile()
-    userEmail.value = profile.email
-  } catch (error) {
-    console.error('Error loading user profile:', error)
-    // Si hay error al cargar el perfil, probablemente el token sea inválido
-    handleLogout()
-  }
-}
-
-// Manejar logout
-async function handleLogout() {
-  try {
-    await logout()
-  } catch (error) {
-    console.error('Error during logout:', error)
-  } finally {
-    isAuthenticated.value = false
-    userEmail.value = ''
-    router.push('/login')
-  }
-}
-
-// Verificar autenticación al montar el componente
-onMounted(() => {
-  checkAuthState()
-})
-
-// Observar cambios en la ruta para actualizar el estado de auth
-watch(route, () => {
-  checkAuthState()
-}, { immediate: false })
 </script>
 
 <style scoped>
@@ -179,16 +139,43 @@ watch(route, () => {
   border-bottom-right-radius: 16px;
 }
 
+.header-fix {
+  min-height: 64px !important;
+  z-index: 1002 !important;
+  overflow: visible !important;
+}
+
+.header-content-fix {
+  align-items: center !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 56px !important;
+  height: 100%;
+  width: 100%;
+  overflow: visible !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.appbar-shell{
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  gap: 12px;
+  width: 100%;
+}
+
 /* Layout: brand | nav | notif */
 .appbar-shell{
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 8px 16px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-height: 48px;
 }
 
 /* Logo como link neutro */

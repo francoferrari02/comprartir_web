@@ -14,93 +14,13 @@
           @wheel.passive="onWheel"
         >
           <article v-for="list in lists" :key="list.id" class="card-item">
-            <v-card class="pa-5 card list-card" elevation="2">
-              <!-- Header con nombre y estado -->
-              <div class="d-flex justify-space-between align-start mb-3">
-                <div class="list-header">
-                  <h3 class="text-h6 font-weight-bold mb-1">{{ list.name }}</h3>
-                  <p class="text-body-2 text-medium-emphasis mb-2">{{ list.description }}</p>
-                </div>
-                <v-chip 
-                  size="small" 
-                  variant="tonal" 
-                  color="primary" 
-                  class="status-chip"
-                >
-                  {{ list.bought }}/{{ list.total }}
-                </v-chip>
-              </div>
-
-              <!-- Progreso -->
-              <div class="mb-4">
-                <div class="d-flex justify-space-between align-center mb-2">
-                  <span class="text-caption text-medium-emphasis">
-                    {{ list.bought }}/{{ list.total }} comprados
-                  </span>
-                  <span class="text-caption font-weight-medium">
-                    {{ Math.round(list.progress) }}%
-                  </span>
-                </div>
-                <v-progress-linear
-                  :model-value="list.progress"
-                  height="8"
-                  color="primary"
-                  :track-color="primaryBg"
-                  rounded
-                />
-              </div>
-
-              <!-- Etiquetas -->
-              <div class="mb-4" v-if="list.tags.length > 0">
-                <div class="d-flex flex-wrap ga-1">
-                  <v-chip
-                    v-for="tag in list.tags.slice(0, 3)"
-                    :key="tag"
-                    size="x-small"
-                    variant="outlined"
-                    color="grey"
-                    class="tag-chip"
-                  >
-                    {{ tag }}
-                  </v-chip>
-                  <v-chip
-                    v-if="list.tags.length > 3"
-                    size="x-small"
-                    variant="outlined"
-                    color="grey"
-                    class="tag-chip"
-                  >
-                    +{{ list.tags.length - 3 }}
-                  </v-chip>
-                </div>
-              </div>
-
-              <!-- Compartido con -->
-              <div class="mb-4" v-if="list.sharedWith.length > 0">
-                <div class="d-flex align-center ga-2">
-                  <v-icon size="small" color="primary">mdi-account-multiple</v-icon>
-                  <span class="text-caption text-medium-emphasis">
-                    Compartido con {{ list.sharedWith.length }} persona{{ list.sharedWith.length > 1 ? 's' : '' }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Footer con fecha -->
-              <div class="d-flex justify-space-between align-center">
-                <span class="text-caption text-medium-emphasis">
-                  {{ formatDate(list.lastModified) }}
-                </span>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  class="btn-rounded"
-                  @click="openList(list)"
-                >
-                  Abrir
-                </v-btn>
-              </div>
-            </v-card>
+            <ListItem
+              :id="list.id"
+              :name="list.name"
+              :bought="list.bought"
+              :total="list.total"
+              @delete="$emit('delete-list', list)"
+            />
           </article>
         </div>
       </div>
@@ -109,8 +29,10 @@
 </template>
 
 <script setup>
+
 import { ref, computed } from 'vue'
 import { useTheme } from 'vuetify'
+import ListItem from './ListItem.vue'
 
 const theme = useTheme()
 const primaryBg = computed(() => theme.current.value.colors?.primaryBg || '#E9F7F0')

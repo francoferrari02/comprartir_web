@@ -12,7 +12,15 @@
 
     <!-- Botonera: wrap correcto + gap -->
     <div class="d-flex flex-wrap ga-2 mt-4">
-      <v-btn size="small" variant="flat" prepend-icon="mdi-open-in-new">Abrir</v-btn>
+      <v-btn
+        size="small"
+        variant="flat"
+        prepend-icon="mdi-open-in-new"
+        :to="`/lists/${id}`"
+        tag="router-link"
+      >
+        Abrir
+      </v-btn>
       <v-btn size="small" variant="outlined" prepend-icon="mdi-pencil">Editar</v-btn>
       <v-btn
           size="small"
@@ -32,6 +40,7 @@
 import { computed } from 'vue'
 
 const props = defineProps({
+  id: { type: [String, Number], required: true },
   name: { type: String, required: true },
   bought: { type: Number, required: true },
   total: { type: Number, required: true },
