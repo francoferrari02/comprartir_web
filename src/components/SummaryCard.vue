@@ -1,146 +1,104 @@
 <template>
-  <v-card class="pa-4">
-    <h3 class="text-h6 font-weight-bold mb-3">Resumen</h3>
-    
-    <!-- Grid de métricas en dos columnas -->
-    <div class="metrics-grid">
-      <div 
-        v-for="metric in metrics" 
-        :key="metric.key"
-        class="metric-item"
-        @click="onMetricClick(metric)"
-      >
-        <div class="metric-content">
-          <div class="metric-label">{{ metric.label }}</div>
-          <div class="metric-number">{{ metric.value }}</div>
+  <v-card>
+    <v-card-title class="text-h6 pa-4">
+      <v-icon class="mr-2">mdi-chart-box-outline</v-icon>
+      Resumen
+    </v-card-title>
+    <v-divider />
+    <v-card-text class="pa-4">
+      <div v-if="loading" class="text-center py-4">
+        <v-progress-circular indeterminate size="32" />
+      </div>
+      <div v-else>
+        <!-- Sub-tarjeta de Listas -->
+        <div class="summary-sub-card mb-3">
+          <div class="sub-card-header mb-2">
+            <v-icon size="small" class="mr-1" color="primary">mdi-clipboard-list-outline</v-icon>
+            <span class="text-subtitle-2 font-weight-bold">Listas</span>
+          </div>
+          <div class="stat-item mb-2">
+            <div class="d-flex align-center justify-space-between">
+              <span class="text-body-2">Total de listas</span>
+              <span class="text-h6 font-weight-bold">{{ stats.totalLists }}</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="d-flex align-center justify-space-between">
+              <span class="text-body-2">Listas completadas</span>
+              <span class="text-h6 font-weight-bold text-success">{{ stats.completedLists }}</span>
+            </div>
+          </div>
+        </div>
+
+        <v-divider class="my-3" />
+
+        <!-- Sub-tarjeta de Items -->
+        <div class="summary-sub-card">
+          <div class="sub-card-header mb-2">
+            <v-icon size="small" class="mr-1" color="primary">mdi-cart-outline</v-icon>
+            <span class="text-subtitle-2 font-weight-bold">Items</span>
+          </div>
+          <div class="stat-item mb-2">
+            <div class="d-flex align-center justify-space-between">
+              <span class="text-body-2">Total de items</span>
+              <span class="text-h6 font-weight-bold">{{ stats.totalItems }}</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="d-flex align-center justify-space-between">
+              <span class="text-body-2">Items comprados</span>
+              <span class="text-h6 font-weight-bold text-success">{{ stats.completedItems }}</span>
+            </div>
+          </div>
+        </div>
+
+        <v-divider class="my-3" />
+
+        <!-- Estadística adicional -->
+        <div class="stat-item">
+          <div class="d-flex align-center justify-space-between">
+            <span class="text-body-2">Listas compartidas</span>
+            <span class="text-h6 font-weight-bold">{{ stats.sharedLists }}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </v-card-text>
   </v-card>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
+defineProps({
   stats: {
     type: Object,
     default: () => ({
       totalLists: 0,
+      completedLists: 0,
       totalItems: 0,
       completedItems: 0,
-      pendingItems: 0,
-      sharedLists: 0,
-      completedLists: 0
+      sharedLists: 0
     })
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
-
-const emit = defineEmits(['metric-click'])
-
-const metrics = computed(() => [
-  {
-    key: 'totalLists',
-    label: 'Listas',
-    value: props.stats.totalLists,
-    filter: 'all'
-  },
-  {
-    key: 'completedLists',
-    label: 'Completadas',
-    value: props.stats.completedLists,
-    filter: 'completed'
-  },
-  {
-    key: 'totalItems',
-    label: 'Items',
-    value: props.stats.totalItems,
-    filter: 'all'
-  },
-  {
-    key: 'completedItems',
-    label: 'Completados',
-    value: props.stats.completedItems,
-    filter: 'completed'
-  },
-  {
-    key: 'pendingItems',
-    label: 'Pendientes',
-    value: props.stats.pendingItems,
-    filter: 'pending'
-  },
-  {
-    key: 'sharedLists',
-    label: 'Compartidas',
-    value: props.stats.sharedLists,
-    filter: 'shared'
-  }
-])
-
-function onMetricClick(metric) {
-  emit('metric-click', metric)
-}
 </script>
 
 <style scoped>
-.metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.metric-item {
-  background-color: #F5F5F5;
+.summary-sub-card {
+  background-color: #f5f5f5;
   border-radius: 8px;
-  padding: 12px 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.metric-item:hover {
-  background-color: #EEEEEE;
-  border-color: var(--brand-50);
-  transform: translateY(-1px);
+.sub-card-header {
+  display: flex;
+  align-items: center;
 }
 
-.metric-content {
-  text-align: center;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  color: #000;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.metric-number {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #000;
-  line-height: 1.2;
-}
-
-/* Responsive: en móvil, una sola columna */
-@media (max-width: 600px) {
-  .metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  
-  .metric-item {
-    padding: 10px 6px;
-  }
-  
-  .metric-number {
-    font-size: 1.1rem;
-  }
-  
-  .metric-label {
-    font-size: 0.7rem;
-  }
+.stat-item {
+  padding: 4px 0;
 }
 </style>

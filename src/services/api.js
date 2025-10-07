@@ -1,8 +1,7 @@
 import axios from 'axios'
-import { mockApiResponses, delay } from './mockData'
 
 // 🔧 Toggle this to switch between mock and real API
-const USE_MOCK_API = true // Set to false when API is ready
+const USE_MOCK_API = false // Set to false when API is ready - currently using service-specific mocks
 
 // Base API URL - change this to your actual API URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -83,10 +82,6 @@ export const categoriesApi = {
    * @returns {Promise} Array of categories with pagination info
    */
   async getAll(params = {}) {
-    if (USE_MOCK_API) {
-      await delay(300) // Simulate network delay
-      return { data: mockApiResponses.getAll(params) }
-    }
     return apiClient.get('/categories', { params })
   },
 
@@ -96,10 +91,6 @@ export const categoriesApi = {
    * @returns {Promise} Category object
    */
   async getById(categoryId) {
-    if (USE_MOCK_API) {
-      await delay(300)
-      return { data: mockApiResponses.getById(categoryId) }
-    }
     return apiClient.get(`/categories/${categoryId}`)
   },
 
@@ -111,10 +102,6 @@ export const categoriesApi = {
    * @returns {Promise} Created category object
    */
   async create(data) {
-    if (USE_MOCK_API) {
-      await delay(500)
-      return { data: mockApiResponses.create(data) }
-    }
     return apiClient.post('/categories', data)
   },
 
@@ -127,10 +114,6 @@ export const categoriesApi = {
    * @returns {Promise} Updated category object
    */
   async update(id, data) {
-    if (USE_MOCK_API) {
-      await delay(500)
-      return { data: mockApiResponses.update(id, data) }
-    }
     return apiClient.put(`/categories/${id}`, data)
   },
 
@@ -140,10 +123,6 @@ export const categoriesApi = {
    * @returns {Promise} Deletion confirmation
    */
   async delete(id) {
-    if (USE_MOCK_API) {
-      await delay(300)
-      return { data: mockApiResponses.delete(id) }
-    }
     return apiClient.delete(`/categories/${id}`)
   },
 }

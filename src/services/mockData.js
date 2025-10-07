@@ -1,618 +1,570 @@
-// Mock data for testing without real API
-export const mockCategories = [
-  {
-    id: 1,
-    name: 'Supermercado',
-    metadata: { color: 'green', icon: 'cart' },
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z',
-  },
-  {
-    id: 2,
-    name: 'Farmacia',
-    metadata: { color: 'red', icon: 'medical' },
-    createdAt: '2024-01-14T09:20:00Z',
-    updatedAt: '2024-01-16T14:45:00Z',
-  },
-  {
-    id: 3,
-    name: 'Verdulería',
-    metadata: { color: 'orange', icon: 'carrot' },
-    createdAt: '2024-01-13T08:15:00Z',
-    updatedAt: '2024-01-13T08:15:00Z',
-  },
-  {
-    id: 4,
-    name: 'Ferretería',
-    metadata: { color: 'gray', icon: 'tools' },
-    createdAt: '2024-01-12T11:00:00Z',
-    updatedAt: '2024-01-14T16:30:00Z',
-  },
-  {
-    id: 5,
-    name: 'Librería',
-    metadata: { color: 'blue', icon: 'book' },
-    createdAt: '2024-01-11T13:45:00Z',
-    updatedAt: '2024-01-11T13:45:00Z',
-  },
-]
+// mockData.js
+// Mocks coherentes con los servicios de lists.js y los futuros de pantries.js
+// Usa: if (import.meta.env.VITE_USE_MOCKS === 'true') delegá a estos mocks.
+// Todos los listados devuelven: { data, pagination }.
+// Todos los métodos son síncronos; agregá await delay(ms) desde el servicio para simular red.
 
-// Mock API delay
-export const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms))
+export const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
 
-// Mock responses
-export const mockApiResponses = {
-  getAll: (params = {}) => {
-    const { page = 1, per_page = 10, name = '', sortBy = 'createdAt', order = 'ASC' } = params
-    
-    // Filter by name
-    let filtered = name 
-      ? mockCategories.filter(cat => cat.name.toLowerCase().includes(name.toLowerCase()))
-      : [...mockCategories]
-    
-    // Sort
-    filtered.sort((a, b) => {
-      const aVal = a[sortBy]
-      const bVal = b[sortBy]
-      if (order === 'ASC') {
-        return aVal > bVal ? 1 : -1
-      } else {
-        return aVal < bVal ? 1 : -1
-      }
-    })
-    
-    // Paginate
-    const start = (page - 1) * per_page
-    const end = start + per_page
-    const paginated = filtered.slice(start, end)
-    
+/* ----------------------------- utils helpers ----------------------------- */
+
+function nowISO() {
+    return new Date().toISOString();
+}
+
+function cmp(a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+}
+
+function paginateAndSort(array, {
+    page = 1,
+    per_page = 10,
+    sort_by = 'createdAt',
+    order = 'DESC',
+} = {}) {
+    const data = [...array];
+
+    // sort
+    data.sort((x, y) => {
+        const dir = (order === 'DESC' || order === 'desc') ? -1 : 1;
+        const xv = x?.[sort_by];
+        const yv = y?.[sort_by];
+        return dir * cmp(xv ?? '', yv ?? '');
+    });
+
+    // paginate
+    const p = Number(page) || 1;
+    const pp = Number(per_page) || 10;
+    const start = (p - 1) * pp;
+    const end = start + pp;
+    const slice = data.slice(start, end);
+
     return {
-      data: paginated,
-      pagination: {
-        currentPage: page,
-        perPage: per_page,
-        totalPages: Math.ceil(filtered.length / per_page),
-        totalItems: filtered.length,
-      }
-    }
-  },
-  
-  getById: (id) => {
-    const category = mockCategories.find(cat => cat.id === Number(id))
-    if (!category) {
-      throw { response: { status: 404, data: { message: 'Categoría no encontrada' } } }
-    }
-    return category
-  },
-  
-  create: (data) => {
-    const newCategory = {
-      id: Math.max(...mockCategories.map(c => c.id)) + 1,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    mockCategories.unshift(newCategory)
-    return newCategory
-  },
-  
-  update: (id, data) => {
-    const index = mockCategories.findIndex(cat => cat.id === Number(id))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Categoría no encontrada' } } }
-    }
-    mockCategories[index] = {
-      ...mockCategories[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    }
-    return mockCategories[index]
-  },
-  
-  delete: (id) => {
-    const index = mockCategories.findIndex(cat => cat.id === Number(id))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Categoría no encontrada' } } }
-    }
-    mockCategories.splice(index, 1)
-    return { success: true }
-  },
+        data: slice,
+        pagination: {
+            currentPage: p,
+            perPage: pp,
+            totalPages: Math.max(1, Math.ceil(data.length / pp)),
+            totalItems: data.length,
+        },
+    };
 }
 
-/** SHOPPING LISTS MOCK DATA **/
+/* =========================== SHOPPING LISTS MOCK ========================== */
 
-// Mock shopping lists data
-const mockListsData = [
-  {
-    id: 1,
-    name: 'Supermercado - Semana',
-    description: 'Compras para toda la semana',
-    owner: 'user@example.com',
-    recurring: true,
-    lastPurchasedAt: '2024-01-15T10:00:00Z',
-    createdAt: '2024-01-10T08:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    metadata: { color: 'green', icon: 'cart' }
-  },
-  {
-    id: 2,
-    name: 'Verdulería',
-    description: 'Frutas y verduras frescas',
-    owner: 'user@example.com',
-    recurring: false,
-    lastPurchasedAt: null,
-    createdAt: '2024-01-14T09:00:00Z',
-    updatedAt: '2024-01-14T09:00:00Z',
-    metadata: { color: 'orange' }
-  },
-  {
-    id: 3,
-    name: 'Farmacia',
-    description: 'Medicamentos y productos de higiene',
-    owner: 'user@example.com',
-    recurring: false,
-    lastPurchasedAt: null,
-    createdAt: '2024-01-13T07:00:00Z',
-    updatedAt: '2024-01-13T07:00:00Z',
-    metadata: {}
-  },
-  {
-    id: 4,
-    name: 'Cumple Emma',
-    description: 'Decoración y comida para el cumpleaños',
-    owner: 'user@example.com',
-    recurring: false,
-    lastPurchasedAt: null,
-    createdAt: '2024-01-12T11:00:00Z',
-    updatedAt: '2024-01-12T11:00:00Z',
-    metadata: { color: 'pink' }
-  },
-  {
-    id: 5,
-    name: 'Ferretería',
-    description: 'Herramientas y materiales para el hogar',
-    owner: 'user@example.com',
-    recurring: false,
-    lastPurchasedAt: null,
-    createdAt: '2024-01-11T13:00:00Z',
-    updatedAt: '2024-01-11T13:00:00Z',
-    metadata: {}
-  }
-]
-
-// Mock list items data (keyed by listId)
-const mockItemsData = {
-  1: [
-    { id: 1, listId: 1, productId: 101, productName: 'Leche', quantity: 2, unit: 'litros', purchased: true, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-15T10:00:00Z', lastPurchasedAt: '2024-01-15T10:00:00Z', metadata: {} },
-    { id: 2, listId: 1, productId: 102, productName: 'Pan', quantity: 1, unit: 'unidad', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 3, listId: 1, productId: 103, productName: 'Huevos', quantity: 12, unit: 'unidades', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 4, listId: 1, productId: 104, productName: 'Queso', quantity: 1, unit: 'kg', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 5, listId: 1, productId: 105, productName: 'Arroz', quantity: 1, unit: 'kg', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 6, listId: 1, productId: 106, productName: 'Fideos', quantity: 500, unit: 'gramos', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 7, listId: 1, productId: 107, productName: 'Tomate', quantity: 1, unit: 'kg', purchased: true, categoryId: 3, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-15T10:00:00Z', lastPurchasedAt: '2024-01-15T10:00:00Z', metadata: {} },
-    { id: 8, listId: 1, productId: 108, productName: 'Aceite', quantity: 1, unit: 'litro', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z', lastPurchasedAt: null, metadata: {} }
-  ],
-  2: [
-    { id: 9, listId: 2, productId: 201, productName: 'Tomates', quantity: 1, unit: 'kg', purchased: true, categoryId: 3, pantryId: null, createdAt: '2024-01-14T09:00:00Z', updatedAt: '2024-01-14T09:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 10, listId: 2, productId: 202, productName: 'Lechuga', quantity: 1, unit: 'unidad', purchased: false, categoryId: 3, pantryId: null, createdAt: '2024-01-14T09:00:00Z', updatedAt: '2024-01-14T09:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 11, listId: 2, productId: 203, productName: 'Zanahoria', quantity: 500, unit: 'gramos', purchased: false, categoryId: 3, pantryId: null, createdAt: '2024-01-14T09:00:00Z', updatedAt: '2024-01-14T09:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 12, listId: 2, productId: 204, productName: 'Cebolla', quantity: 500, unit: 'gramos', purchased: false, categoryId: 3, pantryId: null, createdAt: '2024-01-14T09:00:00Z', updatedAt: '2024-01-14T09:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 13, listId: 2, productId: 205, productName: 'Papa', quantity: 2, unit: 'kg', purchased: true, categoryId: 3, pantryId: null, createdAt: '2024-01-14T09:00:00Z', updatedAt: '2024-01-14T09:00:00Z', lastPurchasedAt: null, metadata: {} }
-  ],
-  3: [
-    { id: 14, listId: 3, productId: 301, productName: 'Ibuprofeno', quantity: 1, unit: 'caja', purchased: true, categoryId: 2, pantryId: null, createdAt: '2024-01-13T07:00:00Z', updatedAt: '2024-01-13T07:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 15, listId: 3, productId: 302, productName: 'Algodón', quantity: 1, unit: 'paquete', purchased: false, categoryId: 2, pantryId: null, createdAt: '2024-01-13T07:00:00Z', updatedAt: '2024-01-13T07:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 16, listId: 3, productId: 303, productName: 'Alcohol', quantity: 1, unit: 'litro', purchased: false, categoryId: 2, pantryId: null, createdAt: '2024-01-13T07:00:00Z', updatedAt: '2024-01-13T07:00:00Z', lastPurchasedAt: null, metadata: {} }
-  ],
-  4: [
-    { id: 17, listId: 4, productId: 401, productName: 'Globos', quantity: 20, unit: 'unidades', purchased: true, categoryId: 5, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 18, listId: 4, productId: 402, productName: 'Torta', quantity: 1, unit: 'unidad', purchased: false, categoryId: 1, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 19, listId: 4, productId: 403, productName: 'Velas', quantity: 10, unit: 'unidades', purchased: false, categoryId: 5, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 20, listId: 4, productId: 404, productName: 'Bebidas', quantity: 6, unit: 'litros', purchased: true, categoryId: 1, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 21, listId: 4, productId: 405, productName: 'Snacks', quantity: 5, unit: 'paquetes', purchased: true, categoryId: 1, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 22, listId: 4, productId: 406, productName: 'Piñata', quantity: 1, unit: 'unidad', purchased: false, categoryId: 5, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 23, listId: 4, productId: 407, productName: 'Decoración', quantity: 1, unit: 'set', purchased: false, categoryId: 5, pantryId: null, createdAt: '2024-01-12T11:00:00Z', updatedAt: '2024-01-12T11:00:00Z', lastPurchasedAt: null, metadata: {} }
-  ],
-  5: [
-    { id: 24, listId: 5, productId: 501, productName: 'Martillo', quantity: 1, unit: 'unidad', purchased: false, categoryId: 4, pantryId: null, createdAt: '2024-01-11T13:00:00Z', updatedAt: '2024-01-11T13:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 25, listId: 5, productId: 502, productName: 'Clavos', quantity: 100, unit: 'unidades', purchased: false, categoryId: 4, pantryId: null, createdAt: '2024-01-11T13:00:00Z', updatedAt: '2024-01-11T13:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 26, listId: 5, productId: 503, productName: 'Destornillador', quantity: 1, unit: 'unidad', purchased: false, categoryId: 4, pantryId: null, createdAt: '2024-01-11T13:00:00Z', updatedAt: '2024-01-11T13:00:00Z', lastPurchasedAt: null, metadata: {} },
-    { id: 27, listId: 5, productId: 504, productName: 'Cinta aisladora', quantity: 1, unit: 'rollo', purchased: false, categoryId: 4, pantryId: null, createdAt: '2024-01-11T13:00:00Z', updatedAt: '2024-01-11T13:00:00Z', lastPurchasedAt: null, metadata: {} }
-  ]
-}
-
-// Mock shared users data (keyed by listId)
-const mockSharedUsersData = {
-  1: [
-    { id: 1, userId: 10, email: 'sofia@example.com', name: 'Sofía', sharedAt: '2024-01-11T10:00:00Z' },
-    { id: 2, userId: 11, email: 'juan@example.com', name: 'Juan', sharedAt: '2024-01-12T14:00:00Z' }
-  ],
-  3: [
-    { id: 3, userId: 12, email: 'maria@example.com', name: 'María', sharedAt: '2024-01-13T09:00:00Z' }
-  ],
-  4: [
-    { id: 4, userId: 13, email: 'emma@example.com', name: 'Emma', sharedAt: '2024-01-12T12:00:00Z' },
-    { id: 5, userId: 14, email: 'carlos@example.com', name: 'Carlos', sharedAt: '2024-01-12T13:00:00Z' }
-  ]
-}
-
-// Shopping Lists Mock API
 export const mockShoppingLists = {
-  getAll: (params = {}) => {
-    const { page = 1, per_page = 10, name = '', owner = '', recurring = null, sort_by = 'createdAt', order = 'DESC' } = params
+    _autoId: 4,
+    _autoItemId: 6,
 
-    let filtered = [...mockListsData]
+    _lists: [
+        {
+            id: 1,
+            name: 'Supermercado',
+            recurring: false,
+            createdAt: '2025-01-01T10:00:00.000Z',
+            updatedAt: '2025-01-01T10:00:00.000Z',
+            lastPurchasedAt: null,
+            owner: true,
+            metadata: {},
+            sharedUsers: [{ id: 101, email: 'amigo@example.com' }],
+        },
+        {
+            id: 2,
+            name: 'Farmacia',
+            recurring: false,
+            createdAt: '2025-01-02T10:00:00.000Z',
+            updatedAt: '2025-01-02T10:00:00.000Z',
+            lastPurchasedAt: null,
+            owner: true,
+            metadata: {},
+            sharedUsers: [],
+        },
+        {
+            id: 3,
+            name: 'Verdulería',
+            recurring: true,
+            createdAt: '2025-01-03T10:00:00.000Z',
+            updatedAt: '2025-01-03T10:00:00.000Z',
+            lastPurchasedAt: null,
+            owner: false, // simulamos una compartida
+            metadata: {},
+            sharedUsers: [],
+        },
+    ],
 
-    // Filter by name
-    if (name) {
-      filtered = filtered.filter(list =>
-        list.name.toLowerCase().includes(name.toLowerCase()) ||
-        list.description?.toLowerCase().includes(name.toLowerCase())
-      )
-    }
+    // items por listId
+    _itemsByList: {
+        1: [
+            { id: 1, product_id: 1001, productName: 'Leche', quantity: 2, unit: 'L', purchased: false, category_id: 11, pantry_id: null, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+            { id: 2, product_id: 1002, productName: 'Arroz', quantity: 1, unit: 'kg', purchased: true,  category_id: 12, pantry_id: null, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-05T10:00:00.000Z' },
+        ],
+        2: [
+            { id: 3, product_id: 2001, productName: 'Ibuprofeno', quantity: 1, unit: 'caja', purchased: false, category_id: 21, pantry_id: null, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+        ],
+        3: [
+            { id: 4, product_id: 3001, productName: 'Tomate', quantity: 6, unit: 'u', purchased: false, category_id: 31, pantry_id: null, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+            { id: 5, product_id: 3002, productName: 'Lechuga', quantity: 1, unit: 'u', purchased: false, category_id: 31, pantry_id: null, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+        ],
+    },
 
-    // Filter by owner
-    if (owner) {
-      filtered = filtered.filter(list => list.owner.toLowerCase().includes(owner.toLowerCase()))
-    }
+    /* ------------------------------- Listado -------------------------------- */
+    getAll(params = {}) {
+        const {
+            owner,        // true | false | undefined
+            recurring,    // true | false | undefined
+            page = 1,
+            per_page = 10,
+            sort_by = 'createdAt',
+            order = 'DESC',
+            search = '',
+        } = params;
 
-    // Filter by recurring
-    if (recurring !== null && recurring !== undefined && recurring !== '') {
-      const isRecurring = recurring === 'true' || recurring === true
-      filtered = filtered.filter(list => list.recurring === isRecurring)
-    }
+        let filtered = [...this._lists];
 
-    // Sort
-    filtered.sort((a, b) => {
-      const aVal = a[sort_by] || ''
-      const bVal = b[sort_by] || ''
-      if (order === 'ASC') {
-        return aVal > bVal ? 1 : -1
-      } else {
-        return aVal < bVal ? 1 : -1
-      }
-    })
+        if (typeof owner === 'boolean') {
+            filtered = filtered.filter((l) => l.owner === owner);
+        }
+        if (typeof recurring === 'boolean') {
+            filtered = filtered.filter((l) => l.recurring === recurring);
+        }
+        if (search) {
+            const s = String(search).toLowerCase();
+            filtered = filtered.filter((l) => l.name.toLowerCase().includes(s));
+        }
 
-    // Paginate
-    const start = (page - 1) * per_page
-    const end = start + per_page
-    const paginated = filtered.slice(start, end)
+        const { data, pagination } = paginateAndSort(filtered, {
+            page,
+            per_page,
+            sort_by,
+            order,
+        });
 
-    return {
-      data: paginated,
-      pagination: {
-        currentPage: Number(page),
-        perPage: Number(per_page),
-        totalPages: Math.ceil(filtered.length / per_page),
-        totalItems: filtered.length
-      }
-    }
-  },
+        return {
+            data,
+            pagination,
+        };
+    },
 
-  getById: (id) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
-    return list
-  },
+    /* -------------------------------- Detalle ------------------------------- */
+    getById(id) {
+        const el = this._lists.find((l) => l.id === Number(id));
+        if (!el) throw { response: { status: 404, data: { message: 'Lista no encontrada' } } };
+        return el;
+    },
 
-  create: (body) => {
-    const maxId = mockListsData.length > 0 ? Math.max(...mockListsData.map(l => l.id)) : 0
-    const newList = {
-      id: maxId + 1,
-      name: body.name,
-      description: body.description || '',
-      owner: 'user@example.com',
-      recurring: body.recurring || false,
-      lastPurchasedAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      metadata: body.metadata || {}
-    }
-    mockListsData.unshift(newList)
-    mockItemsData[newList.id] = []
-    return newList
-  },
+    create(body) {
+        const item = {
+            id: this._autoId++,
+            name: (body?.name ?? 'Nueva lista').trim(),
+            recurring: !!body?.recurring,
+            createdAt: nowISO(),
+            updatedAt: nowISO(),
+            lastPurchasedAt: null,
+            owner: true,
+            metadata: body?.metadata ?? {},
+            sharedUsers: [],
+        };
+        this._lists.unshift(item);
+        this._itemsByList[item.id] = [];
+        return item;
+    },
 
-  update: (id, body) => {
-    const index = mockListsData.findIndex(l => l.id === Number(id))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
-    mockListsData[index] = {
-      ...mockListsData[index],
-      ...body,
-      updatedAt: new Date().toISOString()
-    }
-    return mockListsData[index]
-  },
+    update(id, body) {
+        const i = this._lists.findIndex((l) => l.id === Number(id));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Lista no encontrada' } } };
+        const merged = {
+            ...this._lists[i],
+            ...(body?.name !== undefined ? { name: String(body.name).trim() } : {}),
+            ...(body?.recurring !== undefined ? { recurring: !!body.recurring } : {}),
+            ...(body?.metadata !== undefined ? { metadata: body.metadata } : {}),
+            updatedAt: nowISO(),
+        };
+        this._lists[i] = merged;
+        return merged;
+    },
 
-  delete: (id) => {
-    const index = mockListsData.findIndex(l => l.id === Number(id))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
-    mockListsData.splice(index, 1)
-    delete mockItemsData[id]
-    delete mockSharedUsersData[id]
-    return { success: true, message: 'Lista eliminada' }
-  },
+    delete(id) {
+        const idx = this._lists.findIndex((l) => l.id === Number(id));
+        if (idx === -1) throw { response: { status: 404, data: { message: 'Lista no encontrada' } } };
+        this._lists.splice(idx, 1);
+        delete this._itemsByList[id];
+        return { success: true };
+    },
 
-  purchase: (id, metadata = {}) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
-    list.lastPurchasedAt = new Date().toISOString()
-    list.updatedAt = new Date().toISOString()
+    /* -------------------------------- Acciones ------------------------------ */
+    purchase(id) {
+        const i = this._lists.findIndex((l) => l.id === Number(id));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Lista no encontrada' } } };
+        this._lists[i].lastPurchasedAt = nowISO();
 
-    // Mark all items as purchased
-    const items = mockItemsData[id] || []
-    items.forEach(item => {
-      item.purchased = true
-      item.lastPurchasedAt = new Date().toISOString()
-      item.updatedAt = new Date().toISOString()
-    })
+        // Marcar todos los items como comprados
+        const listId = Number(id);
+        const items = this._itemsByList[listId] ?? [];
+        items.forEach((it) => {
+            it.purchased = true;
+            it.updatedAt = nowISO();
+        });
 
-    return { success: true, message: 'Lista marcada como comprada', data: list }
-  },
+        return { success: true, purchasedAt: this._lists[i].lastPurchasedAt };
+    },
 
-  reset: (id) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
-    list.updatedAt = new Date().toISOString()
+    reset(id) {
+        const listId = Number(id);
+        const items = this._itemsByList[listId] ?? [];
+        items.forEach((it) => { it.purchased = false; it.updatedAt = nowISO(); });
+        return { success: true };
+    },
 
-    // Mark all items as not purchased
-    const items = mockItemsData[id] || []
-    items.forEach(item => {
-      item.purchased = false
-      item.updatedAt = new Date().toISOString()
-    })
+    moveToPantry(id, pantryId = null) {
+        // en mocks, solo confirmamos acción
+        return { success: true, movedToPantryId: pantryId };
+    },
 
-    return { success: true, message: 'Lista reseteada', data: list }
-  },
+    /* -------------------------------- Sharing ------------------------------- */
+    share(id, email) {
+        const list = this.getById(id);
+        const exists = list.sharedUsers.some((u) => u.email === email);
+        if (!exists) {
+            const newUser = { id: Math.floor(Math.random() * 100000) + 100, email };
+            list.sharedUsers.push(newUser);
+            list.updatedAt = nowISO();
+        }
+        return { success: true };
+    },
 
-  moveToPantry: (id) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+    sharedUsers(id) {
+        const list = this.getById(id);
+        return { data: [...list.sharedUsers] };
+    },
 
-    // Simulate moving purchased items to pantry
-    const items = mockItemsData[id] || []
-    const movedItems = items.filter(item => item.purchased)
+    revokeShare(id, userId) {
+        const list = this.getById(id);
+        const idx = list.sharedUsers.findIndex((u) => u.id === Number(userId));
+        if (idx >= 0) {
+            list.sharedUsers.splice(idx, 1);
+            list.updatedAt = nowISO();
+        }
+        return { success: true };
+    },
 
-    return {
-      success: true,
-      message: `${movedItems.length} ítems movidos a la despensa`,
-      movedCount: movedItems.length
-    }
-  },
+    /* ------------------------------- Items CRUD ----------------------------- */
+    getItems(listId, params = {}) {
+        const {
+            page = 1,
+            per_page = 10,
+            sort_by = 'createdAt', // también puede venir productName, updatedAt, lastPurchasedAt
+            order = 'DESC',
+            search = '',
+            purchased, // boolean | undefined
+            pantry_id,
+            category_id,
+        } = params;
 
-  share: (id, email) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+        const all = this._itemsByList[listId] ?? [];
+        let items = [...all];
 
-    if (!mockSharedUsersData[id]) {
-      mockSharedUsersData[id] = []
-    }
+        if (search) {
+            const s = String(search).toLowerCase();
+            items = items.filter((it) => (it.productName || '').toLowerCase().includes(s));
+        }
+        if (typeof purchased === 'boolean') {
+            items = items.filter((it) => it.purchased === purchased);
+        }
+        if (pantry_id != null) {
+            items = items.filter((it) => (it.pantry_id ?? null) === Number(pantry_id));
+        }
+        if (category_id != null) {
+            items = items.filter((it) => (it.category_id ?? null) === Number(category_id));
+        }
 
-    // Check if already shared
-    const existing = mockSharedUsersData[id].find(u => u.email === email)
-    if (existing) {
-      throw { response: { status: 400, data: { message: 'Usuario ya tiene acceso a esta lista' } } }
-    }
+        const { data, pagination } = paginateAndSort(items, {
+            page,
+            per_page,
+            sort_by,
+            order,
+        });
 
-    const newSharedUser = {
-      id: Math.max(...Object.values(mockSharedUsersData).flat().map(u => u.id), 0) + 1,
-      userId: Math.floor(Math.random() * 1000) + 100,
-      email,
-      name: email.split('@')[0],
-      sharedAt: new Date().toISOString()
-    }
+        return {
+            data,
+            pagination,
+        };
+    },
 
-    mockSharedUsersData[id].push(newSharedUser)
+    addItem(listId, body) {
+        const list = this.getById(listId);
+        const item = {
+            id: this._autoItemId++,
+            product_id: Number(body?.product_id ?? 0),
+            productName: body?.productName ?? body?.product_name ?? body?.name ?? `Producto ${this._autoItemId}`,
+            quantity: Number(body?.quantity ?? 1),
+            unit: body?.unit ?? 'u',
+            purchased: !!body?.purchased,
+            category_id: body?.category_id ?? null,
+            pantry_id: body?.pantry_id ?? null,
+            metadata: body?.metadata ?? {},
+            createdAt: nowISO(),
+            updatedAt: nowISO(),
+        };
+        if (!this._itemsByList[list.id]) this._itemsByList[list.id] = [];
+        this._itemsByList[list.id].unshift(item);
+        return item;
+    },
 
-    return { success: true, message: 'Lista compartida exitosamente', data: newSharedUser }
-  },
+    updateItem(listId, itemId, body) {
+        const items = this._itemsByList[listId] ?? [];
+        const i = items.findIndex((x) => x.id === Number(itemId));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Ítem no encontrado' } } };
 
-  getSharedUsers: (id) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+        const merged = {
+            ...items[i],
+            ...(body?.product_id !== undefined ? { product_id: Number(body.product_id) } : {}),
+            ...(body?.productName !== undefined ? { productName: String(body.productName) } : {}),
+            ...(body?.quantity !== undefined ? { quantity: Number(body.quantity) } : {}),
+            ...(body?.unit !== undefined ? { unit: String(body.unit) } : {}),
+            ...(body?.purchased !== undefined ? { purchased: !!body.purchased } : {}),
+            ...(body?.category_id !== undefined ? { category_id: Number(body.category_id) } : {}),
+            ...(body?.pantry_id !== undefined ? { pantry_id: Number(body.pantry_id) } : {}),
+            ...(body?.metadata !== undefined ? { metadata: body.metadata } : {}),
+            updatedAt: nowISO(),
+        };
+        items[i] = merged;
+        return merged;
+    },
 
-    return { data: mockSharedUsersData[id] || [] }
-  },
+    toggleItemPurchased(listId, itemId, purchased) {
+        return this.updateItem(listId, itemId, { purchased: !!purchased });
+    },
 
-  revokeShare: (id, userId) => {
-    const list = mockListsData.find(l => l.id === Number(id))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+    deleteItem(listId, itemId) {
+        const items = this._itemsByList[listId] ?? [];
+        const i = items.findIndex((x) => x.id === Number(itemId));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Ítem no encontrado' } } };
+        items.splice(i, 1);
+        return { success: true };
+    },
+};
 
-    if (!mockSharedUsersData[id]) {
-      throw { response: { status: 404, data: { message: 'Usuario no encontrado' } } }
-    }
+/* =============================== PANTRIES MOCK ============================ */
 
-    const index = mockSharedUsersData[id].findIndex(u => u.userId === Number(userId))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Usuario no tiene acceso a esta lista' } } }
-    }
+export const mockPantries = {
+    _autoId: 3,
+    _autoItemId: 5,
 
-    mockSharedUsersData[id].splice(index, 1)
-    return { success: true, message: 'Acceso revocado' }
-  },
+    _pantries: [
+        {
+            id: 1,
+            name: 'Casa',
+            createdAt: '2025-01-01T10:00:00.000Z',
+            updatedAt: '2025-01-01T10:00:00.000Z',
+            owner: true,
+            metadata: {},
+            sharedUsers: [{ id: 201, email: 'roommate@example.com' }],
+        },
+        {
+            id: 2,
+            name: 'Trabajo',
+            createdAt: '2025-01-02T10:00:00.000Z',
+            updatedAt: '2025-01-02T10:00:00.000Z',
+            owner: false,
+            metadata: {},
+            sharedUsers: [],
+        },
+    ],
 
-  // Items operations
-  getItems: (listId, params = {}) => {
-    const list = mockListsData.find(l => l.id === Number(listId))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+    _itemsByPantry: {
+        1: [
+            { id: 1, product_id: 9001, name: 'Fideos', quantity: 3, unit: 'paqs', category_id: 11, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+            { id: 2, product_id: 9002, name: 'Atún',   quantity: 2, unit: 'latas', category_id: 12, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+        ],
+        2: [
+            { id: 3, product_id: 9100, name: 'Café', quantity: 1, unit: 'kg', category_id: 21, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+            { id: 4, product_id: 9101, name: 'Azúcar', quantity: 1, unit: 'kg', category_id: 21, createdAt: '2025-01-04T10:00:00.000Z', updatedAt: '2025-01-04T10:00:00.000Z' },
+        ],
+    },
 
-    const {
-      page = 1,
-      per_page = 50,
-      search = '',
-      purchased = null,
-      category_id = null,
-      pantry_id = null,
-      sort_by = 'createdAt',
-      order = 'ASC'
-    } = params
+    /* ------------------------------- Listado -------------------------------- */
+    getAll(params = {}) {
+        const {
+            owner, // true | false | undefined
+            page = 1,
+            per_page = 10,
+            sort_by = 'createdAt',
+            order = 'ASC', // ojo: en swagger pantries usa ASC|DESC
+            search = '',
+        } = params;
 
-    let items = mockItemsData[listId] || []
+        let filtered = [...this._pantries];
 
-    // Filter by search
-    if (search) {
-      items = items.filter(item =>
-        item.productName.toLowerCase().includes(search.toLowerCase())
-      )
-    }
+        if (typeof owner === 'boolean') {
+            filtered = filtered.filter((p) => p.owner === owner);
+        }
+        if (search) {
+            const s = String(search).toLowerCase();
+            filtered = filtered.filter((p) => p.name.toLowerCase().includes(s));
+        }
 
-    // Filter by purchased
-    if (purchased !== null && purchased !== undefined && purchased !== '') {
-      const isPurchased = purchased === 'true' || purchased === true
-      items = items.filter(item => item.purchased === isPurchased)
-    }
+        const { data, pagination } = paginateAndSort(filtered, {
+            page,
+            per_page,
+            sort_by,
+            order,
+        });
 
-    // Filter by category
-    if (category_id) {
-      items = items.filter(item => item.categoryId === Number(category_id))
-    }
+        return {
+            data,
+            pagination,
+        };
+    },
 
-    // Filter by pantry
-    if (pantry_id) {
-      items = items.filter(item => item.pantryId === Number(pantry_id))
-    }
+    /* -------------------------------- Detalle ------------------------------- */
+    getById(id) {
+        const el = this._pantries.find((p) => p.id === Number(id));
+        if (!el) throw { response: { status: 404, data: { message: 'Despensa no encontrada' } } };
+        return el;
+    },
 
-    // Sort
-    items = [...items].sort((a, b) => {
-      const aVal = a[sort_by] || ''
-      const bVal = b[sort_by] || ''
-      if (order === 'ASC') {
-        return aVal > bVal ? 1 : -1
-      } else {
-        return aVal < bVal ? 1 : -1
-      }
-    })
+    create(body) {
+        const item = {
+            id: this._autoId++,
+            name: (body?.name ?? 'Nueva despensa').trim(),
+            createdAt: nowISO(),
+            updatedAt: nowISO(),
+            owner: true,
+            metadata: body?.metadata ?? {},
+            sharedUsers: [],
+        };
+        this._pantries.unshift(item);
+        this._itemsByPantry[item.id] = [];
+        return item;
+    },
 
-    // Paginate
-    const start = (page - 1) * per_page
-    const end = start + per_page
-    const paginated = items.slice(start, end)
+    update(id, body) {
+        const i = this._pantries.findIndex((p) => p.id === Number(id));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Despensa no encontrada' } } };
+        const merged = {
+            ...this._pantries[i],
+            ...(body?.name !== undefined ? { name: String(body.name).trim() } : {}),
+            ...(body?.metadata !== undefined ? { metadata: body.metadata } : {}),
+            updatedAt: nowISO(),
+        };
+        this._pantries[i] = merged;
+        return merged;
+    },
 
-    return {
-      data: paginated,
-      pagination: {
-        currentPage: Number(page),
-        perPage: Number(per_page),
-        totalPages: Math.ceil(items.length / per_page),
-        totalItems: items.length
-      }
-    }
-  },
+    delete(id) {
+        const idx = this._pantries.findIndex((p) => p.id === Number(id));
+        if (idx === -1) throw { response: { status: 404, data: { message: 'Despensa no encontrada' } } };
+        this._pantries.splice(idx, 1);
+        delete this._itemsByPantry[id];
+        return { success: true };
+    },
 
-  addItem: (listId, body) => {
-    const list = mockListsData.find(l => l.id === Number(listId))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+    /* -------------------------------- Sharing ------------------------------- */
+    share(id, email) {
+        const pantry = this.getById(id);
+        const exists = pantry.sharedUsers.some((u) => u.email === email);
+        if (!exists) {
+            const newUser = { id: Math.floor(Math.random() * 100000) + 200, email };
+            pantry.sharedUsers.push(newUser);
+            pantry.updatedAt = nowISO();
+        }
+        return { success: true };
+    },
 
-    if (!mockItemsData[listId]) {
-      mockItemsData[listId] = []
-    }
+    sharedUsers(id) {
+        const pantry = this.getById(id);
+        return { data: [...pantry.sharedUsers] };
+    },
 
-    const allItems = Object.values(mockItemsData).flat()
-    const newItem = {
-      id: Math.max(...allItems.map(i => i.id), 0) + 1,
-      listId: Number(listId),
-      productId: body.product_id || Math.floor(Math.random() * 10000),
-      productName: body.product_name || body.name || 'Producto',
-      quantity: body.quantity || 1,
-      unit: body.unit || 'unidad',
-      purchased: false,
-      categoryId: body.category_id || null,
-      pantryId: body.pantry_id || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastPurchasedAt: null,
-      metadata: body.metadata || {}
-    }
+    revokeShare(id, userId) {
+        const pantry = this.getById(id);
+        const idx = pantry.sharedUsers.findIndex((u) => u.id === Number(userId));
+        if (idx >= 0) {
+            pantry.sharedUsers.splice(idx, 1);
+            pantry.updatedAt = nowISO();
+        }
+        return { success: true };
+    },
 
-    mockItemsData[listId].push(newItem)
-    list.updatedAt = new Date().toISOString()
+    /* ------------------------------- Items CRUD ----------------------------- */
+    getItems(pantryId, params = {}) {
+        const {
+            page = 1,
+            per_page = 10,
+            sort_by = 'createdAt',
+            order = 'desc', // ojo: swagger items usa minúsculas asc|desc
+            search = '',
+            category_id,
+        } = params;
 
-    return newItem
-  },
+        const all = this._itemsByPantry[pantryId] ?? [];
+        let items = [...all];
 
-  updateItem: (listId, itemId, body) => {
-    const list = mockListsData.find(l => l.id === Number(listId))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+        if (search) {
+            const s = String(search).toLowerCase();
+            items = items.filter((it) => (it.name || '').toLowerCase().includes(s));
+        }
+        if (category_id != null) {
+            items = items.filter((it) => (it.category_id ?? null) === Number(category_id));
+        }
 
-    const items = mockItemsData[listId] || []
-    const index = items.findIndex(i => i.id === Number(itemId))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Ítem no encontrado' } } }
-    }
+        const { data, pagination } = paginateAndSort(items, {
+            page,
+            per_page,
+            sort_by,
+            order,
+        });
 
-    items[index] = {
-      ...items[index],
-      ...body,
-      updatedAt: new Date().toISOString()
-    }
+        return {
+            data,
+            pagination,
+        };
+    },
 
-    list.updatedAt = new Date().toISOString()
+    addItem(pantryId, body) {
+        const pantry = this.getById(pantryId);
+        const item = {
+            id: this._autoItemId++,
+            product_id: Number(body?.product_id ?? 0),
+            name: body?.name ?? body?.product_name ?? `Producto ${this._autoItemId}`,
+            quantity: Number(body?.quantity ?? 1),
+            unit: body?.unit ?? 'u',
+            category_id: body?.category_id ?? null,
+            metadata: body?.metadata ?? {},
+            createdAt: nowISO(),
+            updatedAt: nowISO(),
+        };
+        if (!this._itemsByPantry[pantry.id]) this._itemsByPantry[pantry.id] = [];
+        this._itemsByPantry[pantry.id].unshift(item);
+        return item;
+    },
 
-    return items[index]
-  },
+    updateItem(pantryId, itemId, body) {
+        const items = this._itemsByPantry[pantryId] ?? [];
+        const i = items.findIndex((x) => x.id === Number(itemId));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Ítem de despensa no encontrado' } } };
 
-  toggleItem: (listId, itemId, purchased) => {
-    const list = mockListsData.find(l => l.id === Number(listId))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
+        const merged = {
+            ...items[i],
+            ...(body?.product_id !== undefined ? { product_id: Number(body.product_id) } : {}),
+            ...(body?.name !== undefined ? { name: String(body.name) } : {}),
+            ...(body?.quantity !== undefined ? { quantity: Number(body.quantity) } : {}),
+            ...(body?.unit !== undefined ? { unit: String(body.unit) } : {}),
+            ...(body?.category_id !== undefined ? { category_id: Number(body.category_id) } : {}),
+            ...(body?.metadata !== undefined ? { metadata: body.metadata } : {}),
+            updatedAt: nowISO(),
+        };
+        items[i] = merged;
+        return merged;
+    },
 
-    const items = mockItemsData[listId] || []
-    const item = items.find(i => i.id === Number(itemId))
-    if (!item) {
-      throw { response: { status: 404, data: { message: 'Ítem no encontrado' } } }
-    }
-
-    item.purchased = purchased
-    item.updatedAt = new Date().toISOString()
-    if (purchased) {
-      item.lastPurchasedAt = new Date().toISOString()
-    }
-
-    list.updatedAt = new Date().toISOString()
-
-    return item
-  },
-
-  deleteItem: (listId, itemId) => {
-    const list = mockListsData.find(l => l.id === Number(listId))
-    if (!list) {
-      throw { response: { status: 404, data: { message: 'Lista no encontrada' } } }
-    }
-
-    const items = mockItemsData[listId] || []
-    const index = items.findIndex(i => i.id === Number(itemId))
-    if (index === -1) {
-      throw { response: { status: 404, data: { message: 'Ítem no encontrado' } } }
-    }
-
-    items.splice(index, 1)
-    list.updatedAt = new Date().toISOString()
-
-    return { success: true, message: 'Ítem eliminado' }
-  }
-}
+    deleteItem(pantryId, itemId) {
+        const items = this._itemsByPantry[pantryId] ?? [];
+        const i = items.findIndex((x) => x.id === Number(itemId));
+        if (i === -1) throw { response: { status: 404, data: { message: 'Ítem de despensa no encontrado' } } };
+        items.splice(i, 1);
+        return { success: true };
+    },
+};

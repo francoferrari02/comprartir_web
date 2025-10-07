@@ -250,7 +250,7 @@ export async function updateListItem(listId, itemId, body) {
 export async function toggleItemPurchased(listId, itemId, purchased) {
     if (USE_MOCKS) {
         await delay(300)
-        return mockShoppingLists.toggleItem(listId, itemId, purchased)
+        return mockShoppingLists.toggleItemPurchased(listId, itemId, purchased)
     }
     try {
         const { data } = await api.patch(`/api/shopping-lists/${listId}/items/${itemId}`, { purchased })
