@@ -144,6 +144,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useListsStore } from '@/stores/lists'
 import {
   getShoppingListById,
   updateShoppingList,
@@ -158,7 +159,7 @@ import {
   deleteListItem,
   shareShoppingList,
   getSharedUsers,
-  revokeShare
+  revokeShareShoppingList
 } from '@/services/lists'
 import ListDetailCard from '@/components/ListDetailCard.vue'
 import AddItemCard from '@/components/AddItemCard.vue'
@@ -166,6 +167,7 @@ import ShareListCard from '@/components/ShareListCard.vue'
 
 const route = useRoute()
 const router = useRouter()
+const listsStore = useListsStore()
 
 // State
 const loading = ref(true)
@@ -233,11 +235,15 @@ async function fetchList() {
 
   try {
     const id = route.params.id
-    list.value = await getShoppingListById(id)
+    const fetchedList = await getShoppingListById(id)
+    list.value = fetchedList
+    // Guardar en el store
+    listsStore.setCurrentList(fetchedList)
   } catch (err) {
     console.error('Error fetching list:', err)
     error.value = err.message || 'Error al cargar la lista'
     list.value = null
+    listsStore.setCurrentList(null)
   } finally {
     loading.value = false
   }
@@ -270,7 +276,11 @@ async function fetchItems() {
 
     const response = await getListItems(list.value.id, params)
 
-    items.value = response.data || []
+    const fetchedItems = response.data || []
+    items.value = fetchedItems
+    // Guardar en el store
+    listsStore.setCurrentItems(fetchedItems)
+
     if (response.pagination) {
       itemsPagination.value = {
         ...itemsPagination.value,
@@ -302,6 +312,7 @@ async function updateListName(newName) {
   try {
     const updated = await updateShoppingList(list.value.id, { name: newName.trim() })
     list.value = { ...list.value, ...updated }
+    listsStore.setCurrentList(list.value)
     showSnackbar('Lista actualizada', 'success')
   } catch (err) {
     console.error('Error updating list:', err)
@@ -315,6 +326,7 @@ async function updateListDescription(newDescription) {
   try {
     const updated = await updateShoppingList(list.value.id, { description: newDescription.trim() })
     list.value = { ...list.value, ...updated }
+    listsStore.setCurrentList(list.value)
     showSnackbar('Descripción de lista actualizada', 'success')
   } catch (err) {
     console.error('Error updating list description:', err)
@@ -392,7 +404,7 @@ async function addItem(itemData) {
       payload.product_name = itemData.name?.trim() || itemData.productName?.trim()
     }
 
-    const newItem = await addListItem(list.value.id, payload)
+    await addListItem(list.value.id, payload)
 
     // Refresh items to get updated list with proper product data
     await fetchItems()
@@ -429,7 +441,7 @@ async function revokeAccess(userId) {
   sharingLoading.value = true
 
   try {
-    await revokeShare(list.value.id, userId)
+    await revokeShareShoppingList(list.value.id, userId)
     sharedUsers.value = sharedUsers.value.filter(u => u.userId !== userId)
     showSnackbar('Acceso revocado', 'success')
   } catch (err) {

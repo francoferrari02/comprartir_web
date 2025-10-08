@@ -45,7 +45,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['open-list', 'delete-list', 'edit-list'])
+const emit = defineEmits(['delete-list', 'edit-list'])
 
 /* Drag to scroll */
 const strip = ref(null)
@@ -72,10 +72,10 @@ function onUp(e) {
   isDown = false
   strip.value?.classList.remove('grabbing')
 
-  // Si se movió, prevenir clics en los elementos hijos
+  // Si se movió significativamente, prevenir clics en los elementos hijos
+  // IMPORTANTE: @click.stop en los botones ya previene la propagación al contenedor
   if (hasMoved) {
     e.preventDefault()
-    e.stopPropagation()
   }
 
   hasMoved = false

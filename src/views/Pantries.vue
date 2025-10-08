@@ -370,19 +370,18 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { getPantries, createPantry, updatePantry, deletePantry } from '@/services/pantries'
+import { usePantriesStore } from '@/stores/pantries'
 import { getPantryItems } from '@/services/pantryItems'
 import PantrySearch from '@/components/PantrySearch.vue'
 import PantryCarousel from '@/components/PantryCarousel.vue'
 
 const router = useRouter()
 const route = useRoute()
+const pantriesStore = usePantriesStore()
 
 // Estado reactivo
-const loading = ref(false)
 const creating = ref(false)
 const error = ref(null)
-const pantries = ref([])
 const pantryItemsCounts = ref({})
 const searchQuery = ref(route.query.search || '')
 const createDialog = ref(false)
@@ -406,19 +405,17 @@ const deleteDialog = ref({
   error: null
 })
 
+// Use computed properties from the store
+const pantries = computed(() => pantriesStore.items)
+const loading = computed(() => pantriesStore.loading)
+const pagination = computed(() => pantriesStore.pagination)
+
+
 // Filters from query params
 const filters = ref({
   sort_by: route.query.sort_by || 'updatedAt',
   order: route.query.order || 'DESC',
   owner: route.query.owner || undefined
-})
-
-// Pagination
-const pagination = ref({
-  currentPage: Number(route.query.page) || 1,
-  perPage: Number(route.query.per_page) || 10,
-  totalPages: 1,
-  totalItems: 0
 })
 
 // New pantry form
@@ -500,39 +497,27 @@ const ownerOptions = [
 
 // Methods
 async function fetchPantries() {
-  loading.value = true
   error.value = null
 
-  try {
-    const params = {
-      page: pagination.value.currentPage,
-      per_page: pagination.value.perPage,
-      sort_by: filters.value.sort_by,
-      order: filters.value.order,
-      search: searchQuery.value
-    }
+  const params = {
+    page: pagination.value.currentPage,
+    per_page: pagination.value.perPage,
+    sort_by: filters.value.sort_by,
+    order: filters.value.order,
+    search: searchQuery.value
+  }
 
-    if (filters.value.owner !== undefined) {
-      params.owner = filters.value.owner
-    }
+  if (filters.value.owner !== undefined) {
+    params.owner = filters.value.owner
+  }
 
-    const response = await getPantries(params)
+  await pantriesStore.fetch(params)
 
-    pantries.value = response.data || []
-    if (response.pagination) {
-      pagination.value = {
-        ...pagination.value,
-        ...response.pagination
-      }
-    }
-
+  if (pantriesStore.error) {
+    error.value = pantriesStore.error
+  } else {
     // Fetch item counts for each pantry
     await fetchItemCounts()
-  } catch (err) {
-    console.error('Error fetching pantries:', err)
-    error.value = err.message || 'Error al cargar las despensas'
-  } finally {
-    loading.value = false
   }
 }
 
@@ -618,18 +603,29 @@ async function createPantryAction() {
   error.value = null
 
   try {
-    const created = await createPantry({
+    console.log('🔄 Creando despensa:', newPantry.value.name.trim())
+
+    const created = await pantriesStore.add({
       name: newPantry.value.name.trim()
     })
+
+    console.log('✅ Despensa creada:', created)
 
     createDialog.value = false
     showSnackbar('Despensa creada exitosamente', 'success')
 
-    await fetchPantries()
+    // The store update is reactive, so no need to re-fetch.
+    // We can navigate directly.
 
-    router.push(`/pantries/${created.id}`)
+    console.log('📋 Despensas después de crear:', pantries.value.length, 'Total:', pagination.value.totalItems)
+
+    // Navegar al detalle de la nueva despensa
+    setTimeout(() => {
+      router.push(`/pantries/${created.id}`)
+    }, 500) // Pequeño delay para que el usuario vea que se creó
+
   } catch (err) {
-    console.error('Error creating pantry:', err)
+    console.error('❌ Error creating pantry:', err)
     const errorMessage = err.message || 'Error al crear la despensa'
     error.value = errorMessage
     showSnackbar(errorMessage, 'error')
@@ -667,12 +663,12 @@ async function submitEdit() {
   editDialog.value.error = null
 
   try {
-    await updatePantry(editDialog.value.form.id, {
+    await pantriesStore.update(editDialog.value.form.id, {
       name: editDialog.value.form.name.trim()
     })
 
     showSnackbar('Despensa actualizada exitosamente', 'success')
-    await fetchPantries()
+    // No need to fetch, store is reactive
     closeEdit()
   } catch (err) {
     console.error('Error updating pantry:', err)
@@ -700,11 +696,10 @@ function closeDelete() {
 async function confirmDelete() {
   deleteDialog.value.loading = true
   deleteDialog.value.error = null
-
   try {
-    await deletePantry(deleteDialog.value.target.id)
+    await pantriesStore.remove(deleteDialog.value.target.id)
     showSnackbar('Despensa eliminada exitosamente', 'success')
-    await fetchPantries()
+    // No need to fetch, store is reactive
     closeDelete()
   } catch (err) {
     console.error('Error deleting pantry:', err)

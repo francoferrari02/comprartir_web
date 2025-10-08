@@ -17,6 +17,7 @@
         variant="flat"
         prepend-icon="mdi-open-in-new"
         class="btn-uniform btn-open"
+        data-testid="btn-open-list"
         @click.stop="openList"
       >
         Abrir
@@ -63,8 +64,17 @@ const progress = computed(() =>
 const emit = defineEmits(['delete', 'edit'])
 
 function openList() {
-  console.log('Abrir lista:', props.id) // Agregado para debugging
-  router.push(`/lists/${props.id}`)
+  // Navegación directa sin depender de eventos
+  if (!props.id && props.id !== 0) {
+    console.warn('⚠️ ListItem.openList: ID inválido', props.id)
+    return
+  }
+
+  console.debug('🚀 ListItem.openList -> Navegando a list-detail con id:', props.id)
+  router.push({
+    name: 'list-detail',
+    params: { id: String(props.id) }
+  })
 }
 </script>
 

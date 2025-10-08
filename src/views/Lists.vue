@@ -437,6 +437,7 @@ watch(searchQuery, () => {
   }, 300)
 })
 
+
 // Computed properties
 const listsWithProgress = computed(() => {
   // Calculate progress for each list (will be updated when we fetch items)

@@ -34,7 +34,7 @@ const routes = [
     // Protected routes (require authentication)
     { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio', requiresAuth: true } },
     { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas', requiresAuth: true } },
-    { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista', requiresAuth: true } },
+    { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista', requiresAuth: true }, props: true },
     { path: '/categories',    name: 'categories',    component: Categories,    meta: { title: 'Categorías', requiresAuth: true } },
 
     // Products routes
