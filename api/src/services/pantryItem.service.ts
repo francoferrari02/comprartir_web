@@ -17,7 +17,7 @@ import { ERROR_MESSAGES } from '../types/errorMessages';
  * @param {string} [sort_by] - Field to sort by (name, quantity, unit)
  * @param {string} [search] - Search by product name (case-insensitive, partial match)
  * @param {number} [category_id] - Filter by category ID
- * @returns {Promise<{PantryItem[]}>} Paginated pantry items
+ * @returns {Promise<{data: any[], pagination: {currentPage: number, perPage: number, totalPages: number, totalItems: number}}>} Paginated pantry items
  * @throws {NotFoundError} If the pantry is not found or not accessible by the user
  */
 export async function getPantryItemsService(
@@ -29,7 +29,7 @@ export async function getPantryItemsService(
     sort_by?: string,
     search?: string,
     category_id?: number
-): Promise<PantryItem[]> {
+): Promise<{data: any[], pagination: {currentPage: number, perPage: number, totalPages: number, totalItems: number}}> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -51,7 +51,8 @@ export async function getPantryItemsService(
             .leftJoinAndSelect("product.pantry", "pantry")
             .leftJoinAndSelect("pantry.owner", "owner")
             .where("item.pantry = :pantryId", { pantryId })
-            .andWhere("item.deletedAt IS NULL");
+            .andWhere("item.deletedAt IS NULL")
+            .andWhere("product.deletedAt IS NULL");
 
         if (search) {
             qb.andWhere("LOWER(product.name) LIKE :search", { search: `%${search.toLowerCase()}%` });
@@ -76,10 +77,22 @@ export async function getPantryItemsService(
         const [items, total] = await qb.getManyAndCount();
 
         await queryRunner.commitTransaction();
-        return items.map(i => i.getFormattedListItem())
+
+        // Devolver con paginación en lugar de solo el array
+        return {
+            data: items.map(i => i.getFormattedListItem()),
+            pagination: {
+                currentPage: page,
+                perPage: per_page,
+                totalPages: Math.ceil(total / per_page),
+                totalItems: total
+            }
+        };
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
         handleCaughtError(err);
+        // Esta línea nunca se alcanza porque handleCaughtError lanza el error, pero TypeScript no lo sabe
+        throw err; // Agregar esto para que TypeScript sepa que la función siempre termina
     } finally {
         await queryRunner.release();
     }

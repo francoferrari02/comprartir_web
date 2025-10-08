@@ -298,6 +298,7 @@ export async function getSharedUsersService(pantryId: number, user: User): Promi
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
         handleCaughtError(err);
+        throw err;
     } finally {
         await queryRunner.release();
     }

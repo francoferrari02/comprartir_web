@@ -76,27 +76,75 @@ const loading = ref(false)
 
 const pct = (it) => it.total > 0 ? Math.round((it.bought / it.total) * 100) : 0
 
-// Fetch recent lists (created in last 7 days)
+// Fetch recent lists (updated in last day, or created in last 2 days as fallback)
 async function fetchRecentLists() {
   loading.value = true
   try {
-    // Get lists sorted by creation date (most recent first)
+    // Get lists sorted by update date (most recent first)
     const response = await getShoppingLists({
-      sort_by: 'createdAt',
+      sort_by: 'updatedAt',
       order: 'DESC',
-      per_page: 10
+      per_page: 20 // Traer más para tener mejor chance de encontrar recientes
     })
 
     const lists = response.data || []
 
-    // Filter lists created in the last 7 days
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    console.log('🔍 RecentLists - Total listas recibidas:', lists.length)
+    if (lists.length > 0) {
+      console.log('🔍 RecentLists - Primera lista:', {
+        name: lists[0].name,
+        createdAt: lists[0].createdAt,
+        updatedAt: lists[0].updatedAt
+      })
+    }
 
-    const recentLists = lists.filter(list => {
-      const createdDate = new Date(list.createdAt)
-      return createdDate >= oneWeekAgo
+    // Calcular fechas de corte
+    const now = new Date()
+    const oneDayAgo = new Date(now)
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1) // Último día
+
+    const twoDaysAgo = new Date(now)
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2) // Últimos 2 días
+
+    const sevenDaysAgo = new Date(now)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7) // Última semana (fallback final)
+
+    console.log('📅 RecentLists - Fechas de corte:', {
+      now: now.toISOString(),
+      oneDayAgo: oneDayAgo.toISOString(),
+      twoDaysAgo: twoDaysAgo.toISOString(),
+      sevenDaysAgo: sevenDaysAgo.toISOString()
     })
+
+    // PRIORIDAD 1: Listas actualizadas en el último día
+    let recentLists = lists.filter(list => {
+      if (!list.updatedAt) return false
+      const updatedDate = new Date(list.updatedAt)
+      return updatedDate >= oneDayAgo
+    })
+
+    console.log('📊 RecentLists - Listas actualizadas en último día:', recentLists.length)
+
+    // FALLBACK 1: Si no hay listas actualizadas recientemente, usar listas creadas hace menos de 2 días
+    if (recentLists.length === 0) {
+      console.log('⚠️ RecentLists - No hay listas actualizadas en 1 día, buscando creadas en últimos 2 días')
+      recentLists = lists.filter(list => {
+        if (!list.createdAt) return false
+        const createdDate = new Date(list.createdAt)
+        return createdDate >= twoDaysAgo
+      })
+      console.log('📊 RecentLists - Listas creadas en últimos 2 días:', recentLists.length)
+    }
+
+    // FALLBACK 2: Si aún no hay, usar las últimas 5 listas (ordenadas por updatedAt)
+    if (recentLists.length === 0) {
+      console.log('⚠️ RecentLists - No hay listas recientes, mostrando las 5 más recientes por updatedAt')
+      recentLists = lists.slice(0, 5)
+      console.log('📊 RecentLists - Mostrando últimas', recentLists.length, 'listas')
+    }
+
+    // Limitar a las 5 más recientes para no saturar
+    recentLists = recentLists.slice(0, 5)
 
     // Fetch item counts for each list
     const listsWithCounts = await Promise.all(
@@ -112,24 +160,27 @@ async function fetchRecentLists() {
             name: list.name,
             bought,
             total,
-            createdAt: list.createdAt
+            createdAt: list.createdAt,
+            updatedAt: list.updatedAt
           }
         } catch (err) {
-          console.error(`Error fetching items for list ${list.id}:`, err)
+          console.error(`❌ RecentLists - Error fetching items for list ${list.id}:`, err)
           return {
             id: list.id,
             name: list.name,
             bought: 0,
             total: 0,
-            createdAt: list.createdAt
+            createdAt: list.createdAt,
+            updatedAt: list.updatedAt
           }
         }
       })
     )
 
     items.value = listsWithCounts
+    console.log('✅ RecentLists - Cargadas', items.value.length, 'listas recientes:', items.value)
   } catch (err) {
-    console.error('Error fetching recent lists:', err)
+    console.error('❌ RecentLists - Error fetching recent lists:', err)
     items.value = []
   } finally {
     loading.value = false

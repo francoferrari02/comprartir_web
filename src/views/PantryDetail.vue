@@ -52,32 +52,76 @@
       <v-row v-else>
         <!-- Columna izquierda: Detalle de la despensa -->
         <v-col cols="12" md="8" class="left-col">
-          <v-card class="card mb-4">
-            <!-- Header -->
-            <v-card-title class="pa-4">
-              <div class="d-flex align-center justify-space-between w-100">
-                <div class="flex-grow-1">
-                  <v-text-field
-                    :model-value="pantry.name"
-                    variant="plain"
-                    density="compact"
-                    class="text-h5 font-weight-bold"
-                    hide-details
-                    @blur="updatePantryName($event.target.value)"
-                  />
+          <v-card class="card card--hover pa-6 mb-4">
+            <!-- Header with editable name - MISMO ESTILO QUE LISTDETAIL -->
+            <div class="d-flex align-center mb-4">
+              <div class="flex-grow-1">
+                <div v-if="!editingName">
+                  <div class="d-flex align-center">
+                    <h1 class="text-h4 font-weight-bold">{{ pantry.name }}</h1>
+                    <v-btn
+                      icon="mdi-pencil"
+                      size="small"
+                      variant="text"
+                      class="ml-2 icon-btn-rounded"
+                      @click="startEditName"
+                    >
+                      <v-tooltip activator="parent" location="top">
+                        Editar nombre
+                      </v-tooltip>
+                    </v-btn>
+                  </div>
                 </div>
-                <v-btn
-                  icon="mdi-arrow-left"
-                  variant="text"
-                  @click="$router.push('/pantries')"
-                />
-              </div>
-            </v-card-title>
 
-            <v-divider />
+                <!-- Edit name mode -->
+                <div v-if="editingName">
+                  <v-text-field
+                    v-model="editName"
+                    label="Nombre de la despensa"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    autofocus
+                    @keyup.enter="saveName"
+                    @keyup.esc="cancelEditName"
+                  >
+                    <template #append>
+                      <v-btn
+                        icon="mdi-check"
+                        size="small"
+                        color="success"
+                        variant="text"
+                        class="icon-btn-rounded"
+                        @click="saveName"
+                      />
+                      <v-btn
+                        icon="mdi-close"
+                        size="small"
+                        color="error"
+                        variant="text"
+                        class="icon-btn-rounded"
+                        @click="cancelEditName"
+                      />
+                    </template>
+                  </v-text-field>
+                </div>
+              </div>
+
+              <!-- Back button -->
+              <v-btn
+                icon="mdi-arrow-left"
+                variant="text"
+                class="icon-btn-rounded"
+                @click="$router.push('/pantries')"
+              >
+                <v-tooltip activator="parent" location="top">
+                  Volver a Despensas
+                </v-tooltip>
+              </v-btn>
+            </div>
 
             <!-- Buscador y filtros -->
-            <div class="pa-4">
+            <div class="mb-4">
               <v-text-field
                 v-model="searchQuery"
                 prepend-inner-icon="mdi-magnify"
@@ -86,10 +130,11 @@
                 density="comfortable"
                 clearable
                 hide-details
+                class="mb-3"
                 @update:model-value="debouncedSearch"
               />
 
-              <div class="d-flex gap-2 mt-3">
+              <div class="d-flex gap-2">
                 <v-select
                   v-model="itemsFilters.sort_by"
                   :items="sortOptions"
@@ -97,6 +142,7 @@
                   variant="outlined"
                   density="compact"
                   hide-details
+                  style="flex: 1;"
                   @update:model-value="fetchItems"
                 />
                 <v-select
@@ -106,49 +152,56 @@
                   variant="outlined"
                   density="compact"
                   hide-details
+                  style="flex: 1;"
                   @update:model-value="fetchItems"
                 />
               </div>
             </div>
 
-            <v-divider />
+            <v-divider class="mb-4" />
 
             <!-- Loading Items -->
-            <div v-if="itemsLoading" class="text-center py-12">
+            <div v-if="itemsLoading" class="text-center py-8">
               <v-progress-circular
                 indeterminate
                 color="primary"
                 size="48"
               />
-              <p class="text-body-2 mt-4">Cargando productos...</p>
+              <p class="text-body-2 mt-2">Cargando productos...</p>
             </div>
 
             <!-- Empty State -->
-            <div v-else-if="items.length === 0" class="text-center py-12 px-4">
-              <v-icon size="64" color="grey-lighten-1" class="mb-4">
-                mdi-package-variant
-              </v-icon>
-              <h3 class="text-h6 mb-2">No hay productos</h3>
+            <div v-else-if="items.length === 0" class="text-center py-8">
+              <v-icon size="64" color="grey-lighten-1">mdi-package-variant</v-icon>
+              <p class="text-body-1 mt-2">No hay productos en esta despensa</p>
               <p class="text-body-2 text-medium-emphasis">
-                {{ searchQuery ? 'No se encontraron productos con ese criterio' : 'Añade tu primer producto a esta despensa' }}
+                {{ searchQuery ? 'No se encontraron productos con ese criterio' : 'Añade productos usando el panel de la derecha' }}
               </p>
             </div>
 
-            <!-- Items List -->
-            <div v-else class="pa-4">
-              <PantryProductItem
-                v-for="item in items"
-                :key="item.id"
-                :product="item"
-                @delete="deleteItem(item.id)"
-                @edit="openEditItem(item)"
-                @update-name="(newName) => updateItemName(item.id, newName)"
-              />
+            <!-- Products list -->
+            <div v-else>
+              <div class="d-flex align-center mb-3">
+                <span class="text-caption text-medium-emphasis">
+                  {{ items.length }} {{ items.length === 1 ? 'producto' : 'productos' }}
+                </span>
+              </div>
+
+              <div class="products-list">
+                <PantryProductItem
+                  v-for="item in items"
+                  :key="item.id"
+                  :product="item"
+                  @delete="deleteItem(item.id)"
+                  @edit="openEditItem(item)"
+                  @update-name="(newName) => updateItemName(item.id, newName)"
+                />
+              </div>
             </div>
 
             <!-- Pagination for items -->
-            <v-divider v-if="itemsPagination.totalPages > 1" />
-            <div v-if="itemsPagination.totalPages > 1" class="d-flex justify-space-between align-center pa-4">
+            <v-divider v-if="itemsPagination.totalPages > 1" class="mt-4" />
+            <div v-if="itemsPagination.totalPages > 1" class="d-flex justify-space-between align-center mt-4">
               <div class="text-body-2 text-medium-emphasis">
                 Mostrando {{ startItem }} - {{ endItem }} de {{ itemsPagination.totalItems }} productos
               </div>
@@ -542,6 +595,7 @@ async function fetchPantry() {
 async function fetchItems() {
   if (!pantry.value) return
 
+  console.log('🔄 PantryDetail - fetchItems - Iniciando para pantry:', pantry.value.id)
   itemsLoading.value = true
   error.value = null
 
@@ -558,17 +612,36 @@ async function fetchItems() {
       params.category_id = itemsFilters.value.category_id
     }
 
+    console.log('📤 PantryDetail - fetchItems - Params:', params)
     const response = await getPantryItems(pantry.value.id, params)
+    console.log('📥 PantryDetail - fetchItems - Response completa:', response)
 
-    items.value = response.data || []
+    // Manejar diferentes formatos de respuesta
+    let fetchedItems = []
+    if (Array.isArray(response)) {
+      fetchedItems = response
+      console.log('✅ PantryDetail - Response es array directo')
+    } else if (response.data) {
+      fetchedItems = Array.isArray(response.data) ? response.data : []
+      console.log('✅ PantryDetail - Response tiene data:', fetchedItems.length)
+    } else if (response.items) {
+      fetchedItems = response.items
+      console.log('✅ PantryDetail - Response tiene items:', fetchedItems.length)
+    }
+
+    items.value = fetchedItems
+    console.log('💾 PantryDetail - Items guardados:', items.value.length, 'items')
+    console.log('📋 PantryDetail - Items:', items.value)
+
     if (response.pagination) {
       itemsPagination.value = {
         ...itemsPagination.value,
         ...response.pagination
       }
+      console.log('📄 PantryDetail - Pagination:', itemsPagination.value)
     }
   } catch (err) {
-    console.error('Error fetching items:', err)
+    console.error('❌ PantryDetail - Error fetching items:', err)
     error.value = err.message || 'Error al cargar los productos'
   } finally {
     itemsLoading.value = false
@@ -616,16 +689,19 @@ async function addItem() {
       metadata: {}
     }
 
-    await addPantryItem(pantry.value.id, payload)
+    console.log('🎯 PantryDetail - addItem - Payload:', payload)
+    const addedItem = await addPantryItem(pantry.value.id, payload)
+    console.log('✅ PantryDetail - addItem - Item agregado:', addedItem)
 
     // Refresh items to get updated list
+    console.log('🔄 PantryDetail - addItem - Refrescando lista de items...')
     await fetchItems()
 
     newItem.value = { name: '', quantity: 1, unit: 'un' }
     selectedProductId.value = null
     showSnackbar('Producto añadido a la despensa', 'success')
   } catch (err) {
-    console.error('❌ Error adding item:', err)
+    console.error('❌ PantryDetail - addItem - Error:', err)
     const errorMsg = err.response?.data?.message || err.message || 'Error al añadir el producto'
     showSnackbar(errorMsg, 'error')
   } finally {
@@ -767,6 +843,27 @@ function showSnackbar(message, color = 'success') {
   snackbar.value = { show: true, message, color }
 }
 
+// Agregar estados para edición de nombre
+const editingName = ref(false)
+const editName = ref('')
+
+function startEditName() {
+  editName.value = pantry.value.name
+  editingName.value = true
+}
+
+function cancelEditName() {
+  editingName.value = false
+  editName.value = ''
+}
+
+async function saveName() {
+  if (editName.value.trim() && editName.value.trim() !== pantry.value.name) {
+    await updatePantryName(editName.value.trim())
+  }
+  editingName.value = false
+}
+
 // Lifecycle
 onMounted(async () => {
   await fetchPantry()
@@ -777,6 +874,41 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.btn-pill { border-radius: 24px !important; }
-.btn-rounded { border-radius: 8px !important; }
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.left-col {
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.right-col {
+  min-width: 280px;
+}
+
+@media (min-width: 960px) {
+  .right-col {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+.icon-btn-rounded {
+  border-radius: 50%;
+}
+
+.btn-pill {
+  border-radius: 24px !important;
+}
+
+.btn-rounded {
+  border-radius: 8px !important;
+}
+
+.products-list {
+  /* Espacio para los items */
+}
 </style>
