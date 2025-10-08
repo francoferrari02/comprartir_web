@@ -2,42 +2,48 @@
 ├── README.md
 ├── dist
 │   ├── assets
-│   │   ├── Categories-0Q_4UfkE.js
+│   │   ├── Categories-DGjCup0G.js
 │   │   ├── Categories-DNwy-ctE.css
 │   │   ├── HankenGrotesk-Bold-Dm2oW4UY.ttf
 │   │   ├── HankenGrotesk-Medium-C-pRKDnn.ttf
 │   │   ├── HankenGrotesk-Regular-CeO9c_1w.ttf
-│   │   ├── Help-C-Z4XN7S.js
-│   │   ├── Historial-6zWmLBvV.js
-│   │   ├── Home-aWEdFBEF.css
-│   │   ├── Home-wcMM6hvT.js
-│   │   ├── ListDetail-BGnBcb1s.css
-│   │   ├── ListDetail-DkyxOev-.js
-│   │   ├── Lists-DMyleggk.js
-│   │   ├── Lists-E6s87flE.css
+│   │   ├── Help-q-DIJSQ-.js
+│   │   ├── Historial-D9DL0ib_.js
+│   │   ├── Home-BOseEJkv.css
+│   │   ├── Home-MDaTPnMW.js
+│   │   ├── ListDetail-CNl6Ocph.js
+│   │   ├── ListDetail-Dm2h8Sez.css
+│   │   ├── Lists-BZ6Ey1R8.css
+│   │   ├── Lists-YFLZiYSo.js
+│   │   ├── Login-BR5P6jO7.js
 │   │   ├── Login-CvxY4rlk.css
-│   │   ├── Login-GtuXCUlH.js
 │   │   ├── Logo_Comprartir-B2snMsIO.png
 │   │   ├── Logo_Comprartir-removebg-mu_KDeOy.png
+│   │   ├── Notifications-C4_wPSPL.js
 │   │   ├── Notifications-cNH0zd6B.css
-│   │   ├── Notifications-sbQ6PIWk.js
-│   │   ├── Preferences-DInGen3x.js
-│   │   ├── Profile-B8qo5vFX.js
-│   │   ├── Register-CckApmMm.js
+│   │   ├── Pantries-CiU26A_W.js
+│   │   ├── Pantries-DHvW2_sI.css
+│   │   ├── PantryDetail-3SRZw663.css
+│   │   ├── PantryDetail-Ds5gRSq5.js
+│   │   ├── Preferences-BWL4vkfO.js
+│   │   ├── Profile-DKDW7jgs.js
 │   │   ├── Register-CfOsIoe_.css
+│   │   ├── Register-DXZCBUIE.js
 │   │   ├── ResetPassword-5QOyMckJ.css
-│   │   ├── ResetPassword-CcWsIArK.js
+│   │   ├── ResetPassword-Bjor1Hqq.js
+│   │   ├── SummaryCard-CzI-yZzX.css
 │   │   ├── auth-DnHCj2Tv.js
 │   │   ├── http-BVuhkoaI.js
-│   │   ├── index-CDFJBTpk.css
-│   │   ├── index-DfX4vhf1.js
+│   │   ├── index-Ct9TV__H.css
+│   │   ├── index-DgxF6Fxg.js
 │   │   ├── index-ngrFHoWO.js
-│   │   ├── lists-DOAC5kP4.js
+│   │   ├── lists-DLGdSDRF.js
 │   │   ├── materialdesignicons-webfont-B7mPwVP_.ttf
 │   │   ├── materialdesignicons-webfont-CSr8KVlo.eot
 │   │   ├── materialdesignicons-webfont-Dp5v-WZN.woff2
 │   │   ├── materialdesignicons-webfont-PXm3-2wK.woff
-│   │   └── mockData-DRtwVjx-.js
+│   │   ├── mockData-BS8TSjX7.js
+│   │   └── pantryItems-DDTTk_dX.js
 │   ├── favicon.ico
 │   ├── index.html
 │   └── web.manifest
@@ -6375,6 +6381,10 @@
 │   │   ├── ListDetailCard.vue
 │   │   ├── ListItem.vue
 │   │   ├── ListSearch.vue
+│   │   ├── PantryCarousel.vue
+│   │   ├── PantryItem.vue
+│   │   ├── PantryProductItem.vue
+│   │   ├── PantrySearch.vue
 │   │   ├── ProductItem.vue
 │   │   ├── QuickActions.vue
 │   │   ├── RecentLists.vue
@@ -6406,6 +6416,7 @@
 │   │   ├── lists.js
 │   │   ├── mockData.js
 │   │   ├── pantries.js
+│   │   ├── pantryItems.js
 │   │   └── product.js
 │   ├── stores
 │   │   ├── categories.js
@@ -6422,6 +6433,8 @@
 │       ├── Lists.vue
 │       ├── Login.vue
 │       ├── Notifications.vue
+│       ├── Pantries.vue
+│       ├── PantryDetail.vue
 │       ├── Preferences.vue
 │       ├── Profile.vue
 │       ├── Register.vue
@@ -6430,4 +6443,4 @@
 ├── tree.txt
 └── vite.config.js
 
-682 directories, 5749 files
+682 directories, 5762 files
