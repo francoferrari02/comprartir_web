@@ -85,6 +85,7 @@ export class List extends BaseEntity {
       metadata: this.metadata ?? null,
       owner: this.owner?.getFormattedUser() ?? null,
       sharedWith: this.sharedWith ? this.sharedWith.map(user => (user.getFormattedUser())) : [],
+      items: this.items ? this.items.map(item => item.getFormattedListItem()) : [],
       lastPurchasedAt: this.formatDate(this.lastPurchasedAt),
       createdAt: this.formatDate(this.createdAt),
       updatedAt: this.formatDate(this.updatedAt),

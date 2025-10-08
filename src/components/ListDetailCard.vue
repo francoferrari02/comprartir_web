@@ -246,7 +246,7 @@
             @toggle="$emit('toggle-product', product.id)"
             @delete="$emit('delete-product', product.id)"
             @update="(updates) => $emit('update-product', product.id, updates)"
-            @details="$emit('show-details', product.id)"
+            @details="openProductDetails(product.id)"
           />
         </template>
       </div>
@@ -281,6 +281,112 @@
         Imprimir
       </v-btn>
     </div>
+
+    <!-- Product Details Dialog -->
+    <v-dialog v-model="detailsDialog.open" max-width="600">
+      <v-card class="dialog-card">
+        <v-card-title class="text-h6 pa-4 d-flex align-center justify-space-between">
+          <span>Detalles del producto</span>
+          <v-btn
+            icon="mdi-close"
+            size="small"
+            variant="text"
+            @click="closeDetailsDialog"
+          />
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4">
+          <!-- Nombre del producto (solo lectura) -->
+          <v-text-field
+            :model-value="detailsDialog.productName"
+            label="Producto"
+            variant="outlined"
+            density="comfortable"
+            readonly
+            prepend-inner-icon="mdi-package-variant"
+            class="mb-3"
+          />
+
+          <!-- Cantidad -->
+          <v-text-field
+            v-model.number="detailsDialog.form.quantity"
+            label="Cantidad"
+            type="number"
+            variant="outlined"
+            density="comfortable"
+            prepend-inner-icon="mdi-counter"
+            min="0.01"
+            step="0.01"
+            class="mb-3"
+          />
+
+          <!-- Unidad -->
+          <v-select
+            v-model="detailsDialog.form.unit"
+            :items="unitOptions"
+            label="Unidad"
+            variant="outlined"
+            density="comfortable"
+            prepend-inner-icon="mdi-scale-balance"
+            class="mb-3"
+          />
+
+          <!-- Descripción/Notas (metadata) -->
+          <v-textarea
+            v-model="detailsDialog.form.description"
+            label="Notas o descripción (opcional)"
+            variant="outlined"
+            density="comfortable"
+            rows="3"
+            prepend-inner-icon="mdi-text"
+            placeholder="Ej: Marca específica, variedad, recordatorios..."
+            class="mb-3"
+          />
+
+          <!-- Estado de compra -->
+          <v-switch
+            v-model="detailsDialog.form.purchased"
+            label="Marcar como comprado"
+            color="success"
+            hide-details
+            inset
+          />
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="pa-4 d-flex justify-space-between">
+          <!-- Botón eliminar a la izquierda -->
+          <v-btn
+            color="error"
+            variant="outlined"
+            prepend-icon="mdi-delete"
+            class="btn-rounded"
+            @click="confirmDeleteFromDetails"
+          >
+            Eliminar
+          </v-btn>
+
+          <!-- Botones de acción a la derecha -->
+          <div class="d-flex gap-2">
+            <v-btn
+              variant="text"
+              class="btn-rounded"
+              @click="closeDetailsDialog"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              class="btn-rounded"
+              :loading="detailsDialog.loading"
+              @click="saveProductDetails"
+            >
+              Guardar cambios
+            </v-btn>
+          </div>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -326,6 +432,37 @@ const editingName = ref(false)
 const editName = ref(props.list.name)
 const editingDescription = ref(false)
 const editDescription = ref(props.list.description || '')
+
+// Details dialog state
+const detailsDialog = ref({
+  open: false,
+  loading: false,
+  productId: null,
+  productName: '',
+  form: {
+    quantity: 1,
+    unit: 'un',
+    description: '',
+    purchased: false
+  }
+})
+
+// Unit options
+const unitOptions = [
+  'un',
+  'kg',
+  'g',
+  'l',
+  'ml',
+  'paquete',
+  'caja',
+  'bolsa',
+  'docena',
+  'lata',
+  'botella',
+  'sobre',
+  'frasco'
+]
 
 // Computed
 const purchasedCount = computed(() => {
@@ -410,6 +547,71 @@ watch(() => props.list.name, (newName) => {
 watch(() => props.list.description, (newDescription) => {
   editDescription.value = newDescription || ''
 })
+
+// Product details methods
+function openProductDetails(productId) {
+  const product = props.products.find(p => p.id === productId)
+  if (!product) return
+
+  // Obtener el nombre del producto desde diferentes estructuras posibles
+  const productName = product.product?.name || product.productName || product.name || `Producto #${product.id}`
+
+  detailsDialog.value = {
+    open: true,
+    loading: false,
+    productId: product.id,
+    productName: productName,
+    form: {
+      quantity: product.quantity || 1,
+      unit: product.unit || 'un',
+      description: product.metadata?.description || product.metadata?.notes || '',
+      purchased: product.purchased || false
+    }
+  }
+}
+
+function closeDetailsDialog() {
+  detailsDialog.value.open = false
+}
+
+async function saveProductDetails() {
+  detailsDialog.value.loading = true
+
+  try {
+    const updates = {
+      quantity: Number(detailsDialog.value.form.quantity),
+      unit: String(detailsDialog.value.form.unit),
+      metadata: {
+        ...detailsDialog.value.form.metadata,
+        description: detailsDialog.value.form.description || null
+      }
+    }
+
+    // Si cambió el estado de compra, también actualizar
+    if (detailsDialog.value.form.purchased !== props.products.find(p => p.id === detailsDialog.value.productId)?.purchased) {
+      emit('toggle-product', detailsDialog.value.productId)
+    }
+
+    emit('update-product', detailsDialog.value.productId, updates)
+    closeDetailsDialog()
+  } catch (error) {
+    console.error('Error updating product details:', error)
+  } finally {
+    detailsDialog.value.loading = false
+  }
+}
+
+function confirmDeleteFromDetails() {
+  if (confirm('¿Estás seguro de que deseas eliminar este producto de la lista?')) {
+    emit('delete-product', detailsDialog.value.productId)
+    closeDetailsDialog()
+  }
+}
+
+// Exponer el método para que ProductItem pueda llamarlo
+defineExpose({
+  openProductDetails
+})
 </script>
 
 <style scoped>
@@ -453,5 +655,14 @@ watch(() => props.list.description, (newDescription) => {
 /* Asegurar que los botones de texto también se vean bien */
 :deep(.v-btn--variant-text) {
   border-radius: 999px !important;
+}
+
+/* Estilos para el diálogo de detalles del producto */
+.dialog-card {
+  border-radius: 12px;
+}
+
+.v-dialog__content {
+  padding: 0;
 }
 </style>

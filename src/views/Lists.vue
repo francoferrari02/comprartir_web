@@ -352,6 +352,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useListsStore } from '@/stores/lists'
 import { getShoppingLists, createShoppingList, getListItems, updateShoppingList, deleteShoppingList } from '@/services/lists'
 import ListSearch from '@/components/ListSearch.vue'
 import ListCarousel from '@/components/ListCarousel.vue'
@@ -359,13 +360,13 @@ import SummaryCard from '@/components/SummaryCard.vue'
 
 const router = useRouter()
 const route = useRoute()
+const listsStore = useListsStore()
 
 // Estado reactivo
 const loading = ref(false)
 const creating = ref(false)
 const error = ref(null)
 const lists = ref([])
-const listItemsCounts = ref({}) // Nuevo: almacenar conteos por lista
 const searchQuery = ref(route.query.search || '')
 const createDialog = ref(false)
 const showFilters = ref(true) // Controlar visibilidad de filtros
@@ -440,52 +441,31 @@ watch(searchQuery, () => {
 
 // Computed properties
 const listsWithProgress = computed(() => {
-  // Calculate progress for each list (will be updated when we fetch items)
-  return lists.value.map(list => ({
-    ...list,
-    bought: listItemsCounts.value[list.id]?.bought || 0, // Obtenido del nuevo estado
-    total: listItemsCounts.value[list.id]?.total || 0,   // Obtenido del nuevo estado
-    progress: listItemsCounts.value[list.id]?.total > 0 ? (listItemsCounts.value[list.id]?.bought / listItemsCounts.value[list.id]?.total) * 100 : 0,
-    tags: list.metadata?.tags || [],
-    sharedWith: [] // TODO: fetch shared users
-  }))
+  // Calculate progress for each list using store cache
+  return lists.value.map(list => {
+    const items = listsStore.itemsByList.get(list.id) || []
+    const total = items.length
+    const bought = items.filter(i => i.purchased).length
+
+    return {
+      ...list,
+      bought,
+      total,
+      progress: total > 0 ? (bought / total) * 100 : 0,
+      tags: list.metadata?.tags || [],
+      sharedWith: list.sharedWith || []
+    }
+  })
 })
 
 const summaryStats = computed(() => {
-  const totalLists = pagination.value.totalItems
-  const recurringLists = lists.value.filter(l => l.recurring).length
-
-  // Calcular el total de items y items completados de todas las listas visibles
-  let totalItems = 0
-  let completedItems = 0
-  let completedLists = 0
-
-  lists.value.forEach(list => {
-    const counts = listItemsCounts.value[list.id]
-    if (counts) {
-      totalItems += counts.total
-      completedItems += counts.bought
-
-      // Una lista está completada si tiene items y todos están comprados
-      if (counts.total > 0 && counts.bought === counts.total) {
-        completedLists++
-      }
-    }
-  })
-
-  const pendingItems = totalItems - completedItems
-  const sharedLists = lists.value.filter(l =>
-    l.shared_with && Array.isArray(l.shared_with) && l.shared_with.length > 0
-  ).length
-
   return {
-    totalLists,
-    completedLists,
-    recurringLists,
-    totalItems,
-    completedItems,
-    pendingItems,
-    sharedLists
+    totalLists: listsStore.totalLists,
+    completedLists: listsStore.completedLists,
+    totalItems: listsStore.totalItems,
+    completedItems: listsStore.purchasedItems,
+    pendingItems: listsStore.pendingItems,
+    sharedLists: listsStore.sharedLists
   }
 })
 
@@ -512,6 +492,7 @@ const recurringOptions = [
 // Methods
 async function fetchLists() {
   loading.value = true
+  listsStore.isLoading = true
   error.value = null
 
   try {
@@ -523,7 +504,6 @@ async function fetchLists() {
       order: filters.value.order
     }
 
-    // Only add recurring filter if it has a value
     if (filters.value.recurring !== null && filters.value.recurring !== '') {
       params.recurring = filters.value.recurring
     }
@@ -534,7 +514,6 @@ async function fetchLists() {
 
     const response = await getShoppingLists(params)
 
-    // Handle response structure - service returns data directly or {data, pagination}
     if (Array.isArray(response)) {
       lists.value = response
     } else if (response.data) {
@@ -546,12 +525,14 @@ async function fetchLists() {
         }
       }
     } else {
-      // Backend might return {items, total} or similar
       lists.value = response.items || response.results || []
       if (response.total !== undefined) {
         pagination.value.totalItems = response.total
       }
     }
+
+    // Actualizar el store con las listas
+    listsStore.setLists(lists.value)
 
     // Fetch item counts for each list
     await fetchItemCounts()
@@ -560,30 +541,48 @@ async function fetchLists() {
     error.value = err.message || 'Error al cargar las listas'
   } finally {
     loading.value = false
+    listsStore.isLoading = false
   }
 }
 
 async function fetchItemCounts() {
   // Fetch item counts for all visible lists in parallel
-  const counts = {}
+  console.log('🔄 fetchItemCounts - Iniciando para', lists.value.length, 'listas')
 
   await Promise.all(
     lists.value.map(async (list) => {
       try {
+        console.log(`📤 fetchItemCounts - Cargando items para lista ${list.id} (${list.name})`)
         const itemsResponse = await getListItems(list.id, { per_page: 1000 })
-        const items = itemsResponse.data || []
-        counts[list.id] = {
-          bought: items.filter(item => item.purchased).length,
-          total: items.length
+        console.log(`📥 fetchItemCounts - Response para lista ${list.id}:`, itemsResponse)
+
+        // Manejar diferentes formatos de respuesta
+        let items = []
+        if (Array.isArray(itemsResponse)) {
+          items = itemsResponse
+        } else if (itemsResponse.data) {
+          items = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
+        } else if (itemsResponse.items) {
+          items = itemsResponse.items
         }
+
+        console.log(`✅ fetchItemCounts - Lista ${list.id} tiene ${items.length} items:`, items)
+        // Guardar en el store usando la nueva acción
+        listsStore.setItemsForList(list.id, items)
+        console.log(`💾 fetchItemCounts - Guardado en store para lista ${list.id}`)
       } catch (err) {
-        console.error(`Error fetching items for list ${list.id}:`, err)
-        counts[list.id] = { bought: 0, total: 0 }
+        console.error(`❌ fetchItemCounts - Error cargando items para lista ${list.id}:`, err)
+        listsStore.setItemsForList(list.id, [])
       }
     })
   )
 
-  listItemsCounts.value = counts
+  console.log('✅ fetchItemCounts - Completado. Store itemsByList:', listsStore.itemsByList)
+  console.log('📊 fetchItemCounts - Estadísticas:', {
+    totalItems: listsStore.totalItems,
+    purchasedItems: listsStore.purchasedItems,
+    pendingItems: listsStore.pendingItems
+  })
 }
 
 function updateQueryParams() {

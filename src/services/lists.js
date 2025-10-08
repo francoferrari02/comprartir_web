@@ -219,12 +219,21 @@ export async function addListItem(listId, body) {
         return mockShoppingLists.addItem(listId, body)
     }
     try {
-        const { data } = await api.post(`/shopping-lists/${listId}/items`, body)
+        // Asegurar que listId es un número/string válido
+        const cleanListId = String(listId).trim()
+        console.log('📤 addListItem - listId:', cleanListId, 'body:', body)
+        const url = `/shopping-lists/${cleanListId}/items`
+        console.log('📤 addListItem - URL construida:', url)
+
+        const { data } = await api.post(url, body)
+        console.log('✅ addListItem - Response:', data)
         return data
     } catch (error) {
+        console.error('❌ addListItem - Error:', error)
         throw {
             message: error.response?.data?.message || 'Error al añadir el ítem',
-            status: error.response?.status
+            status: error.response?.status,
+            originalError: error
         }
     }
 }

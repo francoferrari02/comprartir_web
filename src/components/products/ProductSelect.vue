@@ -1,57 +1,34 @@
 <template>
   <v-autocomplete
     :model-value="modelValue"
-    @update:model-value="$emit('update:modelValue', $event)"
     :items="products"
     :loading="loading"
-    :search="search"
-    @update:search="onSearchUpdate"
-    item-title="name"
-    item-value="id"
     :label="label"
     :placeholder="placeholder"
-    variant="outlined"
-    density="comfortable"
-    :clearable="clearable"
-    :disabled="disabled"
-    :rules="rules"
-    hide-details="auto"
-    return-object
+    :autofocus="autofocus"
+    item-title="name"
+    item-value="id"
+    clearable
+    no-filter
+    @update:model-value="handleSelect"
+    @update:search="handleSearch"
   >
-    <template #prepend-inner>
-      <v-icon>mdi-package-variant</v-icon>
-    </template>
-
-    <template #item="{ props, item }">
-      <v-list-item v-bind="props">
-        <template #prepend>
-          <v-avatar color="primary" size="32">
-            <v-icon size="18">mdi-package-variant</v-icon>
-          </v-avatar>
-        </template>
-        <template #subtitle v-if="item.raw.category">
-          {{ item.raw.category.name || 'Sin categoría' }}
-        </template>
-      </v-list-item>
-    </template>
-
-    <template #append-item v-if="showCreateLink">
-      <v-divider class="mb-2" />
-      <v-list-item @click="$emit('create-product')" link>
-        <template #prepend>
-          <v-icon color="primary">mdi-plus-circle</v-icon>
-        </template>
-        <v-list-item-title class="text-primary">
-          Crear nuevo producto
-        </v-list-item-title>
-      </v-list-item>
-    </template>
-
     <template #no-data>
       <v-list-item>
         <v-list-item-title>
-          {{ search ? 'No se encontraron productos' : 'Escribe para buscar productos' }}
+          {{ searchQuery ? 'No se encontraron productos' : 'Escribí para buscar productos' }}
         </v-list-item-title>
+      </v-list-item>
+    </template>
+
+    <template #item="{ props: itemProps, item }">
+      <v-list-item v-bind="itemProps">
+        <template #title>
+          <span class="font-weight-medium">{{ item.raw.name }}</span>
+        </template>
+        <template #subtitle v-if="item.raw.category">
+          <span class="text-caption">{{ item.raw.category.name }}</span>
+        </template>
       </v-list-item>
     </template>
   </v-autocomplete>
@@ -63,11 +40,11 @@ import { getProducts } from '@/services/products.service'
 
 const props = defineProps({
   modelValue: {
-    type: [Object, Number, String],
+    type: [String, Number],
     default: null
   },
   categoryId: {
-    type: [Number, String],
+    type: [String, Number],
     default: null
   },
   label: {
@@ -78,54 +55,35 @@ const props = defineProps({
     type: String,
     default: 'Buscar producto...'
   },
-  clearable: {
-    type: Boolean,
-    default: true
-  },
-  disabled: {
+  autofocus: {
     type: Boolean,
     default: false
-  },
-  rules: {
-    type: Array,
-    default: () => []
-  },
-  showCreateLink: {
-    type: Boolean,
-    default: true
   }
 })
 
-defineEmits(['update:modelValue', 'create-product'])
+const emit = defineEmits(['update:modelValue'])
 
 const products = ref([])
 const loading = ref(false)
-const search = ref('')
-let debounceTimer = null
+const searchQuery = ref('')
+let searchTimeout = null
 
-const fetchProducts = async (searchQuery = '') => {
+async function fetchProducts(search = '') {
   loading.value = true
   try {
     const params = {
-      name: searchQuery,
-      page: 1,
-      per_page: 20,
+      name: search,
+      per_page: 50,
       sort_by: 'name',
       order: 'ASC'
     }
 
     if (props.categoryId) {
-      params.category_id = props.categoryId
+      params.categoryId = props.categoryId
     }
 
-    const data = await getProducts(params)
-
-    // Handle different response formats
-    if (Array.isArray(data)) {
-      products.value = data
-    } else {
-      products.value = data.items || data.data || data.results || data.products || []
-    }
+    const response = await getProducts(params)
+    products.value = response.data || response || []
   } catch (error) {
     console.error('Error fetching products:', error)
     products.value = []
@@ -134,25 +92,35 @@ const fetchProducts = async (searchQuery = '') => {
   }
 }
 
-const onSearchUpdate = (value) => {
-  search.value = value
+function handleSearch(search) {
+  searchQuery.value = search || ''
 
   // Debounce search
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
   }
 
-  debounceTimer = setTimeout(() => {
-    fetchProducts(value)
-  }, 250)
+  searchTimeout = setTimeout(() => {
+    fetchProducts(search)
+  }, 300)
 }
 
-// Watch categoryId changes
-watch(() => props.categoryId, () => {
-  fetchProducts(search.value)
-})
+function handleSelect(value) {
+  // Normalize: if somehow a full object is passed, extract the id
+  const productId = typeof value === 'object' ? value?.id : value
+  emit('update:modelValue', productId)
+}
 
-// Initial load
-fetchProducts()
+// Load initial products
+watch(() => props.categoryId, () => {
+  fetchProducts(searchQuery.value)
+}, { immediate: true })
 </script>
+
+<style scoped>
+/* Ensure proper spacing and styling */
+:deep(.v-autocomplete) {
+  width: 100%;
+}
+</style>
 

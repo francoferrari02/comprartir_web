@@ -55,7 +55,7 @@ export async function getListsService(listData: ListFilterOptions): Promise<List
         const queryBuilder = List.createQueryBuilder("list")
             .leftJoinAndSelect("list.owner", "owner")
             .leftJoinAndSelect("list.sharedWith", "sharedWith")
-            .leftJoinAndSelect("list.items", "items")
+            .leftJoinAndSelect("list.items", "items", "items.deletedAt IS NULL")
             .andWhere("list.deletedAt IS NULL");
 
         if (listData.owner === true) {
@@ -213,10 +213,16 @@ export async function purchaseListService(listId: number, user: User, metadata: 
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-        const list = await queryRunner.manager.findOne(List, {
-            where: { id: listId },
-            relations: ["items", "owner", "sharedWith"]
-        });
+        // Use query builder to properly load non-deleted items
+        const list = await queryRunner.manager
+            .createQueryBuilder(List, "list")
+            .leftJoinAndSelect("list.owner", "owner")
+            .leftJoinAndSelect("list.sharedWith", "sharedWith")
+            .leftJoinAndSelect("list.items", "items", "items.deletedAt IS NULL")
+            .where("list.id = :listId", { listId })
+            .andWhere("list.deletedAt IS NULL")
+            .getOne();
+
         if (!list || (list.owner.id !== user.id && !list.sharedWith.some(u => u.id === user.id))) {
             throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.LIST);
         }
@@ -225,24 +231,23 @@ export async function purchaseListService(listId: number, user: User, metadata: 
             throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_IN_SHOPPING_LIST);
         }
 
+        // Mark ALL items as purchased and update lastPurchasedAt
         const listItems: ListItem[] = [];
         for (const item of list.items) {
-            const listItem = await queryRunner.manager.findOne(ListItem, { where: { id: item.id } });
+            const listItem = await queryRunner.manager.findOne(ListItem, {
+                where: { id: item.id, deletedAt: null }
+            });
             if (listItem) {
-                if(listItem.purchased) {
-                    listItem.lastPurchasedAt = new Date();
-                    listItems.push(listItem);
-                    await queryRunner.manager.save(listItem);
-                }
+                listItem.purchased = true;
+                listItem.lastPurchasedAt = new Date();
+                listItems.push(listItem);
+                await queryRunner.manager.save(listItem);
             } else {
                 throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.ITEM);
             }
         }
 
-        if(listItems.length <= 0) {
-            throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_PURCHASED_IN_SHOPPING_LIST);
-        }
-
+        // Create purchase record
         const purchase = new Purchase();
         list.lastPurchasedAt = new Date();
         await queryRunner.manager.save(list);
@@ -252,9 +257,8 @@ export async function purchaseListService(listId: number, user: User, metadata: 
         purchase.metadata = metadata ?? {};
         await queryRunner.manager.save(purchase);
 
-        if (!list.recurring) {
-            await queryRunner.manager.softRemove(list);
-        }
+        // Do NOT delete the list - just mark items as purchased
+        // The list should remain available with all items marked as purchased
 
         await queryRunner.commitTransaction();
         return list.getFormattedList();

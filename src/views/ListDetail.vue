@@ -91,6 +91,7 @@
         <!-- Columna derecha: Añadir items y compartir -->
         <v-col cols="12" md="4" class="right-col">
           <AddItemCard
+            :key="addItemKey"
             v-model="addItemQuery"
             :loading="addingItem"
             @add-item="addItem"
@@ -180,6 +181,7 @@ const items = ref([])
 const sharedUsers = ref([])
 const showCompleted = ref(true)
 const addItemQuery = ref('')
+const addItemKey = ref(0) // ← Key para forzar re-render del AddItemCard
 
 // Pagination for items
 const itemsPagination = ref({
@@ -252,6 +254,7 @@ async function fetchList() {
 async function fetchItems() {
   if (!list.value) return
 
+  console.log('🔄 fetchItems - Iniciando fetch para listId:', list.value.id)
   itemsLoading.value = true
   error.value = null
 
@@ -274,9 +277,27 @@ async function fetchItems() {
       params.pantry_id = itemsFilters.value.pantry_id
     }
 
+    console.log('📤 fetchItems - Params:', params)
     const response = await getListItems(list.value.id, params)
+    console.log('📥 fetchItems - Response completa:', response)
 
-    const fetchedItems = response.data || []
+    // Intentar diferentes formatos de respuesta
+    let fetchedItems = []
+    if (Array.isArray(response)) {
+      fetchedItems = response
+    } else if (response.data) {
+      if (Array.isArray(response.data)) {
+        fetchedItems = response.data
+      } else if (response.data.items) {
+        fetchedItems = response.data.items
+      }
+    } else if (response.items) {
+      fetchedItems = response.items
+    }
+
+    console.log('✅ fetchItems - Items extraídos:', fetchedItems.length, 'items')
+    console.log('📋 fetchItems - Items:', fetchedItems)
+
     items.value = fetchedItems
     // Guardar en el store
     listsStore.setCurrentItems(fetchedItems)
@@ -286,9 +307,10 @@ async function fetchItems() {
         ...itemsPagination.value,
         ...response.pagination
       }
+      console.log('📄 fetchItems - Pagination:', itemsPagination.value)
     }
   } catch (err) {
-    console.error('Error fetching items:', err)
+    console.error('❌ fetchItems - Error:', err)
     error.value = err.message || 'Error al cargar los ítems'
   } finally {
     itemsLoading.value = false
@@ -345,6 +367,10 @@ async function toggleProduct(itemId) {
     if (index !== -1) {
       items.value[index] = { ...items.value[index], ...updated }
     }
+
+    // Actualizar el store global para que el Resumen reaccione
+    listsStore.localToggleItem(list.value.id, itemId, updated.purchased ?? !item.purchased)
+
   } catch (err) {
     console.error('Error toggling item:', err)
     error.value = err.message || 'Error al actualizar el ítem'
@@ -359,6 +385,12 @@ async function updateProduct(itemId, updates) {
     if (index !== -1) {
       items.value[index] = { ...items.value[index], ...updated }
     }
+
+    // Actualizar el store global si cambia el estado purchased
+    if (updates.purchased !== undefined) {
+      listsStore.localToggleItem(list.value.id, itemId, updates.purchased)
+    }
+
     showSnackbar('Ítem actualizado', 'success')
   } catch (err) {
     console.error('Error updating item:', err)
@@ -372,6 +404,10 @@ async function deleteProduct(itemId) {
     // Remove from local state
     items.value = items.value.filter(i => i.id !== itemId)
     itemsPagination.value.totalItems--
+
+    // Actualizar el store global
+    listsStore.removeItem(itemId)
+
     showSnackbar('Ítem eliminado', 'success')
   } catch (err) {
     console.error('Error deleting item:', err)
@@ -380,11 +416,15 @@ async function deleteProduct(itemId) {
 }
 
 async function addItem(itemData) {
+  console.log('🎯 addItem - itemData recibido:', itemData)
+
   if (!itemData) return
 
-  // Validate that we have either product_id or product name
-  if (!itemData.product_id && !itemData.name?.trim() && !itemData.productName?.trim()) {
-    showSnackbar('Debes seleccionar un producto', 'error')
+  // productId requerido
+  const productId = typeof itemData.productId === 'object' ? itemData.productId?.id : itemData.productId
+  if (!productId) {
+    console.error('❌ addItem - Falta productId en itemData')
+    showSnackbar('Seleccioná o creá un producto', 'error')
     return
   }
 
@@ -392,29 +432,37 @@ async function addItem(itemData) {
 
   try {
     const payload = {
-      quantity: itemData.quantity || 1,
-      unit: itemData.unit || 'unidad',
-      metadata: itemData.metadata || {}
+      product: { id: Number(productId) },
+      quantity: Number(itemData.quantity ?? 1),
+      unit: String(itemData.unit ?? 'un'),
+      metadata: itemData.metadata ?? {}
     }
 
-    // Use product_id if available (from ProductSelect), otherwise use product name
-    if (itemData.product_id) {
-      payload.product_id = itemData.product_id
-    } else {
-      payload.product_name = itemData.name?.trim() || itemData.productName?.trim()
-    }
+    console.log('📦 addItem - Payload final que se enviará:', payload)
 
-    await addListItem(list.value.id, payload)
+    const newItem = await addListItem(list.value.id, payload)
+    console.log('✅ addItem - Item creado exitosamente:', newItem)
 
     // Refresh items to get updated list with proper product data
     await fetchItems()
 
+    // Force reset del form component
     addItemQuery.value = ''
+    addItemKey.value++ // ← Forzar re-render para limpiar completamente el form
+
     showSnackbar('Producto añadido a la lista', 'success')
   } catch (err) {
-    console.error('Error adding item:', err)
-    const errorMsg = err.response?.data?.message || err.message || 'Error al añadir el ítem'
-    showSnackbar(errorMsg, 'error')
+    console.error('❌ addItem - Error:', err)
+
+    // Si es un 409 (item ya existe), actualizar la lista de todas formas
+    if (err.response?.status === 409) {
+      await fetchItems()
+      addItemKey.value++
+      showSnackbar('Este producto ya está en la lista', 'warning')
+    } else {
+      const errorMsg = err.response?.data?.message || err.message || 'Error al añadir el ítem'
+      showSnackbar(errorMsg, 'error')
+    }
   } finally {
     addingItem.value = false
   }

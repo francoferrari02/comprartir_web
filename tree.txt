@@ -1,8 +1,4 @@
 .
-├── AUTH_INTEGRATION.md
-├── EMAIL_VERIFICATION.md
-├── INTEGRATION_COMPLETE.md
-├── PRODUCTS_IMPLEMENTATION.md
 ├── README.md
 ├── api
 │   ├── README.txt
@@ -23343,7 +23339,8 @@
 │   │   │   ├── purchase.controller.ts
 │   │   │   └── user.controller.ts
 │   │   ├── db
-│   │   │   └── init.sqlite
+│   │   │   ├── init.sqlite
+│   │   │   └── init.sqlite-journal
 │   │   ├── db.test.ts
 │   │   ├── db.ts
 │   │   ├── entities
@@ -23437,49 +23434,48 @@
 │   └── tsconfig.json
 ├── dist
 │   ├── assets
-│   │   ├── Categories-DNwy-ctE.css
-│   │   ├── Categories-DXQum2dA.js
 │   │   ├── ForgotPassword-BS-2I3Qx.css
-│   │   ├── ForgotPassword-QWhxmiPn.js
+│   │   ├── ForgotPassword-DoEVrIsW.js
 │   │   ├── HankenGrotesk-Bold-Dm2oW4UY.ttf
 │   │   ├── HankenGrotesk-Medium-C-pRKDnn.ttf
 │   │   ├── HankenGrotesk-Regular-CeO9c_1w.ttf
-│   │   ├── Help-BlxQ5ke2.js
-│   │   ├── Historial-0g-EaaAD.js
-│   │   ├── Home-BKKFYs8D.js
-│   │   ├── Home-w4PYgW89.css
-│   │   ├── ListDetail-DUqbxuwp.js
-│   │   ├── ListDetail-Dm2h8Sez.css
-│   │   ├── Lists-BZ6Ey1R8.css
-│   │   ├── Lists-Rn9Qwxqf.js
-│   │   ├── Login-BUDn1V50.js
+│   │   ├── Help-D9oFMWRz.js
+│   │   ├── Historial-f1li4ktW.js
+│   │   ├── Home-BEUjMn0t.css
+│   │   ├── Home-C6CW9JRG.js
+│   │   ├── ListDetail-B2VKmUO8.css
+│   │   ├── ListDetail-DY4RUu5J.js
+│   │   ├── Lists-CA3dPgOk.js
+│   │   ├── Lists-CkTKSjls.css
 │   │   ├── Login-BlN9FgSZ.css
+│   │   ├── Login-DbSlA6pa.js
 │   │   ├── Logo_Comprartir-B2snMsIO.png
 │   │   ├── Logo_Comprartir-removebg-mu_KDeOy.png
-│   │   ├── Notifications-VnsaerVn.js
+│   │   ├── Notifications-BdDQtIlC.js
 │   │   ├── Notifications-cNH0zd6B.css
-│   │   ├── Pantries-DHvW2_sI.css
-│   │   ├── Pantries-eq-TFnNG.js
-│   │   ├── PantryDetail-8Nw95KWC.css
-│   │   ├── PantryDetail-Dma99mQl.js
-│   │   ├── Preferences-DS4sHq7w.js
+│   │   ├── Pantries-CgvFdE9Q.css
+│   │   ├── Pantries-DgpmQw7o.js
+│   │   ├── PantryDetail-DLzsGeQ_.css
+│   │   ├── PantryDetail-uHvfex77.js
+│   │   ├── Preferences-BVc9Adct.js
+│   │   ├── ProductSelectOrCreate-CTVxDHcF.css
+│   │   ├── ProductSelectOrCreate-Dx3lPKKV.js
 │   │   ├── Profile-BdXeSSTo.css
-│   │   ├── Profile-Bq0QQuda.js
-│   │   ├── Register-C3dKjrNi.js
+│   │   ├── Profile-DypTnLyF.js
+│   │   ├── Register-0EEvp23p.js
 │   │   ├── Register-Cfbrv_uj.css
+│   │   ├── ResetPassword-BEoI_YhA.js
 │   │   ├── ResetPassword-C_U1qJCj.css
-│   │   ├── ResetPassword-DCwC1ujY.js
-│   │   ├── SummaryCard-CzI-yZzX.css
-│   │   ├── Verify-1naO6Wq0.js
 │   │   ├── Verify-BLWbBZEl.css
-│   │   ├── index-DOU6RdJ_.js
+│   │   ├── Verify-hdfRsuyh.js
+│   │   ├── index-BZL_qvMI.js
 │   │   ├── index-ZHpX3Orv.css
-│   │   ├── lists-Dl52jSVp.js
+│   │   ├── lists-BKnL-jUH.js
 │   │   ├── materialdesignicons-webfont-B7mPwVP_.ttf
 │   │   ├── materialdesignicons-webfont-CSr8KVlo.eot
 │   │   ├── materialdesignicons-webfont-Dp5v-WZN.woff2
 │   │   ├── materialdesignicons-webfont-PXm3-2wK.woff
-│   │   └── pantryItems-B9PWf3eE.js
+│   │   └── pantryItems-DA0vbwxP.js
 │   ├── favicon.ico
 │   ├── index.html
 │   └── web.manifest
@@ -29840,7 +29836,8 @@
 │   │   │   ├── IconSupport.vue
 │   │   │   └── IconTooling.vue
 │   │   └── products
-│   │       └── ProductSelect.vue
+│   │       ├── ProductSelect.vue
+│   │       └── ProductSelectOrCreate.vue
 │   ├── main.js
 │   ├── plugins
 │   │   └── vuetify.js
@@ -29891,4 +29888,4 @@
 ├── tree.txt
 └── vite.config.js
 
-3710 directories, 26182 files
+3710 directories, 26179 files

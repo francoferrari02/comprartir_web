@@ -11,8 +11,6 @@
       <div v-if="isAuthenticated" class="nav-group">
         <v-btn to="/lists"       color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-view-list">Listas</v-btn>
         <v-btn to="/pantries"    color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-fridge">Despensas</v-btn>
-        <v-btn to="/products"    color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-package-variant">Productos</v-btn>
-        <v-btn to="/categories"  color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-tag">Categorías</v-btn>
         <v-btn to="/historial"   color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-history">Historial</v-btn>
         <v-btn to="/preferences" color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-cog">Preferencias</v-btn>
         <v-btn to="/profile"     color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-account-circle">Perfil</v-btn>

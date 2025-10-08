@@ -190,12 +190,13 @@ export async function updateListItemService(
         await queryRunner.manager.save(item);
         await queryRunner.commitTransaction();
 
+        // Refresh item with all required relations for getFormattedListItem()
         const refreshed = await queryRunner.manager.findOne(ListItem, {
             where: { id: item.id },
-            relations: ["list", "list.owner"],
+            relations: ["list", "list.owner", "product", "product.category"],
         });
 
-        return item.getFormattedListItem();
+        return refreshed?.getFormattedListItem() ?? item.getFormattedListItem();
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
         throw err;

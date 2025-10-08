@@ -164,47 +164,22 @@
 
         <!-- Columna derecha: Añadir items y compartir -->
         <v-col cols="12" md="4" class="right-col">
-          <!-- Add Item Card with ProductSelect -->
+          <!-- Add Item Card with ProductSelectOrCreate -->
           <v-card class="card mb-4">
             <v-card-title class="pa-4 d-flex align-center justify-space-between">
               <div class="d-flex align-center">
                 <v-icon class="mr-2">mdi-plus-circle-outline</v-icon>
                 Añadir Producto
               </div>
-              <v-btn
-                icon="mdi-package-variant-plus"
-                size="small"
-                variant="text"
-                color="primary"
-                @click="openCreateProduct"
-              />
             </v-card-title>
             <v-divider />
             <v-card-text class="pa-4">
-              <!-- Product selector with autocomplete -->
-              <ProductSelect
-                v-model="selectedProduct"
-                label="Buscar producto"
-                placeholder="Escribe para buscar..."
-                :category-id="categoryFilter"
-                :show-create-link="true"
+              <ProductSelectOrCreate
+                v-model="selectedProductId"
+                label="Producto"
+                placeholder="Escribe para buscar o crear…"
                 class="mb-3"
-                @create-product="openCreateProduct"
-              />
-
-              <!-- Category filter (optional) -->
-              <v-select
-                v-model="categoryFilter"
-                :items="categoryOptions"
-                item-title="name"
-                item-value="id"
-                label="Filtrar por categoría"
-                variant="outlined"
-                density="comfortable"
-                clearable
-                hide-details
-                prepend-inner-icon="mdi-filter"
-                class="mb-3"
+                :disabled="addingItem"
               />
 
               <!-- Quantity and unit -->
@@ -239,7 +214,7 @@
                 class="btn-pill"
                 prepend-icon="mdi-plus"
                 :loading="addingItem"
-                :disabled="!selectedProduct"
+                :disabled="!selectedProductId"
                 @click="addItem"
               >
                 Añadir
@@ -422,57 +397,6 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
-
-      <!-- Create Product Dialog -->
-      <v-dialog v-model="createProductDialog" max-width="600">
-        <v-card>
-          <v-card-title class="text-h6 pa-4">
-            Crear Producto
-          </v-card-title>
-          <v-card-text class="pa-4">
-            <v-text-field
-              v-model="newProduct.name"
-              label="Nombre del producto"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-              class="mb-3"
-              :rules="[rules.required]"
-            />
-            <v-select
-              v-model="newProduct.category_id"
-              :items="categoryOptions"
-              item-title="name"
-              item-value="id"
-              label="Categoría"
-              variant="outlined"
-              density="comfortable"
-              clearable
-              hide-details
-              :rules="[rules.required]"
-            />
-          </v-card-text>
-          <v-card-actions class="pa-4">
-            <v-spacer />
-            <v-btn
-              variant="text"
-              class="btn-rounded"
-              @click="createProductDialog = false"
-            >
-              Cancelar
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="flat"
-              class="btn-rounded"
-              :loading="creatingProduct"
-              @click="createProduct"
-            >
-              Crear Producto
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
     </div>
   </v-container>
 </template>
@@ -483,14 +407,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { getPantryById, updatePantry, deletePantry, sharePantry as sharePantryService, getPantrySharedUsers, revokePantryShare } from '@/services/pantries'
 import { getPantryItems, addPantryItem, updatePantryItem, deletePantryItem } from '@/services/pantryItems'
 import PantryProductItem from '@/components/PantryProductItem.vue'
-import ProductSelect from '@/components/products/ProductSelect.vue'
-import { useCategoriesStore } from '@/stores/categories'
-import { useProductsStore } from '@/stores/products'
+import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
 
 const route = useRoute()
 const router = useRouter()
-const categoriesStore = useCategoriesStore()
-const productsStore = useProductsStore()
 
 // State
 const loading = ref(true)
@@ -503,16 +423,7 @@ const items = ref([])
 const sharedUsers = ref([])
 const searchQuery = ref('')
 const shareEmail = ref('')
-const selectedProduct = ref(null)
-const categoryFilter = ref(null)
-
-// Create product dialog
-const createProductDialog = ref(false)
-const creatingProduct = ref(false)
-const newProduct = ref({
-  name: '',
-  category_id: null
-})
+const selectedProductId = ref(null)
 
 // Pagination for items
 const itemsPagination = ref({
@@ -534,7 +445,7 @@ const itemsFilters = ref({
 const newItem = ref({
   name: '',
   quantity: 1,
-  unit: 'unidad'
+  unit: 'un'
 })
 
 // Edit item dialog
@@ -544,7 +455,7 @@ const editItemDialog = ref({
     id: null,
     productName: '',
     quantity: 1,
-    unit: 'unidad'
+    unit: 'un'
   },
   loading: false
 })
@@ -573,15 +484,6 @@ const endItem = computed(() => {
   return Math.min(end, itemsPagination.value.totalItems)
 })
 
-const categories = computed(() => categoriesStore.items || [])
-
-const categoryOptions = computed(() => {
-  return [
-    { name: 'Todas las categorías', id: null },
-    ...categories.value
-  ]
-})
-
 const sortOptions = [
   { title: 'Nombre', value: 'name' },
   { title: 'Cantidad', value: 'quantity' },
@@ -595,10 +497,10 @@ const orderOptions = [
 ]
 
 const unitOptions = [
-  'unidad',
+  'un',
   'kg',
-  'gramos',
-  'litros',
+  'g',
+  'l',
   'ml',
   'paquete',
   'caja',
@@ -607,10 +509,6 @@ const unitOptions = [
   'lata',
   'botella'
 ]
-
-const rules = {
-  required: (v) => !!v || 'Este campo es requerido'
-}
 
 // Debounce timer for search
 let searchDebounce = null
@@ -702,8 +600,9 @@ async function updatePantryName(newName) {
 }
 
 async function addItem() {
-  if (!selectedProduct.value) {
-    showSnackbar('Debes seleccionar un producto', 'error')
+  const productId = typeof selectedProductId.value === 'object' ? selectedProductId.value?.id : selectedProductId.value
+  if (!productId) {
+    showSnackbar('Seleccioná o creá un producto', 'error')
     return
   }
 
@@ -711,28 +610,19 @@ async function addItem() {
 
   try {
     const payload = {
-      product_id: selectedProduct.value.id,  // Backend expects product_id directly
-      quantity: newItem.value.quantity || 1,
-      unit: newItem.value.unit || 'unidad',
+      product: { id: Number(productId) },  // ← Backend espera product: { id: number }
+      quantity: Number(newItem.value.quantity || 1),
+      unit: String(newItem.value.unit || 'un'),
       metadata: {}
     }
 
-    console.log('🔄 Adding item to pantry:', payload)
-
     await addPantryItem(pantry.value.id, payload)
-
-    console.log('✅ Item added successfully')
 
     // Refresh items to get updated list
     await fetchItems()
 
-    newItem.value = {
-      name: '',
-      quantity: 1,
-      unit: 'unidad'
-    }
-    selectedProduct.value = null
-    categoryFilter.value = null
+    newItem.value = { name: '', quantity: 1, unit: 'un' }
+    selectedProductId.value = null
     showSnackbar('Producto añadido a la despensa', 'success')
   } catch (err) {
     console.error('❌ Error adding item:', err)
@@ -740,43 +630,6 @@ async function addItem() {
     showSnackbar(errorMsg, 'error')
   } finally {
     addingItem.value = false
-  }
-}
-
-function openCreateProduct() {
-  newProduct.value = {
-    name: '',
-    category_id: categoryFilter.value || null
-  }
-  createProductDialog.value = true
-}
-
-async function createProduct() {
-  if (!newProduct.value.name || !newProduct.value.category_id) {
-    showSnackbar('Completa todos los campos requeridos', 'error')
-    return
-  }
-
-  creatingProduct.value = true
-  try {
-    const created = await productsStore.add({
-      name: newProduct.value.name,
-      category_id: newProduct.value.category_id,
-      metadata: {}
-    })
-
-    // Use the newly created product
-    selectedProduct.value = created
-    createProductDialog.value = false
-    showSnackbar('Producto creado exitosamente', 'success')
-
-    // Optionally add it immediately
-    await addItem()
-  } catch (error) {
-    console.error('Error creating product:', error)
-    showSnackbar(error.message || 'Error al crear producto', 'error')
-  } finally {
-    creatingProduct.value = false
   }
 }
 
@@ -827,9 +680,7 @@ async function submitEditItem() {
 
 async function updateItemName(itemId, newName) {
   try {
-    const updated = await updatePantryItem(pantry.value.id, itemId, {
-      name: newName
-    })
+    const updated = await updatePantryItem(pantry.value.id, itemId, { name: newName })
 
     const index = items.value.findIndex(i => i.id === itemId)
     if (index !== -1) {
@@ -913,36 +764,19 @@ function onItemsPageChange(page) {
 }
 
 function showSnackbar(message, color = 'success') {
-  snackbar.value = {
-    show: true,
-    message,
-    color
-  }
+  snackbar.value = { show: true, message, color }
 }
 
 // Lifecycle
 onMounted(async () => {
-  // Load categories first
-  if (categories.value.length === 0) {
-    await categoriesStore.fetch()
-  }
-
   await fetchPantry()
   if (pantry.value) {
-    await Promise.all([
-      fetchItems(),
-      fetchSharedUsers()
-    ])
+    await Promise.all([fetchItems(), fetchSharedUsers()])
   }
 })
 </script>
 
 <style scoped>
-.btn-pill {
-  border-radius: 24px !important;
-}
-
-.btn-rounded {
-  border-radius: 8px !important;
-}
+.btn-pill { border-radius: 24px !important; }
+.btn-rounded { border-radius: 8px !important; }
 </style>

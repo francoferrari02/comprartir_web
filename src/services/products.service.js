@@ -1,61 +1,86 @@
 // src/services/products.service.js
-import api from './http';
+import api from '@/services/http'
+
+// Search or list products
+// params: { name?: string, page?: number, per_page?: number }
+export const searchProducts = (params) => api.get('/products', { params }).then(r => r.data)
 
 /**
  * Get all products with optional filters
- * @param {Object} params - Query parameters
- * @param {string} params.name - Filter by product name (optional)
- * @param {string|number} params.category_id - Filter by category ID (optional)
- * @param {number} params.page - Page number (default: 1)
- * @param {number} params.per_page - Items per page (default: 10)
- * @param {string} params.sort_by - Sort field: 'name' | 'createdAt' | 'updatedAt' (default: 'createdAt')
- * @param {string} params.order - Sort order: 'ASC' | 'DESC' (default: 'DESC')
- * @returns {Promise} Products data
+ * @param {Object} params - { name?, categoryId?, page?, per_page?, sort_by?, order? }
  */
-export const getProducts = (params = {}) => {
-  return api.get('/products', { params }).then(r => r.data);
-};
+export const getProducts = (params) =>
+  api.get('/products', { params }).then(r => r.data)
 
 /**
  * Get a single product by ID
- * @param {string|number} id - Product ID
- * @returns {Promise} Product object
+ * @param {string|number} id
  */
-export const getProduct = (id) => {
-  return api.get(`/products/${id}`).then(r => r.data);
-};
+export const getProduct = (id) =>
+  api.get(`/products/${id}`).then(r => r.data)
 
 /**
- * Create a new product
- * @param {Object} data - Product data
- * @param {string} data.name - Product name (required)
- * @param {string|number} data.category_id - Category ID (required)
- * @param {Object} data.metadata - Additional metadata (optional)
- * @returns {Promise} Created product
+ * Search for a product by exact name
+ * @param {string} name
+ * @returns {Promise<Product|null>}
  */
-export const createProduct = (data) => {
-  return api.post('/products', data).then(r => r.data);
-};
+export const getProductByName = async (name) => {
+  try {
+    const data = await searchProducts({ name, page: 1, per_page: 1 })
+    const list = Array.isArray(data) ? data : (data.data ?? data.items ?? data.results ?? data.products ?? [])
+    // Return first exact match (case-insensitive)
+    const exactMatch = list.find(p => p.name.toLowerCase() === name.toLowerCase())
+    return exactMatch || null
+  } catch (e) {
+    console.error('getProductByName error', e)
+    return null
+  }
+}
 
 /**
- * Update an existing product
- * @param {string|number} id - Product ID
- * @param {Object} data - Product data to update
- * @param {string} data.name - Product name (optional)
- * @param {string|number} data.category_id - Category ID (optional)
- * @param {Object} data.metadata - Additional metadata (optional)
- * @returns {Promise} Updated product
+ * Ensure a product exists: search by name, create if not found
+ * @param {string} name - Product name
+ * @returns {Promise<Product>} - Product with valid id
  */
-export const updateProduct = (id, data) => {
-  return api.put(`/products/${id}`, data).then(r => r.data);
-};
+export const ensureProduct = async (name) => {
+  const trimmedName = (name || '').trim()
+  if (!trimmedName) {
+    throw new Error('Product name is required')
+  }
+
+  // First, try to find existing product
+  const existing = await getProductByName(trimmedName)
+  if (existing && existing.id) {
+    console.log('✅ ensureProduct - Found existing:', existing)
+    return existing
+  }
+
+  // Not found, create new product
+  console.log('🆕 ensureProduct - Creating new product:', trimmedName)
+  const newProduct = await createProduct({ name: trimmedName })
+  console.log('✅ ensureProduct - Created:', newProduct)
+  return newProduct
+}
+
+/**
+ * Create a new product (minimal; UI does not handle categories)
+ * @param {Object} data - { name: string, metadata?: object }
+ * Si la API exige un campo adicional (p.ej. categoryId), enviar null u omitir según esquema.
+ */
+export const createProduct = (data) =>
+  api.post('/products', data).then(r => r.data)
+
+/**
+ * Update a product
+ * @param {string|number} id
+ * @param {Object} data - { name?, categoryId?, metadata? }
+ */
+export const updateProduct = (id, data) =>
+  api.put(`/products/${id}`, data).then(r => r.data)
 
 /**
  * Delete a product
- * @param {string|number} id - Product ID
- * @returns {Promise} Deletion result
+ * @param {string|number} id
  */
-export const deleteProduct = (id) => {
-  return api.delete(`/products/${id}`).then(r => r.data);
-};
-
+export const deleteProduct = (id) =>
+  api.delete(`/products/${id}`).then(r => r.data)

@@ -14,14 +14,8 @@ const Verify        = () => import('../views/Verify.vue')
 const ForgotPassword = () => import('../views/ForgotPassword.vue')
 const ResetPassword = () => import('../views/ResetPassword.vue')
 const ListDetail    = () => import('../views/ListDetail.vue')
-const Categories    = () => import('../views/Categories.vue')
 const Pantries      = () => import('../views/Pantries.vue')
 const PantryDetail  = () => import('../views/PantryDetail.vue')
-
-// Products
-const ProductsList  = () => import('../views/products/ProductsList.vue')
-const ProductForm   = () => import('../views/products/ProductForm.vue')
-const ProductDetail = () => import('../views/products/ProductDetail.vue')
 
 const routes = [
     // Public routes
@@ -35,16 +29,10 @@ const routes = [
     { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio', requiresAuth: true } },
     { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas', requiresAuth: true } },
     { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista', requiresAuth: true }, props: true },
-    { path: '/categories',    name: 'categories',    component: Categories,    meta: { title: 'Categorías', requiresAuth: true } },
-
-    // Products routes
-    { path: '/products',         name: 'products',      component: ProductsList,  meta: { title: 'Productos', requiresAuth: true } },
-    { path: '/products/new',     name: 'product-new',   component: ProductForm,   meta: { title: 'Nuevo Producto', requiresAuth: true } },
-    { path: '/products/:id',     name: 'product-detail', component: ProductDetail, meta: { title: 'Detalle de Producto', requiresAuth: true }, props: true },
-    { path: '/products/:id/edit', name: 'product-edit', component: ProductForm,   meta: { title: 'Editar Producto', requiresAuth: true }, props: true },
 
     { path: '/pantries',      name: 'pantries',      component: Pantries,      meta: { title: 'Despensas', requiresAuth: true } },
-    { path: '/pantries/:id',  name: 'pantry-detail', component: PantryDetail,  meta: { title: 'Detalle de despensa', requiresAuth: true } },
+    { path: '/pantries/:id',  name: 'pantry-detail', component: PantryDetail,  meta: { title: 'Detalle de despensa', requiresAuth: true }, props: true },
+
     { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial', requiresAuth: true } },
     { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias', requiresAuth: true } },
     { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil', requiresAuth: true } },

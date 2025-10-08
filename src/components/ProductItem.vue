@@ -13,10 +13,10 @@
         class="product-name"
         :class="{ 'text-decoration-line-through text-medium-emphasis': product.purchased }"
       >
-        {{ product.productName || product.name }}
+        {{ productDisplayName }}
       </span>
       <span v-if="product.quantity" class="text-caption text-medium-emphasis ml-2">
-        {{ product.quantity }} {{ product.unit || 'unidad' }}
+        {{ product.quantity }} {{ product.unit || 'un' }}
       </span>
     </div>
 
@@ -33,7 +33,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   product: {
     type: Object,
     required: true
@@ -41,6 +43,17 @@ defineProps({
 })
 
 defineEmits(['toggle', 'details', 'delete', 'update'])
+
+// Computed para obtener el nombre del producto desde diferentes estructuras posibles
+const productDisplayName = computed(() => {
+  // Probar diferentes estructuras que puede tener la respuesta del backend
+  return (
+    props.product.product?.name ||      // Estructura anidada (lo más común)
+    props.product.productName ||         // Campo directo productName
+    props.product.name ||                // Campo directo name
+    `Producto #${props.product.id}`     // Fallback si no hay nombre
+  )
+})
 </script>
 
 <style scoped>

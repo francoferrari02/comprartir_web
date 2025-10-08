@@ -415,8 +415,15 @@ const pagination = computed(() => pantriesStore.pagination)
 const filters = ref({
   sort_by: route.query.sort_by || 'updatedAt',
   order: route.query.order || 'DESC',
-  owner: route.query.owner || undefined
+  owner: parseOwnerParam(route.query.owner)
 })
+
+// Helper to parse owner param correctly
+function parseOwnerParam(value) {
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return undefined // Default: show all
+}
 
 // New pantry form
 const newPantry = ref({
@@ -511,7 +518,16 @@ async function fetchPantries() {
     params.owner = filters.value.owner
   }
 
+  console.log('🔍 fetchPantries - Params enviados:', params)
+  console.log('🔍 fetchPantries - URL completa:', `${import.meta.env.VITE_API_BASE_URL}/pantries?${new URLSearchParams(params).toString()}`)
+
   await pantriesStore.fetch(params)
+
+  console.log('📦 fetchPantries - Respuesta del store:')
+  console.log('  - items:', pantries.value)
+  console.log('  - items.length:', pantries.value.length)
+  console.log('  - pagination:', pagination.value)
+  console.log('  - error:', pantriesStore.error)
 
   if (pantriesStore.error) {
     error.value = pantriesStore.error
@@ -554,9 +570,13 @@ function updateQueryParams() {
     query.search = searchQuery.value
   }
 
-  if (filters.value.owner !== undefined) {
-    query.owner = filters.value.owner
+  // Only add owner param if it's a boolean, not undefined
+  if (filters.value.owner === true) {
+    query.owner = 'true'
+  } else if (filters.value.owner === false) {
+    query.owner = 'false'
   }
+  // If undefined, don't add to query params
 
   router.replace({ query })
 }
@@ -611,11 +631,11 @@ async function createPantryAction() {
 
     console.log('✅ Despensa creada:', created)
 
+    // Refrescar la lista desde el backend para asegurar sincronización
+    await fetchPantries()
+
     createDialog.value = false
     showSnackbar('Despensa creada exitosamente', 'success')
-
-    // The store update is reactive, so no need to re-fetch.
-    // We can navigate directly.
 
     console.log('📋 Despensas después de crear:', pantries.value.length, 'Total:', pagination.value.totalItems)
 
