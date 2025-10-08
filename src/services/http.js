@@ -54,7 +54,7 @@ api.interceptors.response.use(
 
             // Evitar loop si ya estás en auth screens
             const p = window.location.pathname;
-            if (!p.includes('/login') && !p.includes('/register') && !p.includes('/reset-password')) {
+            if (!p.includes('/login') && !p.includes('/register') && !p.includes('/reset-password') && !p.includes('/verify') && !p.includes('/forgot-password')) {
                 window.location.href = '/login';
             }
         }

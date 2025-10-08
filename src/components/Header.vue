@@ -106,15 +106,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, inject } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, onMounted, inject } from 'vue'
+import { useRouter } from 'vue-router'
+import { logout } from '@/services/auth.service'
 import logoSrc from '../assets/Logo_Comprartir-removebg.png'
 
 // Recibe el estado global de autenticación desde App.vue
 const isAuthenticated = inject('isAuthenticated', ref(false))
+const updateAuthState = inject('updateAuthState')
 
 const router = useRouter()
-const route = useRoute()
 
 // Notificaciones (demo)
 const notifications = ref([
@@ -126,10 +127,17 @@ const unreadCount = computed(() => notifications.value.length)
 
 const userEmail = ref('')
 
-function handleLogout() {
-  isAuthenticated.value = false
-  userEmail.value = ''
-  router.push('/login')
+async function handleLogout() {
+  try {
+    await logout()
+    if (updateAuthState) updateAuthState()
+    router.push('/login')
+  } catch (error) {
+    console.error('Logout error:', error)
+    // Even if logout fails, redirect to login
+    if (updateAuthState) updateAuthState()
+    router.push('/login')
+  }
 }
 </script>
 

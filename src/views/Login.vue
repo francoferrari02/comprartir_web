@@ -138,7 +138,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { login, sendPasswordRecoveryCode, isLoggedIn } from '@/services/auth'
+import { login, forgotPassword, isLoggedIn } from '@/services/auth.service'
 
 const route = useRoute()
 const router = useRouter()
@@ -175,6 +175,11 @@ onMounted(() => {
     const redirectTo = route.query.r || '/'
     router.replace(redirectTo)
   }
+
+  // Mostrar mensaje de éxito si viene de una verificación exitosa
+  if (route.query.verified === 'true') {
+    successMsg.value = '¡Cuenta verificada! Ahora puedes iniciar sesión.'
+  }
 })
 
 // Función principal de login
@@ -185,11 +190,13 @@ async function onSubmit() {
   const validation = await form.value?.validate()
   if (!validation?.valid) return
   
+  const userEmail = email.value.trim().toLowerCase()
+
   try {
     loading.value = true
     await login({ 
-      email: email.value.trim().toLowerCase(), 
-      password: password.value 
+      email: userEmail,
+      password: password.value
     })
     
     successMsg.value = '¡Bienvenido! Redirigiendo...'
@@ -206,6 +213,20 @@ async function onSubmit() {
     // Manejo detallado de errores según el swagger
     let message = 'Error al iniciar sesión'
     
+    // Verificar error de "Cuenta no verificada"
+    if (error?.response?.status === 401 &&
+        error?.response?.data?.message === 'Account not verified') {
+      // Redirigir a la página de verificación con email y parámetro from
+      router.push({
+        path: '/verify',
+        query: {
+          email: userEmail,
+          from: 'login'
+        }
+      })
+      return
+    }
+
     if (error?.response?.status === 400) {
       message = 'Email o contraseña incorrectos'
     } else if (error?.response?.status === 401) {
@@ -237,8 +258,8 @@ async function sendPasswordRecovery() {
   
   try {
     forgotLoading.value = true
-    await sendPasswordRecoveryCode(forgotEmail.value.trim().toLowerCase())
-    
+    await forgotPassword(forgotEmail.value.trim().toLowerCase())
+
     forgotPasswordDialog.value = false
     successMsg.value = 'Se enviaron las instrucciones de recuperación a tu email'
     
@@ -250,6 +271,8 @@ async function sendPasswordRecovery() {
       message = 'No existe una cuenta con ese email'
     } else if (error?.response?.data?.message) {
       message = error.response.data.message
+    } else if (error?.message) {
+      message = error.message
     }
     
     errorMsg.value = message

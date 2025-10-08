@@ -130,7 +130,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { register } from '@/services/auth'
+import { register, sendVerification } from '@/services/auth.service'
 
 const router = useRouter()
 
@@ -178,26 +178,33 @@ async function onSubmit() {
   const validation = await form.value?.validate()
   if (!validation?.valid) return
   
+  const userEmail = email.value.trim().toLowerCase()
+
   try {
     loading.value = true
+
+    // Step 1: Register user
     await register({
       name: firstName.value.trim(),
       surname: lastName.value.trim(),
-      email: email.value.trim().toLowerCase(),
+      email: userEmail,
       password: password.value,
       metadata: {}
     })
     
-    successMsg.value = '¡Cuenta creada exitosamente! Redirigiendo al login...'
-    
-    // Redirigir al login después de un breve delay
+    // Step 2: Send verification code
+    await sendVerification(userEmail)
+
+    successMsg.value = '¡Cuenta creada! Te enviamos un código de verificación a tu correo.'
+
+    // Step 3: Redirect to verify page with email
     setTimeout(() => {
       router.push({
-        path: '/login',
-        query: { email: email.value.trim().toLowerCase() }
+        path: '/verify',
+        query: { email: userEmail }
       })
-    }, 2000)
-    
+    }, 1500)
+
   } catch (error) {
     console.error('Registration error:', error)
     
@@ -214,6 +221,8 @@ async function onSubmit() {
       } else {
         message = 'Los datos proporcionados no son válidos'
       }
+    } else if (error?.response?.status === 409) {
+      message = 'Ya existe una cuenta con ese email'
     } else if (error?.response?.data?.message) {
       message = error.response.data.message
     } else if (error?.message) {

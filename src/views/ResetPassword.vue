@@ -104,7 +104,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { resetPassword } from '@/services/auth'
+import { resetPassword } from '@/services/auth.service'
 
 const route = useRoute()
 const router = useRouter()

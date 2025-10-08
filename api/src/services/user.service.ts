@@ -302,7 +302,8 @@ export async function sendVerificationCode(email: string, mailer: Mailer): Promi
 
     await queryRunner.commitTransaction();
 
-    mailer.sendEmail(EmailType.REGISTRATION, user.name, verificationToken.token);
+    // Use VERIFICATION email type with exact subject/body
+    mailer.sendEmail(EmailType.VERIFICATION, verificationToken.token);
 
     return { code: verificationToken.token }
   } catch (err) {

@@ -10,6 +10,8 @@ const Preferences   = () => import('../views/Preferences.vue')
 const Notifications = () => import('../views/Notifications.vue')
 const Login         = () => import('../views/Login.vue')
 const Register      = () => import('../views/Register.vue')
+const Verify        = () => import('../views/Verify.vue')
+const ForgotPassword = () => import('../views/ForgotPassword.vue')
 const ResetPassword = () => import('../views/ResetPassword.vue')
 const ListDetail    = () => import('../views/ListDetail.vue')
 const Categories    = () => import('../views/Categories.vue')
@@ -17,20 +19,25 @@ const Pantries      = () => import('../views/Pantries.vue')
 const PantryDetail  = () => import('../views/PantryDetail.vue')
 
 const routes = [
-    { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio' } },
-    { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas' } },
-    { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista' } },
-    { path: '/categories',    name: 'categories',    component: Categories,    meta: { title: 'Categorías' } },
-    { path: '/pantries',      name: 'pantries',      component: Pantries,      meta: { title: 'Despensas' } },
-    { path: '/pantries/:id',  name: 'pantry-detail', component: PantryDetail,  meta: { title: 'Detalle de despensa' } },
-    { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial' } },
-    { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias' } },
-    { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil' } },
-    { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones' } },
-    { path: '/help',          name: 'help',          component: Help,          meta: { title: 'Ayuda' } },
-    { path: '/login',         name: 'login',         component: Login,         meta: { title: 'Ingresar' } },
-    { path: '/register',      name: 'register',      component: Register,      meta: { title: 'Registrarse' } },
-    { path: '/reset-password', name: 'reset-password', component: ResetPassword, meta: { title: 'Restablecer contraseña' } },
+    // Public routes
+    { path: '/login',          name: 'login',          component: Login,          meta: { title: 'Ingresar', public: true } },
+    { path: '/register',       name: 'register',       component: Register,       meta: { title: 'Registrarse', public: true } },
+    { path: '/verify',         name: 'verify',         component: Verify,         meta: { title: 'Verificar cuenta', public: true } },
+    { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword, meta: { title: 'Recuperar contraseña', public: true } },
+    { path: '/reset-password', name: 'reset-password', component: ResetPassword,  meta: { title: 'Restablecer contraseña', public: true } },
+
+    // Protected routes (require authentication)
+    { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio', requiresAuth: true } },
+    { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas', requiresAuth: true } },
+    { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista', requiresAuth: true } },
+    { path: '/categories',    name: 'categories',    component: Categories,    meta: { title: 'Categorías', requiresAuth: true } },
+    { path: '/pantries',      name: 'pantries',      component: Pantries,      meta: { title: 'Despensas', requiresAuth: true } },
+    { path: '/pantries/:id',  name: 'pantry-detail', component: PantryDetail,  meta: { title: 'Detalle de despensa', requiresAuth: true } },
+    { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial', requiresAuth: true } },
+    { path: '/preferences',   name: 'preferences',   component: Preferences,   meta: { title: 'Preferencias', requiresAuth: true } },
+    { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil', requiresAuth: true } },
+    { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones', requiresAuth: true } },
+    { path: '/help',          name: 'help',          component: Help,          meta: { title: 'Ayuda', requiresAuth: true } },
 ]
 
 const router = createRouter({
@@ -41,13 +48,29 @@ const router = createRouter({
     },
 })
 
-// Guard de navegación deshabilitado para permitir acceso sin autenticación
-// router.beforeEach((to) => {
-//     const token = localStorage.getItem('auth_token') // misma key que en services/auth.js
-//     if (to.meta?.requiresAuth && !token) {
-//         return { path: '/login', query: { r: to.fullPath } }
-//     }
-// })
+// Global navigation guard for authentication
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('accessToken')
+    const isAuthenticated = !!token
+    const requiresAuth = to.meta?.requiresAuth
+    const isPublicRoute = to.meta?.public
+
+    // If route requires auth and user is not authenticated
+    if (requiresAuth && !isAuthenticated) {
+        return next({
+            path: '/login',
+            query: { r: to.fullPath }
+        })
+    }
+
+    // If user is authenticated and trying to access public routes (login, register, etc.)
+    // Redirect to home
+    if (isAuthenticated && isPublicRoute) {
+        return next({ path: '/' })
+    }
+
+    next()
+})
 
 router.afterEach((to) => {
     if (to.meta && to.meta.title) document.title = `${to.meta.title} — Compartir`
