@@ -368,26 +368,41 @@ async function deleteProduct(itemId) {
 }
 
 async function addItem(itemData) {
-  if (!itemData || !itemData.name?.trim()) return
+  if (!itemData) return
+
+  // Validate that we have either product_id or product name
+  if (!itemData.product_id && !itemData.name?.trim() && !itemData.productName?.trim()) {
+    showSnackbar('Debes seleccionar un producto', 'error')
+    return
+  }
 
   addingItem.value = true
 
   try {
-    const newItem = await addListItem(list.value.id, {
-      product_name: itemData.name.trim(),
+    const payload = {
       quantity: itemData.quantity || 1,
       unit: itemData.unit || 'unidad',
-      category_id: itemData.category_id || null
-    })
+      metadata: itemData.metadata || {}
+    }
 
-    // Add to local state
-    items.value.push(newItem)
-    itemsPagination.value.totalItems++
+    // Use product_id if available (from ProductSelect), otherwise use product name
+    if (itemData.product_id) {
+      payload.product_id = itemData.product_id
+    } else {
+      payload.product_name = itemData.name?.trim() || itemData.productName?.trim()
+    }
+
+    const newItem = await addListItem(list.value.id, payload)
+
+    // Refresh items to get updated list with proper product data
+    await fetchItems()
+
     addItemQuery.value = ''
-    showSnackbar('Ítem añadido', 'success')
+    showSnackbar('Producto añadido a la lista', 'success')
   } catch (err) {
     console.error('Error adding item:', err)
-    error.value = err.message || 'Error al añadir el ítem'
+    const errorMsg = err.response?.data?.message || err.message || 'Error al añadir el ítem'
+    showSnackbar(errorMsg, 'error')
   } finally {
     addingItem.value = false
   }

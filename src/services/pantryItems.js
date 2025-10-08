@@ -6,14 +6,14 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
 /** PANTRY ITEMS **/
 
-// GET /api/pantries/{id}/items?page=&per_page=&sort_by=&order=&search=&category_id=
+// GET /pantries/{id}/items?page=&per_page=&sort_by=&order=&search=&category_id=
 export async function getPantryItems(id, params = {}) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.getItems(id, params)
     }
     try {
-        const { data } = await api.get(`/api/pantries/${id}/items`, { params })
+        const { data } = await api.get(`/pantries/${id}/items`, { params })
         return data
     } catch (error) {
         throw {
@@ -23,14 +23,14 @@ export async function getPantryItems(id, params = {}) {
     }
 }
 
-// POST /api/pantries/{id}/items  body: { product_id, quantity?, unit?, metadata? }
+// POST /pantries/{id}/items  body: { product_id, quantity?, unit?, metadata? }
 export async function addPantryItem(id, body) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.addItem(id, body)
     }
     try {
-        const { data } = await api.post(`/api/pantries/${id}/items`, body)
+        const { data } = await api.post(`/pantries/${id}/items`, body)
         return data
     } catch (error) {
         throw {
@@ -40,14 +40,14 @@ export async function addPantryItem(id, body) {
     }
 }
 
-// PUT /api/pantries/{id}/items/{item_id} body: { quantity?, unit?, metadata? }
+// PUT /pantries/{id}/items/{item_id} body: { quantity?, unit?, metadata? }
 export async function updatePantryItem(id, itemId, body) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.updateItem(id, itemId, body)
     }
     try {
-        const { data } = await api.put(`/api/pantries/${id}/items/${itemId}`, body)
+        const { data } = await api.put(`/pantries/${id}/items/${itemId}`, body)
         return data
     } catch (error) {
         throw {
@@ -57,14 +57,14 @@ export async function updatePantryItem(id, itemId, body) {
     }
 }
 
-// DELETE /api/pantries/{id}/items/{item_id}
+// DELETE /pantries/{id}/items/{item_id}
 export async function deletePantryItem(id, itemId) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.deleteItem(id, itemId)
     }
     try {
-        const { data } = await api.delete(`/api/pantries/${id}/items/${itemId}`)
+        const { data } = await api.delete(`/pantries/${id}/items/${itemId}`)
         return data
     } catch (error) {
         throw {

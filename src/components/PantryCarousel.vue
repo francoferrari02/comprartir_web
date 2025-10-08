@@ -47,23 +47,36 @@ const emit = defineEmits(['delete-pantry', 'edit-pantry'])
 
 /* Drag to scroll */
 const strip = ref(null)
-let isDown = false, startX = 0, startLeft = 0
+let isDown = false, startX = 0, startLeft = 0, hasMoved = false
 
 function onDown(e) {
   isDown = true
   startX = e.pageX
   startLeft = strip.value.scrollLeft
+  hasMoved = false // Resetear el flag de movimiento
   strip.value.classList.add('grabbing')
 }
 
 function onMove(e) {
   if (!isDown) return
-  strip.value.scrollLeft = startLeft - (e.pageX - startX)
+  const distance = Math.abs(e.pageX - startX)
+  if (distance > 5) { // Solo considerar como drag si se mueve más de 5px
+    hasMoved = true
+    strip.value.scrollLeft = startLeft - (e.pageX - startX)
+  }
 }
 
-function onUp() {
+function onUp(e) {
   isDown = false
   strip.value?.classList.remove('grabbing')
+
+  // Si se movió, prevenir clics en los elementos hijos
+  if (hasMoved) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  hasMoved = false
 }
 
 /* rueda vertical -> scroll horizontal */

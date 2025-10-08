@@ -164,24 +164,51 @@
 
         <!-- Columna derecha: Añadir items y compartir -->
         <v-col cols="12" md="4" class="right-col">
-          <!-- Add Item Card -->
+          <!-- Add Item Card with ProductSelect -->
           <v-card class="card mb-4">
-            <v-card-title class="pa-4">
-              <v-icon class="mr-2">mdi-plus-circle-outline</v-icon>
-              Añadir Producto
+            <v-card-title class="pa-4 d-flex align-center justify-space-between">
+              <div class="d-flex align-center">
+                <v-icon class="mr-2">mdi-plus-circle-outline</v-icon>
+                Añadir Producto
+              </div>
+              <v-btn
+                icon="mdi-package-variant-plus"
+                size="small"
+                variant="text"
+                color="primary"
+                @click="openCreateProduct"
+              />
             </v-card-title>
             <v-divider />
             <v-card-text class="pa-4">
-              <v-text-field
-                v-model="newItem.name"
-                label="Nombre del producto"
+              <!-- Product selector with autocomplete -->
+              <ProductSelect
+                v-model="selectedProduct"
+                label="Buscar producto"
+                placeholder="Escribe para buscar..."
+                :category-id="categoryFilter"
+                :show-create-link="true"
+                class="mb-3"
+                @create-product="openCreateProduct"
+              />
+
+              <!-- Category filter (optional) -->
+              <v-select
+                v-model="categoryFilter"
+                :items="categoryOptions"
+                item-title="name"
+                item-value="id"
+                label="Filtrar por categoría"
                 variant="outlined"
                 density="comfortable"
+                clearable
                 hide-details
+                prepend-inner-icon="mdi-filter"
                 class="mb-3"
-                @keyup.enter="addItem"
               />
-              <v-row dense>
+
+              <!-- Quantity and unit -->
+              <v-row dense class="mb-3">
                 <v-col cols="6">
                   <v-text-field
                     v-model.number="newItem.quantity"
@@ -190,6 +217,8 @@
                     variant="outlined"
                     density="comfortable"
                     hide-details
+                    min="0.01"
+                    step="0.01"
                   />
                 </v-col>
                 <v-col cols="6">
@@ -203,12 +232,14 @@
                   />
                 </v-col>
               </v-row>
+
               <v-btn
                 color="primary"
                 block
-                class="mt-3 btn-pill"
+                class="btn-pill"
                 prepend-icon="mdi-plus"
                 :loading="addingItem"
+                :disabled="!selectedProduct"
                 @click="addItem"
               >
                 Añadir
@@ -391,6 +422,57 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <!-- Create Product Dialog -->
+      <v-dialog v-model="createProductDialog" max-width="600">
+        <v-card>
+          <v-card-title class="text-h6 pa-4">
+            Crear Producto
+          </v-card-title>
+          <v-card-text class="pa-4">
+            <v-text-field
+              v-model="newProduct.name"
+              label="Nombre del producto"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+              class="mb-3"
+              :rules="[rules.required]"
+            />
+            <v-select
+              v-model="newProduct.category_id"
+              :items="categoryOptions"
+              item-title="name"
+              item-value="id"
+              label="Categoría"
+              variant="outlined"
+              density="comfortable"
+              clearable
+              hide-details
+              :rules="[rules.required]"
+            />
+          </v-card-text>
+          <v-card-actions class="pa-4">
+            <v-spacer />
+            <v-btn
+              variant="text"
+              class="btn-rounded"
+              @click="createProductDialog = false"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              class="btn-rounded"
+              :loading="creatingProduct"
+              @click="createProduct"
+            >
+              Crear Producto
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </div>
   </v-container>
 </template>
@@ -401,9 +483,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { getPantryById, updatePantry, deletePantry, sharePantry as sharePantryService, getPantrySharedUsers, revokePantryShare } from '@/services/pantries'
 import { getPantryItems, addPantryItem, updatePantryItem, deletePantryItem } from '@/services/pantryItems'
 import PantryProductItem from '@/components/PantryProductItem.vue'
+import ProductSelect from '@/components/products/ProductSelect.vue'
+import { useCategoriesStore } from '@/stores/categories'
+import { useProductsStore } from '@/stores/products'
 
 const route = useRoute()
 const router = useRouter()
+const categoriesStore = useCategoriesStore()
+const productsStore = useProductsStore()
 
 // State
 const loading = ref(true)
@@ -416,6 +503,16 @@ const items = ref([])
 const sharedUsers = ref([])
 const searchQuery = ref('')
 const shareEmail = ref('')
+const selectedProduct = ref(null)
+const categoryFilter = ref(null)
+
+// Create product dialog
+const createProductDialog = ref(false)
+const creatingProduct = ref(false)
+const newProduct = ref({
+  name: '',
+  category_id: null
+})
 
 // Pagination for items
 const itemsPagination = ref({
@@ -476,6 +573,15 @@ const endItem = computed(() => {
   return Math.min(end, itemsPagination.value.totalItems)
 })
 
+const categories = computed(() => categoriesStore.items || [])
+
+const categoryOptions = computed(() => {
+  return [
+    { name: 'Todas las categorías', id: null },
+    ...categories.value
+  ]
+})
+
 const sortOptions = [
   { title: 'Nombre', value: 'name' },
   { title: 'Cantidad', value: 'quantity' },
@@ -489,13 +595,22 @@ const orderOptions = [
 ]
 
 const unitOptions = [
-  { title: 'Unidad', value: 'unidad' },
-  { title: 'Kilogramo', value: 'kg' },
-  { title: 'Gramo', value: 'g' },
-  { title: 'Litro', value: 'l' },
-  { title: 'Mililitro', value: 'ml' },
-  { title: 'Pieza', value: 'pieza' }
+  'unidad',
+  'kg',
+  'gramos',
+  'litros',
+  'ml',
+  'paquete',
+  'caja',
+  'bolsa',
+  'docena',
+  'lata',
+  'botella'
 ]
+
+const rules = {
+  required: (v) => !!v || 'Este campo es requerido'
+}
 
 // Debounce timer for search
 let searchDebounce = null
@@ -538,7 +653,7 @@ async function fetchItems() {
       per_page: itemsPagination.value.perPage,
       search: itemsFilters.value.search,
       sort_by: itemsFilters.value.sort_by,
-      order: itemsFilters.value.order // minúscula
+      order: itemsFilters.value.order
     }
 
     if (itemsFilters.value.category_id) {
@@ -587,30 +702,81 @@ async function updatePantryName(newName) {
 }
 
 async function addItem() {
-  if (!newItem.value.name?.trim()) return
+  if (!selectedProduct.value) {
+    showSnackbar('Debes seleccionar un producto', 'error')
+    return
+  }
 
   addingItem.value = true
 
   try {
-    const created = await addPantryItem(pantry.value.id, {
-      product_name: newItem.value.name.trim(),
+    const payload = {
+      product_id: selectedProduct.value.id,  // Backend expects product_id directly
       quantity: newItem.value.quantity || 1,
-      unit: newItem.value.unit || 'unidad'
-    })
+      unit: newItem.value.unit || 'unidad',
+      metadata: {}
+    }
 
-    items.value.push(created)
-    itemsPagination.value.totalItems++
+    console.log('🔄 Adding item to pantry:', payload)
+
+    await addPantryItem(pantry.value.id, payload)
+
+    console.log('✅ Item added successfully')
+
+    // Refresh items to get updated list
+    await fetchItems()
+
     newItem.value = {
       name: '',
       quantity: 1,
       unit: 'unidad'
     }
-    showSnackbar('Producto añadido', 'success')
+    selectedProduct.value = null
+    categoryFilter.value = null
+    showSnackbar('Producto añadido a la despensa', 'success')
   } catch (err) {
-    console.error('Error adding item:', err)
-    error.value = err.message || 'Error al añadir el producto'
+    console.error('❌ Error adding item:', err)
+    const errorMsg = err.response?.data?.message || err.message || 'Error al añadir el producto'
+    showSnackbar(errorMsg, 'error')
   } finally {
     addingItem.value = false
+  }
+}
+
+function openCreateProduct() {
+  newProduct.value = {
+    name: '',
+    category_id: categoryFilter.value || null
+  }
+  createProductDialog.value = true
+}
+
+async function createProduct() {
+  if (!newProduct.value.name || !newProduct.value.category_id) {
+    showSnackbar('Completa todos los campos requeridos', 'error')
+    return
+  }
+
+  creatingProduct.value = true
+  try {
+    const created = await productsStore.add({
+      name: newProduct.value.name,
+      category_id: newProduct.value.category_id,
+      metadata: {}
+    })
+
+    // Use the newly created product
+    selectedProduct.value = created
+    createProductDialog.value = false
+    showSnackbar('Producto creado exitosamente', 'success')
+
+    // Optionally add it immediately
+    await addItem()
+  } catch (error) {
+    console.error('Error creating product:', error)
+    showSnackbar(error.message || 'Error al crear producto', 'error')
+  } finally {
+    creatingProduct.value = false
   }
 }
 
@@ -619,7 +785,7 @@ function openEditItem(item) {
     open: true,
     form: {
       id: item.id,
-      productName: item.productName,
+      productName: item.productName || item.product?.name || 'Producto',
       quantity: item.quantity,
       unit: item.unit
     },
@@ -756,6 +922,11 @@ function showSnackbar(message, color = 'success') {
 
 // Lifecycle
 onMounted(async () => {
+  // Load categories first
+  if (categories.value.length === 0) {
+    await categoriesStore.fetch()
+  }
+
   await fetchPantry()
   if (pantry.value) {
     await Promise.all([
@@ -767,12 +938,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.btn-icon-round {
-  border-radius: 50% !important;
-  width: 32px !important;
-  height: 32px !important;
-}
-
 .btn-pill {
   border-radius: 24px !important;
 }

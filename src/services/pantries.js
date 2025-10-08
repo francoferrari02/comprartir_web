@@ -6,14 +6,14 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
 /** PANTRIES **/
 
-// GET /api/pantries?owner=&page=&per_page=&sort_by=&order=
+// GET /pantries?owner=&page=&per_page=&sort_by=&order=
 export async function getPantries(params = {}) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.getAll(params)
     }
     try {
-        const { data } = await api.get('/api/pantries', { params })
+        const { data } = await api.get('/pantries', { params })
         return data
     } catch (error) {
         throw {
@@ -23,14 +23,14 @@ export async function getPantries(params = {}) {
     }
 }
 
-// POST /api/pantries  body: { name, metadata? }
+// POST /pantries  body: { name, metadata? }
 export async function createPantry(body) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.create(body)
     }
     try {
-        const { data } = await api.post('/api/pantries', body)
+        const { data } = await api.post('/pantries', body)
         return data
     } catch (error) {
         throw {
@@ -40,14 +40,14 @@ export async function createPantry(body) {
     }
 }
 
-// GET /api/pantries/{id}
+// GET /pantries/{id}
 export async function getPantryById(id) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.getById(id)
     }
     try {
-        const { data } = await api.get(`/api/pantries/${id}`)
+        const { data } = await api.get(`/pantries/${id}`)
         return data
     } catch (error) {
         throw {
@@ -57,14 +57,14 @@ export async function getPantryById(id) {
     }
 }
 
-// PUT /api/pantries/{id} body: { name?, metadata? }
+// PUT /pantries/{id} body: { name?, metadata? }
 export async function updatePantry(id, body) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.update(id, body)
     }
     try {
-        const { data } = await api.put(`/api/pantries/${id}`, body)
+        const { data } = await api.put(`/pantries/${id}`, body)
         return data
     } catch (error) {
         throw {
@@ -74,14 +74,14 @@ export async function updatePantry(id, body) {
     }
 }
 
-// DELETE /api/pantries/{id}
+// DELETE /pantries/{id}
 export async function deletePantry(id) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.delete(id)
     }
     try {
-        const { data } = await api.delete(`/api/pantries/${id}`)
+        const { data } = await api.delete(`/pantries/${id}`)
         return data
     } catch (error) {
         throw {
@@ -93,14 +93,14 @@ export async function deletePantry(id) {
 
 /** SHARING **/
 
-// POST /api/pantries/{id}/share  body: { email }
+// POST /pantries/{id}/share  body: { email }
 export async function sharePantry(id, email) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.share(id, email)
     }
     try {
-        const { data } = await api.post(`/api/pantries/${id}/share`, { email })
+        const { data } = await api.post(`/pantries/${id}/share`, { email })
         return data
     } catch (error) {
         throw {
@@ -110,14 +110,14 @@ export async function sharePantry(id, email) {
     }
 }
 
-// GET /api/pantries/{id}/shared-users
+// GET /pantries/{id}/shared-users
 export async function getPantrySharedUsers(id) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.getSharedUsers(id)
     }
     try {
-        const { data } = await api.get(`/api/pantries/${id}/shared-users`)
+        const { data } = await api.get(`/pantries/${id}/shared-users`)
         return data
     } catch (error) {
         throw {
@@ -127,14 +127,14 @@ export async function getPantrySharedUsers(id) {
     }
 }
 
-// DELETE /api/pantries/{id}/share/{user_id}
+// DELETE /pantries/{id}/share/{user_id}
 export async function revokePantryShare(id, userId) {
     if (USE_MOCKS) {
         await delay(300)
         return mockPantries.revokeShare(id, userId)
     }
     try {
-        const { data } = await api.delete(`/api/pantries/${id}/share/${userId}`)
+        const { data } = await api.delete(`/pantries/${id}/share/${userId}`)
         return data
     } catch (error) {
         throw {
@@ -143,4 +143,3 @@ export async function revokePantryShare(id, userId) {
         }
     }
 }
-

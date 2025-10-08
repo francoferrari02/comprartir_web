@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <!-- Pantalla de bienvenida para usuarios no autenticados -->
-    <div v-if="!isAuthenticated && !demoMode" class="shell">
+    <div v-if="!isAuthenticated" class="shell">
       <v-row justify="center">
         <v-col cols="12" md="8" lg="6">
           <v-card class="card pa-8 text-center">
@@ -10,21 +10,7 @@
             <p class="text-h6 text-medium-emphasis mb-6">
               Organizá y compartí tus listas de compras con amigos y familiares.
             </p>
-            
-            <!-- Botón para ver demo -->
-            <div class="d-flex justify-center ga-4 mb-6">
-              <v-btn 
-                @click="demoMode = true"
-                color="primary" 
-                variant="elevated" 
-                size="large"
-                class="btn-rounded btn-solid-primary" 
-                prepend-icon="mdi-eye"
-              >
-                Ver demo
-              </v-btn>
-            </div>
-            
+
             <div class="mt-8">
               <v-row>
                 <v-col cols="12" md="4">
@@ -49,26 +35,8 @@
       </v-row>
     </div>
 
-    <!-- Dashboard para usuarios autenticados o en modo demo -->
-    <div v-if="isAuthenticated || demoMode" class="shell">
-      <!-- Banner de modo demo -->
-      <v-alert
-        v-if="demoMode && !isAuthenticated"
-        type="info"
-        variant="tonal"
-        border="start"
-        class="mb-4"
-        closable
-        @click:close="demoMode = false"
-      >
-        <div class="d-flex align-center justify-space-between">
-          <span>
-            <v-icon class="me-2">mdi-eye</v-icon>
-            Estás viendo el modo demo. Esta es una vista previa de cómo se ve la aplicación cuando estás logueado.
-          </span>
-        </div>
-      </v-alert>
-
+    <!-- Dashboard para usuarios autenticados -->
+    <div v-if="isAuthenticated" class="shell">
       <v-row>
         <!-- COLUMNA IZQUIERDA (principal) -->
         <v-col cols="12" md="8" class="left-col">
@@ -111,43 +79,43 @@
           </v-card-title>
           <v-card-text class="pa-4">
             <v-text-field
-              v-model="newList.name"
-              label="Nombre de la lista"
-              variant="outlined"
-              density="comfortable"
-              :error-messages="newListErrors.name"
-              autofocus
-              @keyup.enter="createList"
+                v-model="newList.name"
+                label="Nombre de la lista"
+                variant="outlined"
+                density="comfortable"
+                :error-messages="newListErrors.name"
+                autofocus
+                @keyup.enter="createList"
             />
             <v-textarea
-              v-model="newList.description"
-              label="Descripción (opcional)"
-              variant="outlined"
-              density="comfortable"
-              rows="3"
+                v-model="newList.description"
+                label="Descripción (opcional)"
+                variant="outlined"
+                density="comfortable"
+                rows="3"
             />
             <v-checkbox
-              v-model="newList.recurring"
-              label="Lista recurrente"
-              hint="Las listas recurrentes se pueden reutilizar después de comprarlas"
-              persistent-hint
+                v-model="newList.recurring"
+                label="Lista recurrente"
+                hint="Las listas recurrentes se pueden reutilizar después de comprarlas"
+                persistent-hint
             />
           </v-card-text>
           <v-card-actions class="pa-4">
             <v-spacer />
             <v-btn
-              variant="text"
-              class="btn-rounded"
-              @click="createDialog = false"
+                variant="text"
+                class="btn-rounded"
+                @click="createDialog = false"
             >
               Cancelar
             </v-btn>
             <v-btn
-              color="primary"
-              variant="flat"
-              class="btn-rounded"
-              :loading="creating"
-              @click="createList"
+                color="primary"
+                variant="flat"
+                class="btn-rounded"
+                :loading="creating"
+                @click="createList"
             >
               Crear
             </v-btn>
@@ -157,28 +125,28 @@
 
       <!-- Success Snackbar -->
       <v-snackbar
-        v-model="snackbar.show"
-        :color="snackbar.color"
-        :timeout="3000"
+          v-model="snackbar.show"
+          :color="snackbar.color"
+          :timeout="3000"
       >
         {{ snackbar.message }}
         <template #actions>
           <v-btn
-            icon="mdi-close"
-            size="small"
-            @click="snackbar.show = false"
+              icon="mdi-close"
+              size="small"
+              @click="snackbar.show = false"
           />
         </template>
       </v-snackbar>
 
       <!-- Error Alert -->
       <v-alert
-        v-if="error"
-        type="error"
-        variant="tonal"
-        closable
-        class="mb-4"
-        @click:close="error = null"
+          v-if="error"
+          type="error"
+          variant="tonal"
+          closable
+          class="mb-4"
+          @click:close="error = null"
       >
         {{ error }}
       </v-alert>
@@ -187,20 +155,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { isLoggedIn } from '@/services/auth'
+import { isLoggedIn } from '@/services/auth.service'
 import { createShoppingList } from '@/services/lists'
 import RecentLists from '@/components/RecentLists.vue'
-import Templates from '@/components/Templates.vue'
 import SharedWithMe from '@/components/SharedWithMe.vue'
 import ActivityFeed from '@/components/ActivityFeed.vue'
 import logo from '@/assets/Logo_Comprartir.png'
 
 const router = useRouter()
-const q = ref('')
-const isAuthenticated = ref(false)
-const demoMode = ref(false)
+// Usar el estado global de autenticación desde App.vue
+const isAuthenticated = inject('isAuthenticated', ref(false))
 const createDialog = ref(false)
 const creating = ref(false)
 const error = ref(null)
@@ -225,7 +191,9 @@ const snackbar = ref({
 
 // Verificar autenticación al cargar
 onMounted(() => {
+  // Forzar actualización del estado de autenticación
   isAuthenticated.value = isLoggedIn()
+  console.log('🔐 Home - isAuthenticated:', isAuthenticated.value, 'token:', localStorage.getItem('accessToken'))
 })
 
 function openCreateDialog() {
@@ -296,12 +264,6 @@ async function createList() {
 function showSnackbar(message, color = 'success') {
   snackbar.value = { show: true, message, color }
 }
-
-function onNewList() {
-  openCreateDialog()
-}
-
-function useTemplate(t){ /* crear lista desde plantilla t */ }
 </script>
 
 <style scoped>

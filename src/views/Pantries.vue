@@ -180,7 +180,7 @@
 
         <!-- COLUMNA DERECHA (sidebar) -->
         <v-col cols="12" md="4" class="right-col">
-          <!-- Resumen -->
+          <!-- Resumen con subtarjetas -->
           <v-card class="card card--hover mb-4">
             <v-card-title class="text-h6 pa-4">
               <v-icon class="mr-2">mdi-chart-box-outline</v-icon>
@@ -192,24 +192,39 @@
                 <v-progress-circular indeterminate size="32" />
               </div>
               <div v-else>
-                <div class="stat-item mb-3">
-                  <div class="d-flex align-center justify-space-between">
-                    <span class="text-body-2">Total de despensas</span>
-                    <span class="text-h6 font-weight-bold">{{ summaryStats.totalPantries }}</span>
+                <!-- Sub-tarjeta de Despensas -->
+                <div class="summary-sub-card mb-3">
+                  <div class="sub-card-header mb-2">
+                    <v-icon size="small" class="mr-1" color="primary">mdi-fridge-outline</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold">Despensas</span>
+                  </div>
+                  <div class="stat-item mb-2">
+                    <div class="d-flex align-center justify-space-between">
+                      <span class="text-body-2">Total de despensas</span>
+                      <span class="text-h6 font-weight-bold">{{ summaryStats.totalPantries }}</span>
+                    </div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="d-flex align-center justify-space-between">
+                      <span class="text-body-2">Despensas compartidas</span>
+                      <span class="text-h6 font-weight-bold text-success">{{ summaryStats.sharedPantries }}</span>
+                    </div>
                   </div>
                 </div>
+
                 <v-divider class="my-3" />
-                <div class="stat-item mb-3">
-                  <div class="d-flex align-center justify-space-between">
-                    <span class="text-body-2">Total de productos</span>
-                    <span class="text-h6 font-weight-bold">{{ summaryStats.totalItems }}</span>
+
+                <!-- Sub-tarjeta de Productos -->
+                <div class="summary-sub-card mb-3">
+                  <div class="sub-card-header mb-2">
+                    <v-icon size="small" class="mr-1" color="primary">mdi-package-variant</v-icon>
+                    <span class="text-subtitle-2 font-weight-bold">Productos</span>
                   </div>
-                </div>
-                <v-divider class="my-3" />
-                <div class="stat-item">
-                  <div class="d-flex align-center justify-space-between">
-                    <span class="text-body-2">Despensas compartidas</span>
-                    <span class="text-h6 font-weight-bold">{{ summaryStats.sharedPantries }}</span>
+                  <div class="stat-item">
+                    <div class="d-flex align-center justify-space-between">
+                      <span class="text-body-2">Total de productos</span>
+                      <span class="text-h6 font-weight-bold">{{ summaryStats.totalItems }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -359,7 +374,6 @@ import { getPantries, createPantry, updatePantry, deletePantry } from '@/service
 import { getPantryItems } from '@/services/pantryItems'
 import PantrySearch from '@/components/PantrySearch.vue'
 import PantryCarousel from '@/components/PantryCarousel.vue'
-import SummaryCard from '@/components/SummaryCard.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -717,27 +731,97 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.left-col {
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.right-col {
+  min-width: 280px;
+}
+
+@media (min-width: 960px) {
+  .right-col {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+.search-section {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.filters-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.carousel-section {
+  margin-top: 0;
+}
+
+.summary-sub-card {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.sub-card-header {
+  display: flex;
+  align-items: center;
+}
+
 .stat-item {
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
-.btn-pill {
-  border-radius: 24px !important;
-}
-
-.btn-rounded {
+/* Campos de texto con bordes más redondeados */
+:deep(.filters-section .v-field) {
   border-radius: 8px !important;
+  background-color: white;
 }
 
-.card {
+/* Botones tipo píldora para filtros */
+.btn-pill {
+  border-radius: 999px !important;
+  text-transform: none;
+  font-weight: 500;
+  font-size: 0.875rem !important;
+  height: 32px !important;
+  padding: 0 16px !important;
+}
+
+.btn-pill :deep(.v-icon) {
+  font-size: 18px !important;
+}
+
+/* Botones redondeados tipo píldora */
+.btn-rounded {
+  border-radius: 999px !important;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Estilos para modales y diálogos con bordes redondeados */
+:deep(.v-dialog > .v-overlay__content > .v-card) {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-2) !important;
+}
+
+/* Campos de texto con bordes más redondeados */
+:deep(.v-dialog .v-field) {
   border-radius: 12px !important;
 }
 
-.card--hover {
-  transition: box-shadow 0.3s ease;
-}
-
-.card--hover:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+/* Mejorar apariencia de checkboxes */
+:deep(.v-checkbox .v-selection-control) {
+  border-radius: 8px;
 }
 </style>

@@ -84,4 +84,3 @@ export async function logout() {
         setAuthToken(null)
     }
 }
-

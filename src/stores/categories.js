@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
-import { categoriesApi } from '@/services/api'
+import { getCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '@/services/categories'
 
 export const useCategoriesStore = defineStore('categories', {
   state: () => ({
-    // Categories list
-    categories: [],
-    
+    // Categories list (changed from 'categories' to 'items' for consistency)
+    items: [],
+    categories: [], // Keep for backward compatibility
+
     // Current category (for detail/edit view)
     currentCategory: null,
     
@@ -39,8 +40,8 @@ export const useCategoriesStore = defineStore('categories', {
     /**
      * Check if there are any categories
      */
-    hasCategories: (state) => state.categories.length > 0,
-    
+    hasCategories: (state) => state.items.length > 0,
+
     /**
      * Get total number of pages
      */
@@ -64,7 +65,7 @@ export const useCategoriesStore = defineStore('categories', {
       page: state.pagination.currentPage,
       per_page: state.pagination.perPage,
       order: state.filters.order,
-      sortBy: state.filters.sortBy,
+      sort_by: state.filters.sortBy,
     }),
   },
 
@@ -72,36 +73,45 @@ export const useCategoriesStore = defineStore('categories', {
     /**
      * Fetch all categories with current filters and pagination
      */
-    async fetchCategories() {
+    async fetch() {
       this.loading = true
       this.error = null
       
       try {
-        const response = await categoriesApi.getAll(this.filterParams)
-        
-        // Assuming API returns: { data: [...], pagination: {...} }
-        // Adjust based on actual API response structure
-        if (response.data) {
-          this.categories = response.data.data || response.data
-          
-          // Update pagination info if provided
-          if (response.data.pagination) {
-            this.pagination.totalPages = response.data.pagination.totalPages || 1
-            this.pagination.totalItems = response.data.pagination.totalItems || 0
-          } else if (response.headers) {
-            // Alternative: extract from headers if API uses X-Total-Count pattern
-            this.pagination.totalItems = parseInt(response.headers['x-total-count'] || '0')
-            this.pagination.totalPages = Math.ceil(this.pagination.totalItems / this.pagination.perPage)
+        const response = await getCategories(this.filterParams)
+
+        // Handle different response formats
+        if (Array.isArray(response)) {
+          this.items = response
+          this.categories = response
+        } else if (response.data) {
+          this.items = response.data
+          this.categories = response.data
+          if (response.pagination) {
+            this.pagination = { ...this.pagination, ...response.pagination }
+          }
+        } else if (response.items || response.results) {
+          this.items = response.items || response.results
+          this.categories = this.items
+          if (response.total !== undefined) {
+            this.pagination.totalItems = response.total
+            this.pagination.totalPages = Math.ceil(response.total / this.pagination.perPage)
           }
         }
         
-        return this.categories
+        return this.items
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to fetch categories'
+        this.error = error.response?.data?.message || error.message || 'Error al cargar categorías'
+        console.error('Error fetching categories:', error)
         throw error
       } finally {
         this.loading = false
       }
+    },
+
+    // Alias for backward compatibility
+    async fetchCategories() {
+      return this.fetch()
     },
 
     /**
@@ -112,11 +122,12 @@ export const useCategoriesStore = defineStore('categories', {
       this.error = null
       
       try {
-        const response = await categoriesApi.getById(id)
-        this.currentCategory = response.data
+        const response = await getCategoryById(id)
+        this.currentCategory = response
         return this.currentCategory
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to fetch category'
+        this.error = error.response?.data?.message || error.message || 'Error al cargar categoría'
+        console.error('Error fetching category:', error)
         throw error
       } finally {
         this.loadingOne = false
@@ -126,153 +137,130 @@ export const useCategoriesStore = defineStore('categories', {
     /**
      * Create a new category
      */
-    async createCategory(data) {
+    async create(data) {
       this.creating = true
       this.error = null
       
       try {
-        const response = await categoriesApi.create(data)
-        const newCategory = response.data
-        
-        // Optimistic update: add to local list
-        this.categories.unshift(newCategory)
+        const newCategory = await createCategory(data)
+
+        // Add to local list
+        this.items.unshift(newCategory)
+        this.categories = this.items
         this.pagination.totalItems += 1
-        
-        // Optionally refresh to get updated list
-        // await this.fetchCategories()
         
         return newCategory
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to create category'
+        this.error = error.response?.data?.message || error.message || 'Error al crear categoría'
+        console.error('Error creating category:', error)
         throw error
       } finally {
         this.creating = false
       }
     },
 
+    // Alias for backward compatibility
+    async createCategory(data) {
+      return this.create(data)
+    },
+
     /**
      * Update an existing category
      */
-    async updateCategory(id, data) {
+    async update(id, data) {
       this.updating = true
       this.error = null
       
       try {
-        const response = await categoriesApi.update(id, data)
-        const updatedCategory = response.data
-        
-        // Optimistic update: replace in local list
-        const index = this.categories.findIndex(cat => cat.id === id)
-        if (index !== -1) {
-          this.categories[index] = updatedCategory
+        const updated = await updateCategory(id, data)
+
+        // Update in local list
+        const index = this.items.findIndex(c => c.id === id)
+        if (index > -1) {
+          this.items[index] = updated
+          this.categories = this.items
         }
         
-        // Update current category if it's the one being edited
         if (this.currentCategory?.id === id) {
-          this.currentCategory = updatedCategory
+          this.currentCategory = updated
         }
         
-        return updatedCategory
+        return updated
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to update category'
+        this.error = error.response?.data?.message || error.message || 'Error al actualizar categoría'
+        console.error('Error updating category:', error)
         throw error
       } finally {
         this.updating = false
       }
     },
 
+    // Alias for backward compatibility
+    async updateCategory(id, data) {
+      return this.update(id, data)
+    },
+
     /**
      * Delete a category
      */
-    async deleteCategory(id) {
+    async remove(id) {
       this.deleting = true
       this.error = null
       
       try {
-        await categoriesApi.delete(id)
-        
-        // Optimistic update: remove from local list
-        this.categories = this.categories.filter(cat => cat.id !== id)
-        this.pagination.totalItems -= 1
-        
-        // Clear current category if it was deleted
+        await deleteCategory(id)
+
+        // Remove from local list
+        this.items = this.items.filter(c => c.id !== id)
+        this.categories = this.items
+        this.pagination.totalItems = Math.max(0, this.pagination.totalItems - 1)
+
         if (this.currentCategory?.id === id) {
           this.currentCategory = null
         }
-        
-        // If page is now empty and not the first page, go back one page
-        if (this.categories.length === 0 && this.pagination.currentPage > 1) {
-          this.pagination.currentPage -= 1
-          await this.fetchCategories()
-        }
-        
-        return true
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to delete category'
+        this.error = error.response?.data?.message || error.message || 'Error al eliminar categoría'
+        console.error('Error deleting category:', error)
         throw error
       } finally {
         this.deleting = false
       }
     },
 
-    /**
-     * Set current page and fetch categories
-     */
-    async setPage(page) {
-      if (page < 1 || page > this.pagination.totalPages) return
-      this.pagination.currentPage = page
-      await this.fetchCategories()
+    // Alias for backward compatibility
+    async deleteCategory(id) {
+      return this.remove(id)
     },
 
     /**
-     * Go to next page
+     * Update filters
      */
-    async nextPage() {
-      if (!this.isLastPage) {
-        await this.setPage(this.pagination.currentPage + 1)
-      }
-    },
-
-    /**
-     * Go to previous page
-     */
-    async previousPage() {
-      if (!this.isFirstPage) {
-        await this.setPage(this.pagination.currentPage - 1)
-      }
-    },
-
-    /**
-     * Update filters and reset to first page
-     */
-    async updateFilters(newFilters) {
+    updateFilters(newFilters) {
       this.filters = { ...this.filters, ...newFilters }
-      this.pagination.currentPage = 1
-      await this.fetchCategories()
     },
 
     /**
-     * Reset filters to defaults
+     * Reset filters to default
      */
-    async resetFilters() {
+    resetFilters() {
       this.filters = {
         name: '',
         sortBy: 'createdAt',
         order: 'ASC',
       }
       this.pagination.currentPage = 1
-      await this.fetchCategories()
     },
 
     /**
-     * Clear current category
+     * Go to specific page
      */
-    clearCurrentCategory() {
-      this.currentCategory = null
+    goToPage(page) {
+      this.pagination.currentPage = page
+      return this.fetch()
     },
 
     /**
-     * Clear error
+     * Clear error message
      */
     clearError() {
       this.error = null

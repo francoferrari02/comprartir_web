@@ -17,8 +17,7 @@
         variant="flat"
         prepend-icon="mdi-open-in-new"
         class="btn-uniform btn-open"
-        :to="`/pantries/${id}`"
-        tag="router-link"
+        @click="openPantry"
       >
         Abrir
       </v-btn>
@@ -46,6 +45,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const props = defineProps({
   id: { type: [String, Number], required: true },
@@ -59,6 +61,10 @@ const itemsPercentage = computed(() => {
 })
 
 const emit = defineEmits(['delete', 'edit'])
+
+function openPantry() {
+  router.push(`/pantries/${props.id}`)
+}
 </script>
 
 <style scoped>
@@ -122,4 +128,3 @@ const emit = defineEmits(['delete', 'edit'])
   border-radius: 999px !important;
 }
 </style>
-

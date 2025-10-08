@@ -1,18 +1,40 @@
 <template>
   <v-card class="card card--hover pa-4 mb-4">
-    <v-card-title class="text-h6 font-weight-bold">Añadir productos</v-card-title>
+    <v-card-title class="text-h6 font-weight-bold d-flex align-center justify-space-between">
+      Añadir productos
+      <v-btn
+        icon="mdi-package-variant-plus"
+        size="small"
+        variant="text"
+        color="primary"
+        @click="openCreateProduct"
+      />
+    </v-card-title>
     <v-card-text>
-      <!-- Product name input -->
-      <v-text-field
-        v-model="itemName"
-        prepend-inner-icon="mdi-cart-plus"
-        label="Nombre del producto"
+      <!-- Product selector with autocomplete -->
+      <ProductSelect
+        v-model="selectedProduct"
+        label="Buscar producto"
+        placeholder="Escribe para buscar..."
+        :category-id="categoryFilter"
+        :show-create-link="true"
+        class="mb-3"
+        @create-product="openCreateProduct"
+      />
+
+      <!-- Category filter (optional) -->
+      <v-select
+        v-model="categoryFilter"
+        :items="categoryOptions"
+        item-title="name"
+        item-value="id"
+        label="Filtrar por categoría"
         variant="outlined"
         density="comfortable"
-        hide-details="auto"
         clearable
+        hide-details
+        prepend-inner-icon="mdi-filter"
         class="mb-3"
-        @keyup.enter="addProduct"
       />
 
       <!-- Quantity and unit -->
@@ -24,8 +46,9 @@
           variant="outlined"
           density="comfortable"
           hide-details
-          min="1"
-          style="max-width: 100px"
+          min="0.01"
+          step="0.01"
+          style="max-width: 120px"
         />
         <v-select
           v-model="unit"
@@ -44,75 +67,106 @@
         variant="flat"
         prepend-icon="mdi-plus"
         class="btn-rounded"
-        :disabled="!itemName || !itemName.trim()"
+        :disabled="!selectedProduct"
         :loading="loading"
         @click="addProduct"
       >
-        Añadir producto
+        Añadir a la lista
       </v-btn>
 
-      <!-- Suggestions -->
-      <div v-if="suggestions && suggestions.length" class="mt-4">
-        <div class="text-caption text-medium-emphasis mb-2">Sugerencias</div>
+      <!-- Quick add suggestions -->
+      <div v-if="recentProducts && recentProducts.length" class="mt-4">
+        <div class="text-caption text-medium-emphasis mb-2">Agregados recientemente</div>
         <v-chip
-          v-for="s in suggestions"
-          :key="s"
+          v-for="product in recentProducts"
+          :key="product.id"
           class="ma-1 chip-rounded"
           size="small"
           variant="outlined"
-          @click="quickAdd(s)"
+          @click="quickAdd(product)"
         >
           <v-icon start size="small">mdi-plus-circle-outline</v-icon>
-          {{ s }}
-        </v-chip>
-      </div>
-
-      <!-- Recommended -->
-      <div v-else-if="recommended && recommended.length" class="mt-4">
-        <div class="text-caption text-medium-emphasis mb-2">Recomendados</div>
-        <v-chip
-          v-for="r in recommended"
-          :key="r"
-          class="ma-1 chip-rounded"
-          size="small"
-          variant="outlined"
-          @click="quickAdd(r)"
-        >
-          <v-icon start size="small">mdi-plus-circle-outline</v-icon>
-          {{ r }}
+          {{ product.name }}
         </v-chip>
       </div>
     </v-card-text>
+
+    <!-- Create Product Dialog -->
+    <v-dialog v-model="createProductDialog" max-width="600">
+      <v-card>
+        <v-card-title class="text-h6 pa-4">Crear Nuevo Producto</v-card-title>
+        <v-card-text class="pa-4">
+          <v-text-field
+            v-model="newProduct.name"
+            label="Nombre del producto *"
+            variant="outlined"
+            density="comfortable"
+            :rules="[rules.required]"
+            class="mb-3"
+            autofocus
+          />
+          <v-select
+            v-model="newProduct.category_id"
+            :items="categories"
+            item-title="name"
+            item-value="id"
+            label="Categoría *"
+            variant="outlined"
+            density="comfortable"
+            :rules="[rules.required]"
+            prepend-inner-icon="mdi-tag"
+          />
+        </v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer />
+          <v-btn variant="text" @click="createProductDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="primary"
+            variant="elevated"
+            :loading="creatingProduct"
+            @click="createProduct"
+          >
+            Crear y Usar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import ProductSelect from '@/components/products/ProductSelect.vue'
+import { useCategoriesStore } from '@/stores/categories'
+import { useProductsStore } from '@/stores/products'
 
 const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ''
-  },
   loading: {
     type: Boolean,
     default: false
   },
-  suggestions: {
+  recentProducts: {
     type: Array,
     default: () => []
-  },
-  recommended: {
-    type: Array,
-    default: () => ['Leche', 'Pan', 'Huevos', 'Arroz', 'Aceite']
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'add-item'])
+const emit = defineEmits(['add-item'])
 
-const itemName = ref(props.modelValue)
+const categoriesStore = useCategoriesStore()
+const productsStore = useProductsStore()
+
+const selectedProduct = ref(null)
+const categoryFilter = ref(null)
 const quantity = ref(1)
 const unit = ref('unidad')
+
+const createProductDialog = ref(false)
+const creatingProduct = ref(false)
+const newProduct = ref({
+  name: '',
+  category_id: null
+})
 
 const units = [
   'unidad',
@@ -123,28 +177,84 @@ const units = [
   'paquete',
   'caja',
   'bolsa',
-  'docena'
+  'docena',
+  'lata',
+  'botella'
 ]
 
+const categories = computed(() => categoriesStore.items || [])
+
+const categoryOptions = computed(() => {
+  return [
+    { name: 'Todas las categorías', id: null },
+    ...categories.value
+  ]
+})
+
+const rules = {
+  required: (v) => !!v || 'Este campo es requerido'
+}
+
 function addProduct() {
-  if (!itemName.value || !itemName.value.trim()) return
+  if (!selectedProduct.value) return
 
   emit('add-item', {
-    name: itemName.value.trim(),
+    product_id: selectedProduct.value.id || selectedProduct.value,
+    productName: selectedProduct.value.name,
     quantity: quantity.value,
-    unit: unit.value
+    unit: unit.value,
+    metadata: {}
   })
 
   // Reset form
-  itemName.value = ''
+  selectedProduct.value = null
   quantity.value = 1
   unit.value = 'unidad'
+  categoryFilter.value = null
 }
 
-function quickAdd(productName) {
-  itemName.value = productName
+function quickAdd(product) {
+  selectedProduct.value = product
   addProduct()
 }
+
+function openCreateProduct() {
+  newProduct.value = {
+    name: '',
+    category_id: categoryFilter.value || null
+  }
+  createProductDialog.value = true
+}
+
+async function createProduct() {
+  if (!newProduct.value.name || !newProduct.value.category_id) return
+
+  creatingProduct.value = true
+  try {
+    const created = await productsStore.add({
+      name: newProduct.value.name,
+      category_id: newProduct.value.category_id,
+      metadata: {}
+    })
+
+    // Use the newly created product
+    selectedProduct.value = created
+    createProductDialog.value = false
+
+    // Optionally add it immediately
+    addProduct()
+  } catch (error) {
+    console.error('Error creating product:', error)
+  } finally {
+    creatingProduct.value = false
+  }
+}
+
+onMounted(async () => {
+  if (categories.value.length === 0) {
+    await categoriesStore.fetch()
+  }
+})
 </script>
 
 <style scoped>
@@ -152,20 +262,11 @@ function quickAdd(productName) {
   gap: 8px;
 }
 
-/* Botones redondeados */
-.btn-rounded {
-  border-radius: 999px !important;
-  text-transform: none;
-  font-weight: 500;
-}
-
-/* Chips redondeados */
 .chip-rounded {
-  border-radius: 999px !important;
+  border-radius: 16px;
 }
 
-/* Campos de texto con bordes más redondeados */
-:deep(.v-field) {
-  border-radius: 12px !important;
+.btn-rounded {
+  border-radius: 999px;
 }
 </style>

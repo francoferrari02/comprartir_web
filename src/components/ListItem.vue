@@ -17,8 +17,7 @@
         variant="flat"
         prepend-icon="mdi-open-in-new"
         class="btn-uniform btn-open"
-        :to="`/lists/${id}`"
-        tag="router-link"
+        @click.stop="openList"
       >
         Abrir
       </v-btn>
@@ -46,6 +45,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const props = defineProps({
   id: { type: [String, Number], required: true },
@@ -59,6 +61,11 @@ const progress = computed(() =>
 )
 
 const emit = defineEmits(['delete', 'edit'])
+
+function openList() {
+  console.log('Abrir lista:', props.id) // Agregado para debugging
+  router.push(`/lists/${props.id}`)
+}
 </script>
 
 <style scoped>

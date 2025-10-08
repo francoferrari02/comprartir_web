@@ -533,11 +533,22 @@ async function fetchLists() {
 
     const response = await getShoppingLists(params)
 
-    lists.value = response.data || []
-    if (response.pagination) {
-      pagination.value = {
-        ...pagination.value,
-        ...response.pagination
+    // Handle response structure - service returns data directly or {data, pagination}
+    if (Array.isArray(response)) {
+      lists.value = response
+    } else if (response.data) {
+      lists.value = response.data
+      if (response.pagination) {
+        pagination.value = {
+          ...pagination.value,
+          ...response.pagination
+        }
+      }
+    } else {
+      // Backend might return {items, total} or similar
+      lists.value = response.items || response.results || []
+      if (response.total !== undefined) {
+        pagination.value.totalItems = response.total
       }
     }
 

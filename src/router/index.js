@@ -18,6 +18,11 @@ const Categories    = () => import('../views/Categories.vue')
 const Pantries      = () => import('../views/Pantries.vue')
 const PantryDetail  = () => import('../views/PantryDetail.vue')
 
+// Products
+const ProductsList  = () => import('../views/products/ProductsList.vue')
+const ProductForm   = () => import('../views/products/ProductForm.vue')
+const ProductDetail = () => import('../views/products/ProductDetail.vue')
+
 const routes = [
     // Public routes
     { path: '/login',          name: 'login',          component: Login,          meta: { title: 'Ingresar', public: true } },
@@ -31,6 +36,13 @@ const routes = [
     { path: '/lists',         name: 'lists',         component: Lists,         meta: { title: 'Listas', requiresAuth: true } },
     { path: '/lists/:id',     name: 'list-detail',   component: ListDetail,    meta: { title: 'Detalle de lista', requiresAuth: true } },
     { path: '/categories',    name: 'categories',    component: Categories,    meta: { title: 'Categorías', requiresAuth: true } },
+
+    // Products routes
+    { path: '/products',         name: 'products',      component: ProductsList,  meta: { title: 'Productos', requiresAuth: true } },
+    { path: '/products/new',     name: 'product-new',   component: ProductForm,   meta: { title: 'Nuevo Producto', requiresAuth: true } },
+    { path: '/products/:id',     name: 'product-detail', component: ProductDetail, meta: { title: 'Detalle de Producto', requiresAuth: true }, props: true },
+    { path: '/products/:id/edit', name: 'product-edit', component: ProductForm,   meta: { title: 'Editar Producto', requiresAuth: true }, props: true },
+
     { path: '/pantries',      name: 'pantries',      component: Pantries,      meta: { title: 'Despensas', requiresAuth: true } },
     { path: '/pantries/:id',  name: 'pantry-detail', component: PantryDetail,  meta: { title: 'Detalle de despensa', requiresAuth: true } },
     { path: '/historial',     name: 'historial',     component: Historial,     meta: { title: 'Historial', requiresAuth: true } },
@@ -38,6 +50,9 @@ const routes = [
     { path: '/profile',       name: 'profile',       component: Profile,       meta: { title: 'Perfil', requiresAuth: true } },
     { path: '/notifications', name: 'notifications', component: Notifications, meta: { title: 'Notificaciones', requiresAuth: true } },
     { path: '/help',          name: 'help',          component: Help,          meta: { title: 'Ayuda', requiresAuth: true } },
+
+    // 404 Catch-all route - debe ir al final
+    { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/' }
 ]
 
 const router = createRouter({
