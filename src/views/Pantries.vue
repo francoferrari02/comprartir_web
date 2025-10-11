@@ -368,7 +368,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePantriesStore } from '@/stores/pantries'
 import { getPantryItems } from '@/services/pantryItems'
@@ -538,24 +538,38 @@ async function fetchPantries() {
 }
 
 async function fetchItemCounts() {
+  console.log('🔢 fetchItemCounts - Iniciando conteo de items para', pantries.value.length, 'despensas')
   const counts = {}
 
-  await Promise.all(
-    pantries.value.map(async (pantry) => {
-      try {
-        const itemsResponse = await getPantryItems(pantry.id, { per_page: 1000 })
-        const items = itemsResponse.data || []
-        counts[pantry.id] = {
-          total: items.length
-        }
-      } catch (err) {
-        console.error(`Error fetching items for pantry ${pantry.id}:`, err)
-        counts[pantry.id] = { total: 0 }
+  // Hacer las peticiones de forma secuencial para evitar errores 500 del backend
+  // El backend tiene problemas con requests concurrentes
+  for (const pantry of pantries.value) {
+    try {
+      const itemsResponse = await getPantryItems(pantry.id, { per_page: 1000 })
+      console.log(`📊 Pantry ${pantry.id} (${pantry.name}) - Response:`, itemsResponse)
+
+      // El backend retorna { data: [...], pagination: {...} }
+      let items = []
+      if (Array.isArray(itemsResponse)) {
+        items = itemsResponse
+      } else if (itemsResponse.data && Array.isArray(itemsResponse.data)) {
+        items = itemsResponse.data
+      } else if (itemsResponse.items && Array.isArray(itemsResponse.items)) {
+        items = itemsResponse.items
       }
-    })
-  )
+
+      counts[pantry.id] = {
+        total: items.length
+      }
+      console.log(`✅ Pantry ${pantry.id} (${pantry.name}) - Total items: ${items.length}`)
+    } catch (err) {
+      console.error(`❌ Error fetching items for pantry ${pantry.id}:`, err)
+      counts[pantry.id] = { total: 0 }
+    }
+  }
 
   pantryItemsCounts.value = counts
+  console.log('📊 fetchItemCounts - Conteo final:', counts)
 }
 
 function updateQueryParams() {
@@ -742,6 +756,12 @@ function showSnackbar(message, color = 'success') {
 // Lifecycle
 onMounted(() => {
   fetchPantries()
+})
+
+// Refresh counts when returning to this page (e.g., from pantry detail)
+onActivated(() => {
+  console.log('🔄 Pantries page activated - refreshing item counts')
+  fetchItemCounts()
 })
 </script>
 

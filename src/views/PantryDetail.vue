@@ -651,11 +651,21 @@ async function fetchItems() {
 async function fetchSharedUsers() {
   if (!pantry.value) return
 
+  // Solo el owner puede ver los usuarios compartidos según la API
+  const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id
+  if (pantry.value.owner?.id !== currentUserId) {
+    // Si no somos el owner, no intentamos cargar los usuarios compartidos
+    sharedUsers.value = []
+    return
+  }
+
   try {
     const response = await getPantrySharedUsers(pantry.value.id)
-    sharedUsers.value = response.data || []
+    sharedUsers.value = response.data || response || []
   } catch (err) {
     console.error('Error fetching shared users:', err)
+    // No mostrar error al usuario si no puede ver los usuarios compartidos
+    sharedUsers.value = []
   }
 }
 
@@ -908,7 +918,5 @@ onMounted(async () => {
   border-radius: 8px !important;
 }
 
-.products-list {
-  /* Espacio para los items */
-}
+/* Products list styling handled by component */
 </style>
