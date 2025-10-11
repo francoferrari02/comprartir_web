@@ -457,13 +457,22 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useNotifications } from '@/composables/useNotifications'
 import { getPantryById, updatePantry, deletePantry, sharePantry as sharePantryService, getPantrySharedUsers, revokePantryShare } from '@/services/pantries'
 import { getPantryItems, addPantryItem, updatePantryItem, deletePantryItem } from '@/services/pantryItems'
+import { getProfile } from '@/services/auth'
 import PantryProductItem from '@/components/PantryProductItem.vue'
 import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+// Composables
+const {
+  notifyPantryShared,
+  notifyItemAdded,
+  notifyAccessRevoked
+} = useNotifications()
 
 // State
 const loading = ref(true)
@@ -477,6 +486,7 @@ const sharedUsers = ref([])
 const searchQuery = ref('')
 const shareEmail = ref('')
 const selectedProductId = ref(null)
+const currentUser = ref(null) // ← Usuario actual
 
 // Pagination for items
 const itemsPagination = ref({
@@ -707,6 +717,19 @@ async function addItem() {
     console.log('🔄 PantryDetail - addItem - Refrescando lista de items...')
     await fetchItems()
 
+    // 🔔 Disparar notificación si la despensa está compartida
+    if (pantry.value.sharedWith && pantry.value.sharedWith.length > 0) {
+      const productName = addedItem.product?.name || addedItem.productName || 'Producto'
+      notifyItemAdded(
+        productName,
+        pantry.value.name,
+        pantry.value.id,
+        currentUser.value?.name || 'Un usuario',
+        'pantry'
+      )
+      console.log('📬 Notificación enviada: Item agregado a despensa compartida')
+    }
+
     newItem.value = { name: '', quantity: 1, unit: 'un' }
     selectedProductId.value = null
     showSnackbar('Producto añadido a la despensa', 'success')
@@ -815,6 +838,11 @@ async function revokeAccess(userId) {
 
   try {
     await revokePantryShare(pantry.value.id, userId)
+
+    // 🔔 Disparar notificación de acceso revocado
+    notifyAccessRevoked(pantry.value.name, 'pantry')
+    console.log('📬 Notificación enviada: Acceso revocado de despensa')
+
     sharedUsers.value = sharedUsers.value.filter(u => u.userId !== userId)
     showSnackbar('Acceso revocado', 'success')
   } catch (err) {
@@ -880,6 +908,10 @@ onMounted(async () => {
   if (pantry.value) {
     await Promise.all([fetchItems(), fetchSharedUsers()])
   }
+
+  // Cargar usuario actual
+  const profile = await getProfile()
+  currentUser.value = profile.data || profile
 })
 </script>
 

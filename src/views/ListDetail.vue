@@ -146,6 +146,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useListsStore } from '@/stores/lists'
+import { useNotifications } from '@/composables/useNotifications'
 import {
   getShoppingListById,
   updateShoppingList,
@@ -162,6 +163,7 @@ import {
   getSharedUsers,
   revokeShareShoppingList
 } from '@/services/lists'
+import { getProfile } from '@/services/auth'
 import ListDetailCard from '@/components/ListDetailCard.vue'
 import AddItemCard from '@/components/AddItemCard.vue'
 import ShareListCard from '@/components/ShareListCard.vue'
@@ -169,6 +171,13 @@ import ShareListCard from '@/components/ShareListCard.vue'
 const route = useRoute()
 const router = useRouter()
 const listsStore = useListsStore()
+
+// Composables
+const {
+  notifyListShared,
+  notifyItemAdded,
+  notifyAccessRevoked
+} = useNotifications()
 
 // State
 const loading = ref(true)
@@ -182,6 +191,7 @@ const sharedUsers = ref([])
 const showCompleted = ref(true)
 const addItemQuery = ref('')
 const addItemKey = ref(0) // ← Key para forzar re-render del AddItemCard
+const currentUser = ref(null) // ← Usuario actual
 
 // Pagination for items
 const itemsPagination = ref({
@@ -446,6 +456,19 @@ async function addItem(itemData) {
     // Refresh items to get updated list with proper product data
     await fetchItems()
 
+    // 🔔 Disparar notificación si la lista está compartida
+    if (list.value.sharedWith && list.value.sharedWith.length > 0) {
+      const productName = newItem.product?.name || newItem.productName || 'Producto'
+      notifyItemAdded(
+        productName,
+        list.value.name,
+        list.value.id,
+        currentUser.name || 'Un usuario',
+        'list'
+      )
+      console.log('📬 Notificación enviada: Item agregado a lista compartida')
+    }
+
     // Force reset del form component
     addItemQuery.value = ''
     addItemKey.value++ // ← Forzar re-render para limpiar completamente el form
@@ -490,6 +513,11 @@ async function revokeAccess(userId) {
 
   try {
     await revokeShareShoppingList(list.value.id, userId)
+
+    // 🔔 Disparar notificación de acceso revocado
+    notifyAccessRevoked(list.value.name, 'list')
+    console.log('📬 Notificación enviada: Acceso revocado')
+
     sharedUsers.value = sharedUsers.value.filter(u => u.userId !== userId)
     showSnackbar('Acceso revocado', 'success')
   } catch (err) {
@@ -642,11 +670,21 @@ watch(() => route.params.id, () => {
 })
 
 // Lifecycle
-onMounted(() => {
-  fetchList().then(() => {
-    fetchItems()
-    fetchSharedUsers()
-  })
+onMounted(async () => {
+  // Cargar usuario actual
+  try {
+    currentUser.value = await getProfile()
+  } catch (err) {
+    console.error('Error loading user profile:', err)
+    // Fallback: intentar obtener del localStorage
+    currentUser.value = JSON.parse(localStorage.getItem('user') || '{}')
+  }
+
+  // Cargar lista y sus items
+  await fetchList()
+  if (list.value) {
+    await Promise.all([fetchItems(), fetchSharedUsers()])
+  }
 })
 </script>
 

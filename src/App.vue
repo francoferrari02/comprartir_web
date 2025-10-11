@@ -12,6 +12,7 @@ import { ref, provide, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from './components/Header.vue'
 import { isLoggedIn } from './services/auth.service'
+import { useNotificationsStore } from './stores/notifications'
 
 const router = useRouter()
 const route = useRoute()
@@ -20,11 +21,19 @@ const route = useRoute()
 const isAuthenticated = ref(isLoggedIn())
 provide('isAuthenticated', isAuthenticated)
 
+// Notifications store
+const notificationsStore = useNotificationsStore()
+
 // Función para actualizar estado de autenticación
 function updateAuthState() {
   const newAuthState = isLoggedIn()
   console.log('🔄 Updating auth state:', newAuthState, 'token:', localStorage.getItem('accessToken'))
   isAuthenticated.value = newAuthState
+
+  // Initialize notifications when user logs in
+  if (newAuthState) {
+    notificationsStore.init()
+  }
 }
 provide('updateAuthState', updateAuthState)
 
@@ -32,6 +41,11 @@ provide('updateAuthState', updateAuthState)
 onMounted(() => {
   updateAuthState()
   console.log('📱 App mounted - isAuthenticated:', isAuthenticated.value)
+
+  // Initialize notifications if authenticated
+  if (isAuthenticated.value) {
+    notificationsStore.init()
+  }
 })
 
 // Watch for route changes to update auth state

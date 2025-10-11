@@ -106,26 +106,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { logout } from '@/services/auth.service'
-import logoSrc from '../assets/Logo_Comprartir-removebg.png'
-
-// Recibe el estado global de autenticación desde App.vue
-const isAuthenticated = inject('isAuthenticated', ref(false))
-const updateAuthState = inject('updateAuthState')
+import { useNotificationsStore } from '@/stores/notifications'
+import logoSrc from '@/assets/Logo_Comprartir-removebg.png'
 
 const router = useRouter()
+const isAuthenticated = inject('isAuthenticated')
+const updateAuthState = inject('updateAuthState')
 
-// Notificaciones (demo)
-const notifications = ref([
-  { id: 'n1', title: 'Sofía marcó "Tomates"', subtitle: 'Lista: Verdulería', time: 'hace 5 min', icon: 'mdi-check-bold', to: '/lists' },
-  { id: 'n2', title: 'Juan te compartió "Farmacia"', subtitle: 'Editor agregado', time: 'hace 20 min', icon: 'mdi-account-plus', to: '/lists' },
-  { id: 'n3', title: 'Vence mañana', subtitle: 'Lista: Cumple Emma', time: 'hace 1 h', icon: 'mdi-bell-alert', to: '/lists' },
-])
-const unreadCount = computed(() => notifications.value.length)
+// Notifications store
+const notificationsStore = useNotificationsStore()
 
+// User info from localStorage
 const userEmail = ref('')
+
+// Computed
+const unreadCount = computed(() => notificationsStore.unreadCount)
+const notifications = computed(() => notificationsStore.recentNotifications)
 
 async function handleLogout() {
   try {
@@ -139,6 +138,13 @@ async function handleLogout() {
     router.push('/login')
   }
 }
+
+onMounted(() => {
+  // Initialize notifications
+  if (isAuthenticated.value) {
+    notificationsStore.init()
+  }
+})
 </script>
 
 <style scoped>
