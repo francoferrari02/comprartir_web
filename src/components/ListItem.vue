@@ -8,6 +8,22 @@
 
     <div class="text-caption mb-2">{{ bought }}/{{ total }} comprados</div>
 
+    <!-- Mostrar usuarios compartidos si existen -->
+    <div v-if="sharedWith && sharedWith.length > 0" class="mb-2">
+      <v-chip-group>
+        <v-chip
+          v-for="user in sharedWith"
+          :key="user.id || user.email"
+          size="x-small"
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-account-outline"
+        >
+          {{ user.name || user.email }}
+        </v-chip>
+      </v-chip-group>
+    </div>
+
     <v-progress-linear :model-value="progress" color="primary" height="6" rounded />
 
     <!-- Botonera: tres botones del mismo tamaño en una línea horizontal -->
@@ -55,6 +71,7 @@ const props = defineProps({
   name: { type: String, required: true },
   bought: { type: Number, required: true },
   total: { type: Number, required: true },
+  sharedWith: { type: Array, default: () => [] },
 })
 
 const progress = computed(() =>

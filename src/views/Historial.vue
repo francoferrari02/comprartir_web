@@ -451,12 +451,10 @@ async function executeRestore() {
     restoreDialog.value.open = false
     detailsDialog.value.open = false
 
-    // Redirect to the new list
-    if (result.list?.id) {
-      setTimeout(() => {
-        router.push(`/lists/${result.list.id}`)
-      }, 1000)
-    }
+    // Redirect to the lists view to see the restored list
+    setTimeout(() => {
+      router.push('/lists')
+    }, 1000)
   } catch (err) {
     console.error('❌ Error restoring purchase:', err)
     error.value = err.message || 'Error al restaurar la compra'

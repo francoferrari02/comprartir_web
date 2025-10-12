@@ -237,22 +237,19 @@ export async function purchaseListService(listId: number, user: User, metadata: 
             throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_IN_SHOPPING_LIST);
         }
 
+        // Mark ALL items as purchased and update lastPurchasedAt
         const listItems: ListItem[] = [];
         for (const item of list.items) {
             const listItem = await queryRunner.manager.findOne(ListItem, { where: { id: item.id } });
             if (listItem) {
-                if(listItem.purchased) {
-                    listItem.lastPurchasedAt = new Date();
-                    listItems.push(listItem);
-                    await queryRunner.manager.save(listItem);
-                }
+                // Mark item as purchased if not already
+                listItem.purchased = true;
+                listItem.lastPurchasedAt = new Date();
+                listItems.push(listItem);
+                await queryRunner.manager.save(listItem);
             } else {
                 throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.ITEM);
             }
-        }
-
-        if(listItems.length <= 0) {
-            throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_PURCHASED_IN_SHOPPING_LIST);
         }
 
         const purchase = new Purchase();
@@ -417,7 +414,7 @@ export async function shareListService(listId: number, fromUser: User, toUserEma
             return list.getFormattedList();
         }
 
-        list.sharedWith = [...(list.sharedWith || []), toUser.getFormattedUser()];
+        list.sharedWith = [...(list.sharedWith || []), toUser]; // Save User instance, not formatted object
         await queryRunner.manager.save(list);
 
         await queryRunner.commitTransaction();

@@ -18,6 +18,7 @@
               :id="pantry.id"
               :name="pantry.name"
               :total-items="pantry.totalItems"
+              :shared-with="pantry.sharedWith || []"
               @delete="$emit('delete-pantry', pantry)"
               @edit="$emit('edit-pantry', pantry)"
             />

@@ -19,6 +19,7 @@
               :name="list.name"
               :bought="list.bought"
               :total="list.total"
+              :shared-with="list.sharedWith || []"
               @delete="$emit('delete-list', list)"
               @edit="$emit('edit-list', list)"
             />

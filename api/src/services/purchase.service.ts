@@ -149,12 +149,11 @@ export async function restorePurchaseService(id: number, user: User): Promise<Li
     }
 
     if (!purchase.list) throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.LIST);
-    if (purchase.list.recurring) throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.CANNOT_RESTORE_RECURRING_LIST);
 
-  const newList = new List();
-  newList.name = await generateUniqueListName(purchase.list.name, user, queryRunner);
+    const newList = new List();
+    newList.name = await generateUniqueListName(purchase.list.name, user, queryRunner);
     newList.description = purchase.list.description;
-    newList.recurring = false;
+    newList.recurring = false; // Always create as non-recurring
     newList.metadata = purchase.list.metadata;
     newList.owner = user;
 

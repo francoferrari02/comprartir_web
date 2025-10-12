@@ -62,8 +62,8 @@ export class Pantry extends BaseEntity {
       metadata: this.metadata ?? null,
       createdAt: this.createdAt?.toISOString().substring(0, 19).replace('T', ' '),
       updatedAt: this.updatedAt?.toISOString().substring(0, 19).replace('T', ' '),
-      owner: this.owner?.getFormattedUser() ?? null,
-      sharedWith: this.sharedWith?.map((user) => user.getFormattedUser()) ?? [],
+      owner: this.owner?.getFormattedUser ? this.owner.getFormattedUser() : this.owner,
+      sharedWith: this.sharedWith?.map((user) => (user.getFormattedUser ? user.getFormattedUser() : user)) ?? [],
     };
   }
 

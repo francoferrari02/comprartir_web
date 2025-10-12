@@ -68,8 +68,8 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
         if (owner === undefined) {
             const baseQuery = queryRunner.manager
                 .createQueryBuilder(Pantry, "pantry")
-                .leftJoin("pantry.owner", "owner")
-                .leftJoin("pantry.sharedWith", "sharedWith")
+                .leftJoinAndSelect("pantry.owner", "owner")
+                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
                 .where("pantry.deletedAt IS NULL")
                 .andWhere(
                     "owner.id = :userId OR sharedWith.id = :userId",
@@ -79,8 +79,6 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
             total = await baseQuery.getCount();
 
             pantries = await baseQuery
-                .leftJoinAndSelect("pantry.owner", "owner")
-                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
                 .orderBy(`pantry.${sort_by}`, order)
                 .skip(skip)
                 .take(take)
@@ -100,8 +98,8 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
         } else {
             const baseQuery = queryRunner.manager
                 .createQueryBuilder(Pantry, "pantry")
-                .leftJoin("pantry.owner", "owner")
-                .leftJoin("pantry.sharedWith", "sharedWith")
+                .leftJoinAndSelect("pantry.owner", "owner")
+                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
                 .where("pantry.deletedAt IS NULL")
                 .andWhere(
                     "sharedWith.id = :userId AND owner.id != :userId",
@@ -111,8 +109,6 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
             total = await baseQuery.getCount();
 
             pantries = await baseQuery
-                .leftJoinAndSelect("pantry.owner", "owner")
-                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
                 .orderBy(`pantry.${sort_by}`, order)
                 .skip(skip)
                 .take(take)
