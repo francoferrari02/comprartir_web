@@ -1,20 +1,27 @@
 <template>
-  <v-app-bar app color="white" elevation="1" height="64" density="comfortable" class="border-b header-fix">
+  <v-app-bar app color="white" elevation="1" height="72" density="comfortable" class="border-b header-fix">
     <div class="appbar-shell header-content-fix">
-      <!-- Logo como link (no queda "presionado") -->
-      <router-link to="/" class="brand-link" aria-label="Inicio">
-        <v-img :src="logoSrc" alt="Comprartir" width="40" class="mr-3" />
-        <span class="brand text-h6 font-weight-bold d-none d-sm-inline">Comprartir</span>
-      </router-link>
+      <div class="header-brand">
+        <router-link to="/" class="brand-link" aria-label="Inicio">
+          <v-img :src="logoSrc" alt="Comprartir" width="52" height="52" class="brand-logo" cover />
+          <span class="brand text-h6 font-weight-bold d-none d-sm-inline">Comprartir</span>
+        </router-link>
+      </div>
 
-      <!-- Nav a la derecha - Solo si está logueado -->
-      <div v-if="isAuthenticated" class="nav-group">
-        <v-btn to="/lists"       color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-view-list">Listas</v-btn>
-        <v-btn to="/pantries"    color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-fridge">Despensas</v-btn>
-        <v-btn to="/historial"   color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-history">Historial</v-btn>
-        <v-btn to="/preferences" color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-cog">Preferencias</v-btn>
-        <v-btn to="/profile"     color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-account-circle">Perfil</v-btn>
-        <v-btn to="/help"        color="primary" variant="elevated" size="small" class="btn-rounded btn-solid-primary" prepend-icon="mdi-help-circle">Ayuda</v-btn>
+      <div class="header-nav" v-if="isAuthenticated" role="navigation" aria-label="Secciones principales">
+        <v-btn
+          v-for="link in navLinks"
+          :key="link.to"
+          :to="link.to"
+          class="nav-btn"
+          :class="{ 'nav-btn--active': isNavActive(link.to) }"
+          variant="text"
+          height="42"
+          :aria-current="isNavActive(link.to) ? 'page' : undefined"
+        >
+          <v-icon size="18" class="mr-2">{{ link.icon }}</v-icon>
+          {{ link.label }}
+        </v-btn>
       </div>
 
       <!-- Nav para usuarios no autenticados -->
@@ -28,13 +35,13 @@
       </div>
 
       <!-- Notificaciones y menú de usuario: Solo si está logueado -->
-      <template v-if="isAuthenticated">
+      <div v-if="isAuthenticated" class="header-actions">
         <!-- Notificaciones: menú al pasar el mouse -->
         <v-menu open-on-hover location="bottom end" offset="8" close-on-content-click>
           <template #activator="{ props }">
-            <v-btn icon class="ml-2" aria-label="Notificaciones" v-bind="props">
+            <v-btn icon class="actions-btn" aria-label="Notificaciones" v-bind="props">
               <v-badge :content="unreadCount" color="error" offset-x="6" offset-y="6">
-                <v-icon>mdi-bell-outline</v-icon>
+                <v-icon size="22">mdi-bell-outline</v-icon>
               </v-badge>
             </v-btn>
           </template>
@@ -76,9 +83,9 @@
         <!-- Menú de usuario -->
         <v-menu location="bottom end" offset="8">
           <template #activator="{ props }">
-            <v-btn icon class="ml-2" aria-label="Menú de usuario" v-bind="props">
-              <v-avatar size="32">
-                <v-icon>mdi-account</v-icon>
+            <v-btn icon class="actions-btn" aria-label="Menú de usuario" v-bind="props">
+              <v-avatar size="40">
+                <v-icon size="22">mdi-account</v-icon>
               </v-avatar>
             </v-btn>
           </template>
@@ -100,19 +107,20 @@
             </v-list>
           </v-card>
         </v-menu>
-      </template>
+      </div>
     </div>
   </v-app-bar>
 </template>
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { logout } from '@/services/auth.service'
 import { useNotificationsStore } from '@/stores/notifications'
-import logoSrc from '@/assets/Logo_Comprartir-removebg.png'
+import logoSrc from '@/assets/Logo_Comprartir.png'
 
 const router = useRouter()
+const route = useRoute()
 const isAuthenticated = inject('isAuthenticated')
 const updateAuthState = inject('updateAuthState')
 
@@ -122,9 +130,23 @@ const notificationsStore = useNotificationsStore()
 // User info from localStorage
 const userEmail = ref('')
 
+const navLinks = [
+  { to: '/lists', label: 'Listas', icon: 'mdi-view-list' },
+  { to: '/pantries', label: 'Despensas', icon: 'mdi-fridge' },
+  { to: '/historial', label: 'Historial', icon: 'mdi-history' },
+  { to: '/preferences', label: 'Preferencias', icon: 'mdi-cog' },
+  { to: '/help', label: 'Ayuda', icon: 'mdi-help-circle' }
+]
+
 // Computed
 const unreadCount = computed(() => notificationsStore.unreadCount)
 const notifications = computed(() => notificationsStore.recentNotifications)
+
+const isNavActive = target => {
+  const path = route?.path ?? ''
+  if (target === '/') return path === '/'
+  return path === target || path.startsWith(`${target}/`)
+}
 
 async function handleLogout() {
   try {
@@ -155,55 +177,150 @@ onMounted(() => {
 }
 
 .header-fix {
-  min-height: 64px !important;
+  min-height: 72px !important;
   z-index: 1002 !important;
   overflow: visible !important;
 }
 
+.header-fix :deep(.v-toolbar__content) {
+  padding: 0 !important;
+}
+
 .header-content-fix {
+  position: relative;
   align-items: center !important;
   display: flex !important;
   flex-direction: row !important;
-  min-height: 56px !important;
+  min-height: 64px !important;
   height: 100%;
   width: 100%;
   overflow: visible !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  padding: 0 !important;
 }
 
-.appbar-shell{
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 8px 16px;
-  gap: 12px;
+.appbar-shell {
   width: 100%;
-}
-
-/* Layout: brand | nav | notif */
-.appbar-shell{
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 8px 16px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  
+  position: relative;
+  display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  min-height: 48px;
+  min-height: 72px;
+  padding: 0 40px;
+  
+}
+
+.header-brand {
+  justify-self: start;
+  padding-left: 20px;
+  
+}
+
+.header-nav {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  justify-self: end;
+  margin-left: auto;
+  padding-right: 20px;
+  
 }
 
 /* Logo como link neutro */
 .brand-link{
-  display: inline-flex; align-items: center; height: 56px; padding: 0 8px;
-  text-decoration: none; color: inherit;
+  display: inline-flex;
+  align-items: center;
+  height: 64px;
+  padding: 0;
+  text-decoration: none;
+  color: inherit;
+  gap: 12px;
+  justify-self: start;
 }
 .brand-link:focus, .brand-link:active { outline: none; }
 
+.brand-logo {
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -18px rgba(42, 42, 68, 0.35);
+}
+
 .brand { letter-spacing: .2px; }
 
-.nav-group{ display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.auth-group{ display: flex; gap: 8px; align-items: center; }
+.nav-group{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  justify-self: center;
+}
+
+.nav-btn {
+  background: #ffffff !important;
+  border: 1px solid #d9dde5 !important;
+  border-radius: 999px !important;
+  text-transform: none !important;
+  font-weight: 600;
+  color: #2a2a44 !important;
+  padding: 0 20px !important;
+  transition: box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  min-width: 0 !important;
+}
+
+.nav-btn .v-icon {
+  color: inherit !important;
+}
+
+.nav-btn:hover,
+.nav-btn:focus-visible {
+  box-shadow: 0 14px 32px -20px rgba(42, 42, 68, 0.4);
+  border-color: #c7cddb !important;
+}
+
+.nav-btn--active {
+  background: #2a2a44 !important;
+  border-color: #2a2a44 !important;
+  color: #ffffff !important;
+  box-shadow: 0 18px 42px -22px rgba(42, 42, 68, 0.6);
+}
+
+.nav-btn--active .v-icon {
+  color: #ffffff !important;
+}
+
+.auth-group{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: center;
+  margin-left: auto;
+}
+
+.actions-btn {
+  height: 52px !important;
+  width: 52px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(217, 221, 229, 0.6) !important;
+  box-shadow: 0 18px 42px -24px rgba(42, 42, 68, 0.45);
+  color: #2a2a44 !important;
+}
+
+.actions-btn:hover,
+.actions-btn:focus-visible {
+  box-shadow: 0 24px 58px -22px rgba(42, 42, 68, 0.58);
+  background: rgba(255, 255, 255, 0.98) !important;
+}
 
 /* Botones sólidos con hover oscuro (usa variables globales o fallback) */
 .btn-solid-primary.v-btn--has-bg{
@@ -216,8 +333,16 @@ onMounted(() => {
   background-color: var(--btn-bg-hover, #3E8E47) !important;
 }
 
+@media (max-width: 1024px){
+  .header-nav {
+    position: static;
+    transform: none;
+    margin: 0 auto;
+  }
+}
+
 @media (max-width: 900px){  
-  .nav-group { display: none; }
+  .header-nav { display: none; }
   .auth-group { gap: 4px; }
 }
 
