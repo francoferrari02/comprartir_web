@@ -15,25 +15,30 @@
 
       <!-- Quantity and unit -->
       <div class="d-flex gap-2 mb-3">
-        <v-text-field
-          v-model.number="quantity"
-          type="number"
-          label="Cantidad"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-          min="0.01"
-          step="0.01"
-          style="max-width: 120px"
-        />
-        <v-select
-          v-model="unit"
-          :items="units"
-          label="Unidad"
-          variant="outlined"
-          density="comfortable"
-          hide-details
-        />
+        <div style="max-width: 120px; width: 100%;">
+          <label class="app-input-label" for="add-item-quantity">Cantidad</label>
+          <v-text-field
+            id="add-item-quantity"
+            v-model.number="quantity"
+            type="number"
+            density="comfortable"
+            hide-details
+            min="0.01"
+            step="0.01"
+            class="app-input"
+          />
+        </div>
+        <div class="flex-grow-1">
+          <label class="app-input-label" for="add-item-unit">Unidad</label>
+          <v-select
+            id="add-item-unit"
+            v-model="unit"
+            :items="units"
+            density="comfortable"
+            hide-details
+            class="app-input"
+          />
+        </div>
       </div>
 
       <!-- Add button -->
@@ -127,5 +132,4 @@ function quickAdd(product) {
 <style scoped>
 .gap-2 { gap: 8px; }
 .chip-rounded { border-radius: 16px; }
-.btn-rounded { border-radius: 999px; }
 </style>

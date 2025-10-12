@@ -10,6 +10,16 @@
     --brand-700: #3E8E47;  /* hover/pressed más oscuro */
     --brand-50:  #E9F7F0;  /* tonal */
 
+    /* Inputs */
+    --input-bg:            #ffffff;
+    --input-border:        #E5E7EB;
+    --input-border-hover:  #D1D5DB;
+    --input-shadow-focus:  rgba(77, 168, 81, 0.12);
+    --input-radius:        999px;
+    --input-height:        44px;
+    --input-padding-x:     16px;
+    --input-placeholder:   #9CA3AF;
+
     /* Botones: podés cambiar estos si querés otra paleta */
     --btn-bg:        var(--brand);
     --btn-bg-hover:  var(--brand-700);
@@ -21,6 +31,9 @@
 
     --shadow-1: 0 2px 8px rgba(2,6,23,.06);
     --shadow-2: 0 8px 24px rgba(2,6,23,.08);
+
+    --layout-max-width: 1360px;
+    --layout-gutter: clamp(16px, 4vw, 40px);
 }
 
 /* Fondo general */
@@ -37,6 +50,17 @@
 .card--hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-2) !important; }
 
 .btn-rounded { border-radius: 999px !important; text-transform: none; font-weight: 500; }
+
+.btn-pill {
+    border-radius: 999px !important;
+    text-transform: none;
+    height: 32px !important;
+    padding: 0 16px !important;
+}
+
+.btn-pill :deep(.v-icon) {
+    font-size: 18px !important;
+}
 
 /* ===========================
    Botones sólidos (global)
@@ -129,4 +153,105 @@
 /* Progress bar redondeada */
 .v-progress-linear {
     border-radius: 999px !important;
+}
+
+/* ===========================
+   Controles de texto (inputs, selects, textareas)
+   =========================== */
+
+.app-input {
+    width: 100%;
+}
+
+.app-input .v-field {
+    border-radius: var(--input-radius) !important;
+    border: 1px solid var(--input-border) !important;
+    background-color: var(--input-bg) !important;
+    min-height: var(--input-height) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+    box-shadow: none !important;
+    padding-inline: 4px !important;
+}
+
+.app-input .v-field.v-field--multi-line {
+    border-radius: 28px !important;
+}
+
+.app-input .v-field:hover {
+    border-color: var(--input-border-hover) !important;
+}
+
+.app-input .v-field.v-field--focused {
+    border-color: var(--brand) !important;
+    box-shadow: 0 0 0 3px var(--input-shadow-focus) !important;
+}
+
+.app-input .v-field.v-field--disabled {
+    background-color: rgba(244, 246, 248, 0.7) !important;
+    border-color: rgba(229, 231, 235, 0.9) !important;
+    box-shadow: none !important;
+}
+
+.app-input.v-input--error .v-field {
+    border-color: rgb(var(--v-theme-error)) !important;
+    box-shadow: none !important;
+}
+
+.app-input .v-field__overlay {
+    background-color: transparent !important;
+    opacity: 1 !important;
+}
+
+.app-input .v-field__outline {
+    display: none !important;
+}
+
+.app-input .v-field__field {
+    padding-inline: var(--input-padding-x) !important;
+}
+
+.app-input .v-field__input {
+    padding-block: 11px !important;
+    color: var(--text) !important;
+}
+
+.app-input .v-field__prepend-inner,
+.app-input .v-field__append-inner {
+    color: var(--input-placeholder) !important;
+}
+
+.app-input .v-field__input input::placeholder,
+.app-input .v-field__input textarea::placeholder {
+    color: var(--input-placeholder) !important;
+}
+
+.app-input .v-input__details {
+    margin-inline: calc(var(--input-padding-x) - 4px) !important;
+}
+
+.app-input .v-messages__message {
+    font-size: 0.8rem !important;
+    color: var(--muted) !important;
+}
+
+/* Etiquetas superiores para inputs */
+.app-input-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1f2937;
+}
+
+.view-shell {
+    width: 100%;
+    max-width: var(--layout-max-width);
+    margin: 0 auto;
+    padding-inline: var(--layout-gutter);
+}
+
+@media (max-width: 600px) {
+    .view-shell {
+        padding-inline: 16px;
+    }
 }

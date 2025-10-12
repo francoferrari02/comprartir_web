@@ -46,34 +46,36 @@
               <v-row>
                 <!-- Product Name -->
                 <v-col cols="12">
+                  <label class="app-input-label" for="product-form-name">Nombre del producto *</label>
                   <v-text-field
+                    id="product-form-name"
                     v-model="form.name"
-                    label="Nombre del producto *"
                     prepend-inner-icon="mdi-package-variant"
-                    variant="outlined"
                     density="comfortable"
                     :rules="[rules.required]"
                     :disabled="submitting"
                     counter="100"
                     maxlength="100"
                     hide-details="auto"
+                    class="app-input"
                   />
                 </v-col>
 
                 <!-- Category -->
                 <v-col cols="12">
+                  <label class="app-input-label" for="product-form-category">Categoría *</label>
                   <v-select
+                    id="product-form-category"
                     v-model="form.category_id"
                     :items="categories"
                     item-title="name"
                     item-value="id"
-                    label="Categoría *"
                     prepend-inner-icon="mdi-tag"
-                    variant="outlined"
                     density="comfortable"
                     :rules="[rules.required]"
                     :disabled="submitting"
                     hide-details="auto"
+                    class="app-input"
                   >
                     <template #item="{ props, item }">
                       <v-list-item v-bind="props">
@@ -89,17 +91,18 @@
 
                 <!-- Metadata (optional JSON) -->
                 <v-col cols="12">
+                  <label class="app-input-label" for="product-form-metadata">Metadata (JSON opcional)</label>
                   <v-textarea
+                    id="product-form-metadata"
                     v-model="metadataText"
-                    label="Metadata (JSON opcional)"
                     prepend-inner-icon="mdi-code-json"
-                    variant="outlined"
                     density="comfortable"
                     :disabled="submitting"
                     :rules="[rules.validJson]"
                     rows="4"
                     hide-details="auto"
                     placeholder='{"key": "value"}'
+                    class="app-input"
                   />
                   <p class="text-caption text-medium-emphasis mt-2">
                     Información adicional en formato JSON. Ejemplo: {"color": "rojo", "marca": "Acme"}

@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <div class="view-shell">
       <!-- Error Alert -->
       <v-alert
         v-if="error"
@@ -677,12 +677,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shell {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
 .left-col {
   min-width: 0;
   padding-right: 24px;
@@ -703,11 +697,6 @@ onMounted(async () => {
   .right-col {
     display: none;
   }
-}
-
-/* Estilos para los botones redondeados en los diálogos de confirmación */
-.btn-rounded {
-  border-radius: 24px;
 }
 
 /* Estilos para el card de los diálogos de confirmación */

@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <div class="view-shell">
       <!-- Header -->
       <div class="d-flex align-center justify-space-between mb-6">
         <div>
@@ -44,35 +44,38 @@
         <v-card-text class="pa-4">
           <v-row>
             <v-col cols="12" md="4">
+              <label class="app-input-label" for="history-sort">Ordenar por</label>
               <v-select
+                id="history-sort"
                 v-model="filters.sort_by"
                 :items="sortOptions"
-                label="Ordenar por"
-                variant="outlined"
                 density="comfortable"
                 hide-details
+                class="app-input"
                 @update:model-value="fetchPurchases"
               />
             </v-col>
             <v-col cols="12" md="4">
+              <label class="app-input-label" for="history-order">Orden</label>
               <v-select
+                id="history-order"
                 v-model="filters.order"
                 :items="orderOptions"
-                label="Orden"
-                variant="outlined"
                 density="comfortable"
                 hide-details
+                class="app-input"
                 @update:model-value="fetchPurchases"
               />
             </v-col>
             <v-col cols="12" md="4">
+              <label class="app-input-label" for="history-per-page">Resultados por página</label>
               <v-select
+                id="history-per-page"
                 v-model="filters.per_page"
                 :items="perPageOptions"
-                label="Resultados por página"
-                variant="outlined"
                 density="comfortable"
                 hide-details
+                class="app-input"
                 @update:model-value="onPerPageChange"
               />
             </v-col>
@@ -99,7 +102,7 @@
         <p class="text-body-2 text-medium-emphasis mb-4">
           Las compras que realices aparecerán aquí
         </p>
-        <v-btn color="primary" to="/lists" class="btn-pill">
+  <v-btn color="primary" to="/lists" class="btn-pill text-body-2 font-weight-medium">
           Ir a mis listas
         </v-btn>
       </div>
@@ -141,7 +144,7 @@
                     <v-btn
                       color="primary"
                       variant="outlined"
-                      class="btn-pill mr-2"
+                      class="btn-pill text-body-2 font-weight-medium mr-2"
                       prepend-icon="mdi-eye"
                       @click="viewPurchaseDetails(purchase)"
                     >
@@ -150,7 +153,7 @@
                     <v-btn
                       color="primary"
                       variant="flat"
-                      class="btn-pill"
+                      class="btn-pill text-body-2 font-weight-medium"
                       prepend-icon="mdi-restore"
                       :loading="restoringId === purchase.id"
                       @click="confirmRestore(purchase)"
@@ -511,20 +514,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.shell {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
-.btn-pill {
-  border-radius: 24px !important;
-}
-
-.btn-rounded {
-  border-radius: 8px !important;
-}
-
 .card {
   border-radius: 12px;
 }

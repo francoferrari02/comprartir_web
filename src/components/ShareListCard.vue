@@ -7,15 +7,16 @@
     <v-card-text>
       <!-- Share by email -->
       <div class="mb-4">
+        <label class="app-input-label" for="share-email">Email del usuario</label>
         <v-text-field
+          id="share-email"
           v-model="email"
           prepend-inner-icon="mdi-email"
-          label="Email del usuario"
-          variant="outlined"
           density="comfortable"
           hide-details="auto"
           clearable
           :error-messages="emailError"
+          class="app-input"
           @keyup.enter="shareWithUser"
         />
         <v-btn
@@ -140,20 +141,11 @@ function copyLink() {
 </script>
 
 <style scoped>
-/* Botones redondeados */
-.btn-rounded {
-  border-radius: 999px !important;
-  text-transform: none;
-  font-weight: 500;
-}
-
 /* Botones de icono redondeados */
 .icon-btn-rounded {
   border-radius: 50% !important;
 }
 
 /* Campos de texto con bordes más redondeados */
-:deep(.v-field) {
-  border-radius: 12px !important;
-}
+
 </style>

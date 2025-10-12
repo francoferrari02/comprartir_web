@@ -39,6 +39,41 @@ const vuetify = createVuetify({
             },
         },
     },
+    defaults: {
+        VTextField: {
+            variant: 'solo',
+            density: 'comfortable',
+            class: 'app-input',
+        },
+        VTextarea: {
+            variant: 'solo',
+            class: 'app-input',
+        },
+        VSelect: {
+            variant: 'solo',
+            density: 'comfortable',
+            class: 'app-input',
+        },
+        VAutocomplete: {
+            variant: 'solo',
+            density: 'comfortable',
+            class: 'app-input',
+        },
+        VCombobox: {
+            variant: 'solo',
+            density: 'comfortable',
+            class: 'app-input',
+        },
+        VFileInput: {
+            variant: 'solo',
+            density: 'comfortable',
+            class: 'app-input',
+        },
+        VBtn: {
+            class: 'text-body-2 font-weight-medium',
+            style: 'text-transform: none;',
+        },
+    },
 })
 
 const app = createApp(App)

@@ -1,7 +1,7 @@
 <template>
   <div class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4">
-      <h2 class="text-h5 font-weight-bold">Todas las listas</h2>
+      <h2 class="text-h5 font-weight-bold">Listas</h2>
     </div>
     
     <div class="d-flex align-center ga-3 flex-nowrap">
@@ -28,10 +28,10 @@
       
       <!-- Botón nueva lista -->
       <v-btn
-        color="success"
-        variant="elevated"
+        color="primary"
+        variant="flat"
         prepend-icon="mdi-plus"
-        class="btn-rounded new-list-btn"
+        class="btn-rounded new-list-btn text-body-2 font-weight-medium"
         @click="$emit('new-list')"
       >
         Nueva lista
@@ -65,21 +65,21 @@ defineEmits(['update:modelValue', 'new-list'])
   position: relative;
   display: flex;
   align-items: center;
-  background-color: #fff;
-  border: 1px solid #E5E7EB;
-  border-radius: 50px;
-  padding: 0 16px;
-  height: 44px;
-  transition: all 0.2s ease;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius);
+  padding: 0 var(--input-padding-x);
+  height: var(--input-height);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .search-input-wrapper:focus-within {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(77, 168, 81, 0.1);
+  box-shadow: 0 0 0 3px var(--input-shadow-focus);
 }
 
 .search-icon {
-  color: #9CA3AF;
+  color: var(--input-placeholder);
   margin-right: 8px;
   font-size: 20px;
   flex-shrink: 0;
@@ -91,17 +91,17 @@ defineEmits(['update:modelValue', 'new-list'])
   border: none;
   outline: none;
   background: transparent;
-  font-size: 14px;
-  color: #374151;
+  font: inherit;
+  color: var(--text);
   padding: 0;
 }
 
 .search-input::placeholder {
-  color: #9CA3AF;
+  color: var(--input-placeholder);
 }
 
 .clear-icon {
-  color: #9CA3AF;
+  color: var(--input-placeholder);
   margin-left: 8px;
   font-size: 18px;
   cursor: pointer;
@@ -110,7 +110,7 @@ defineEmits(['update:modelValue', 'new-list'])
 }
 
 .clear-icon:hover {
-  color: #6B7280;
+  color: var(--muted);
 }
 
 .new-list-btn {
@@ -118,17 +118,6 @@ defineEmits(['update:modelValue', 'new-list'])
   height: 44px;
   padding: 0 24px !important;
   white-space: nowrap;
-}
-
-/* Botón verde con hover más oscuro */
-.new-list-btn.v-btn--has-bg {
-  background-color: var(--brand) !important;
-  color: #fff !important;
-}
-
-.new-list-btn:hover,
-.new-list-btn:focus-visible {
-  background-color: var(--brand-700) !important;
 }
 
 @media (max-width: 768px) {

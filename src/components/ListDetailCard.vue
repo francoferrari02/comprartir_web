@@ -48,13 +48,14 @@
         </div>
 
         <!-- Edit name mode -->
-        <div v-if="editingName">
+        <div v-if="editingName" class="mt-3">
+          <label class="app-input-label" :for="`list-edit-name-${list?.id ?? 'current'}`">Nombre de la lista</label>
           <v-text-field
+            :id="`list-edit-name-${list?.id ?? 'current'}`"
             v-model="editName"
-            label="Nombre de la lista"
-            variant="outlined"
             density="comfortable"
             hide-details
+            class="app-input"
             autofocus
             @keyup.enter="saveName"
             @keyup.esc="cancelEditName"
@@ -90,13 +91,14 @@
 
         <!-- Edit description mode -->
         <div v-if="editingDescription" class="mt-2">
+          <label class="app-input-label" :for="`list-edit-description-${list?.id ?? 'current'}`">Descripción de la lista</label>
           <v-textarea
+            :id="`list-edit-description-${list?.id ?? 'current'}`"
             v-model="editDescription"
-            label="Descripción de la lista"
-            variant="outlined"
             density="comfortable"
             rows="2"
             hide-details
+            class="app-input"
             autofocus
             @keyup.esc="cancelEditDescription"
           >
@@ -297,51 +299,59 @@
         <v-divider />
         <v-card-text class="pa-4">
           <!-- Nombre del producto (solo lectura) -->
-          <v-text-field
-            :model-value="detailsDialog.productName"
-            label="Producto"
-            variant="outlined"
-            density="comfortable"
-            readonly
-            prepend-inner-icon="mdi-package-variant"
-            class="mb-3"
-          />
+          <div class="mb-3">
+            <label class="app-input-label" for="details-product-name">Producto</label>
+            <v-text-field
+              id="details-product-name"
+              :model-value="detailsDialog.productName"
+              density="comfortable"
+              readonly
+              prepend-inner-icon="mdi-package-variant"
+              class="app-input"
+            />
+          </div>
 
           <!-- Cantidad -->
-          <v-text-field
-            v-model.number="detailsDialog.form.quantity"
-            label="Cantidad"
-            type="number"
-            variant="outlined"
-            density="comfortable"
-            prepend-inner-icon="mdi-counter"
-            min="0.01"
-            step="0.01"
-            class="mb-3"
-          />
+          <div class="mb-3">
+            <label class="app-input-label" for="details-quantity">Cantidad</label>
+            <v-text-field
+              id="details-quantity"
+              v-model.number="detailsDialog.form.quantity"
+              type="number"
+              density="comfortable"
+              prepend-inner-icon="mdi-counter"
+              min="0.01"
+              step="0.01"
+              class="app-input"
+            />
+          </div>
 
           <!-- Unidad -->
-          <v-select
-            v-model="detailsDialog.form.unit"
-            :items="unitOptions"
-            label="Unidad"
-            variant="outlined"
-            density="comfortable"
-            prepend-inner-icon="mdi-scale-balance"
-            class="mb-3"
-          />
+          <div class="mb-3">
+            <label class="app-input-label" for="details-unit">Unidad</label>
+            <v-select
+              id="details-unit"
+              v-model="detailsDialog.form.unit"
+              :items="unitOptions"
+              density="comfortable"
+              prepend-inner-icon="mdi-scale-balance"
+              class="app-input"
+            />
+          </div>
 
           <!-- Descripción/Notas (metadata) -->
-          <v-textarea
-            v-model="detailsDialog.form.description"
-            label="Notas o descripción (opcional)"
-            variant="outlined"
-            density="comfortable"
-            rows="3"
-            prepend-inner-icon="mdi-text"
-            placeholder="Ej: Marca específica, variedad, recordatorios..."
-            class="mb-3"
-          />
+          <div class="mb-3">
+            <label class="app-input-label" for="details-description">Notas o descripción (opcional)</label>
+            <v-textarea
+              id="details-description"
+              v-model="detailsDialog.form.description"
+              density="comfortable"
+              rows="3"
+              prepend-inner-icon="mdi-text"
+              placeholder="Ej: Marca específica, variedad, recordatorios..."
+              class="app-input"
+            />
+          </div>
 
           <!-- Estado de compra -->
           <v-switch
@@ -625,13 +635,6 @@ defineExpose({
   gap: 8px;
 }
 
-/* Botones redondeados tipo píldora */
-.btn-rounded {
-  border-radius: 999px !important;
-  text-transform: none;
-  font-weight: 500;
-}
-
 /* Botones de icono redondeados */
 .icon-btn-rounded {
   border-radius: 50% !important;
@@ -644,11 +647,6 @@ defineExpose({
 
 /* Menú con bordes redondeados */
 :deep(.menu-rounded) {
-  border-radius: 12px !important;
-}
-
-/* Campos de texto con bordes más redondeados */
-:deep(.v-field) {
   border-radius: 12px !important;
 }
 

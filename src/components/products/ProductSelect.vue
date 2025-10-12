@@ -1,41 +1,46 @@
 <template>
-  <v-autocomplete
-    :model-value="modelValue"
-    :items="products"
-    :loading="loading"
-    :label="label"
-    :placeholder="placeholder"
-    :autofocus="autofocus"
-    item-title="name"
-    item-value="id"
-    clearable
-    no-filter
-    @update:model-value="handleSelect"
-    @update:search="handleSearch"
-  >
-    <template #no-data>
-      <v-list-item>
-        <v-list-item-title>
-          {{ searchQuery ? 'No se encontraron productos' : 'Escribí para buscar productos' }}
-        </v-list-item-title>
-      </v-list-item>
-    </template>
+  <div>
+    <label class="app-input-label" :for="fieldId">{{ label }}</label>
+    <v-autocomplete
+      :id="fieldId"
+      :model-value="modelValue"
+      :items="products"
+      :loading="loading"
+      :placeholder="placeholder"
+      :autofocus="autofocus"
+      item-title="name"
+      item-value="id"
+      clearable
+      no-filter
+      class="app-input"
+      :aria-label="label"
+      @update:model-value="handleSelect"
+      @update:search="handleSearch"
+    >
+      <template #no-data>
+        <v-list-item>
+          <v-list-item-title>
+            {{ searchQuery ? 'No se encontraron productos' : 'Escribí para buscar productos' }}
+          </v-list-item-title>
+        </v-list-item>
+      </template>
 
-    <template #item="{ props: itemProps, item }">
-      <v-list-item v-bind="itemProps">
-        <template #title>
-          <span class="font-weight-medium">{{ item.raw.name }}</span>
-        </template>
-        <template #subtitle v-if="item.raw.category">
-          <span class="text-caption">{{ item.raw.category.name }}</span>
-        </template>
-      </v-list-item>
-    </template>
-  </v-autocomplete>
+      <template #item="{ props: itemProps, item }">
+        <v-list-item v-bind="itemProps">
+          <template #title>
+            <span class="font-weight-medium">{{ item.raw.name }}</span>
+          </template>
+          <template #subtitle v-if="item.raw.category">
+            <span class="text-caption">{{ item.raw.category.name }}</span>
+          </template>
+        </v-list-item>
+      </template>
+    </v-autocomplete>
+  </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { getProducts } from '@/services/products.service'
 
 const props = defineProps({
@@ -58,6 +63,10 @@ const props = defineProps({
   autofocus: {
     type: Boolean,
     default: false
+  },
+  inputId: {
+    type: String,
+    default: null
   }
 })
 
@@ -67,6 +76,8 @@ const products = ref([])
 const loading = ref(false)
 const searchQuery = ref('')
 let searchTimeout = null
+const generatedId = `product-select-${Math.random().toString(36).slice(2, 10)}`
+const fieldId = computed(() => props.inputId || generatedId)
 
 async function fetchProducts(search = '') {
   loading.value = true

@@ -31,30 +31,36 @@
 
         <!-- Form -->
         <v-form v-else ref="formRef" @submit.prevent="submitForm">
-          <v-text-field
-            v-model="form.name"
-            label="Nombre de la categoría *"
-            placeholder="Ej: Supermercado, Farmacia, etc."
-            variant="outlined"
-            :rules="nameRules"
-            :error-messages="errors.name"
-            prepend-inner-icon="mdi-tag"
-            required
-            autofocus
-            @input="errors.name = ''"
-          />
+          <div class="mb-4">
+            <label class="app-input-label" for="edit-category-name">Nombre de la categoría *</label>
+            <v-text-field
+              id="edit-category-name"
+              v-model="form.name"
+              placeholder="Ej: Supermercado, Farmacia, etc."
+              :rules="nameRules"
+              :error-messages="errors.name"
+              prepend-inner-icon="mdi-tag"
+              required
+              autofocus
+              class="app-input"
+              @input="errors.name = ''"
+            />
+          </div>
 
-          <v-textarea
-            v-model="metadataText"
-            label="Metadata (JSON opcional)"
-            placeholder='{"color": "blue", "icon": "cart"}'
-            variant="outlined"
-            rows="4"
-            :error-messages="errors.metadata"
-            hint="Ingrese un objeto JSON válido o déjelo vacío"
-            persistent-hint
-            @input="errors.metadata = ''"
-          />
+          <div>
+            <label class="app-input-label" for="edit-category-metadata">Metadata (JSON opcional)</label>
+            <v-textarea
+              id="edit-category-metadata"
+              v-model="metadataText"
+              placeholder='{"color": "blue", "icon": "cart"}'
+              rows="4"
+              :error-messages="errors.metadata"
+              hint="Ingrese un objeto JSON válido o déjelo vacío"
+              persistent-hint
+              class="app-input"
+              @input="errors.metadata = ''"
+            />
+          </div>
 
           <!-- Category Info -->
           <v-alert
@@ -255,7 +261,4 @@ watch(() => props.modelValue, (newVal) => {
 </script>
 
 <style scoped>
-:deep(.v-field__input) {
-  font-family: monospace;
-}
 </style>

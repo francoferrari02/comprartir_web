@@ -38,21 +38,23 @@
       >{{ successMsg }}</v-alert>
 
       <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
-        <v-text-field
-            v-model="email"
-            label="Email"
-            type="email"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.email]"
-            autocomplete="email"
-            hide-details="auto"
-            class="mb-5"
-            :disabled="loading || emailSent"
-            prepend-inner-icon="mdi-email-outline"
-            autofocus
-            @keyup.enter="onSubmit"
-        />
+        <div class="mb-5">
+          <label class="app-input-label" for="forgot-email">Email</label>
+          <v-text-field
+              id="forgot-email"
+              v-model="email"
+              type="email"
+              density="comfortable"
+              :rules="[rules.required, rules.email]"
+              autocomplete="email"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading || emailSent"
+              prepend-inner-icon="mdi-email-outline"
+              autofocus
+              @keyup.enter="onSubmit"
+          />
+        </div>
 
         <v-btn
             v-if="!emailSent"

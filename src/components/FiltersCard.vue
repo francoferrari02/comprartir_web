@@ -4,16 +4,15 @@
     
     <!-- Selector de ordenamiento -->
     <div class="mb-3">
-      <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
-        Ordenar por:
-      </v-label>
+      <label class="app-input-label" for="filters-card-sort">Ordenar por:</label>
       <v-select
+        id="filters-card-sort"
         :model-value="sortBy"
         @update:model-value="$emit('update:sortBy', $event); $emit('update')"
         :items="sortOptions"
-        variant="outlined"
         density="compact"
         hide-details
+        class="app-input"
       />
     </div>
 
@@ -41,35 +40,33 @@
 
     <!-- Filtro de recurrencia -->
     <div class="mb-3">
-      <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
-        Tipo de lista:
-      </v-label>
+      <label class="app-input-label" for="filters-card-recurring">Tipo de lista:</label>
       <v-select
+        id="filters-card-recurring"
         :model-value="recurring"
         @update:model-value="$emit('update:recurring', $event); $emit('update')"
         :items="recurringOptions"
-        variant="outlined"
         density="compact"
         hide-details
+        class="app-input"
       />
     </div>
 
     <!-- Selector de etiquetas (si hay disponibles) -->
     <div v-if="availableTags && availableTags.length > 0">
-      <v-label class="text-subtitle-2 font-weight-medium mb-2 d-block">
-        Filtrar por etiquetas:
-      </v-label>
+      <label class="app-input-label" for="filters-card-tags">Filtrar por etiquetas:</label>
       <v-combobox
+        id="filters-card-tags"
         :model-value="selectedTags"
         @update:model-value="$emit('update:selectedTags', $event); $emit('update')"
         :items="availableTags"
-        variant="outlined"
         density="compact"
         multiple
         chips
         closable-chips
         hide-details
         placeholder="Seleccionar etiquetas..."
+        class="app-input"
       >
         <template #chip="{ props, item }">
           <v-chip
@@ -129,11 +126,6 @@ const recurringOptions = [
 </script>
 
 <style scoped>
-/* Campos de texto con bordes más redondeados */
-:deep(.v-field) {
-  border-radius: 12px !important;
-}
-
 /* Chips redondeados */
 .chip-rounded {
   border-radius: 999px !important;

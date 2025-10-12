@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <!-- Pantalla de bienvenida para usuarios no autenticados -->
-    <div v-if="!isAuthenticated" class="shell">
+  <div v-if="!isAuthenticated" class="view-shell">
       <v-row justify="center">
         <v-col cols="12" md="8" lg="6">
           <v-card class="card pa-8 text-center">
@@ -36,7 +36,7 @@
     </div>
 
     <!-- Dashboard para usuarios autenticados -->
-    <div v-if="isAuthenticated" class="shell">
+  <div v-if="isAuthenticated" class="view-shell">
       <v-row>
         <!-- COLUMNA IZQUIERDA (principal) -->
         <v-col cols="12" md="8" class="left-col">
@@ -78,22 +78,28 @@
             Nueva Lista de Compras
           </v-card-title>
           <v-card-text class="pa-4">
-            <v-text-field
-                v-model="newList.name"
-                label="Nombre de la lista"
-                variant="outlined"
-                density="comfortable"
-                :error-messages="newListErrors.name"
-                autofocus
-                @keyup.enter="createList"
-            />
-            <v-textarea
-                v-model="newList.description"
-                label="Descripción (opcional)"
-                variant="outlined"
-                density="comfortable"
-                rows="3"
-            />
+            <div class="mb-3">
+              <label class="app-input-label" for="home-new-list-name">Nombre de la lista</label>
+              <v-text-field
+                  id="home-new-list-name"
+                  v-model="newList.name"
+                  density="comfortable"
+                  :error-messages="newListErrors.name"
+                  class="app-input"
+                  autofocus
+                  @keyup.enter="createList"
+              />
+            </div>
+            <div class="mb-4">
+              <label class="app-input-label" for="home-new-list-description">Descripción (opcional)</label>
+              <v-textarea
+                  id="home-new-list-description"
+                  v-model="newList.description"
+                  density="comfortable"
+                  rows="3"
+                  class="app-input"
+              />
+            </div>
             <v-checkbox
                 v-model="newList.recurring"
                 label="Lista recurrente"
@@ -267,7 +273,6 @@ function showSnackbar(message, color = 'success') {
 </script>
 
 <style scoped>
-.shell { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 .left-col { min-width: 0; padding-right: 24px; }
 .right-col { min-width: 280px; }
 .hero-card { overflow: visible; }

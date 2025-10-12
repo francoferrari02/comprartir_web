@@ -22,51 +22,55 @@
       <v-card-text>
         <v-row>
           <v-col cols="12" md="4">
+            <label class="app-input-label" for="products-filter-name">Buscar por nombre</label>
             <v-text-field
+              id="products-filter-name"
               v-model="filters.name"
-              label="Buscar por nombre"
               prepend-inner-icon="mdi-magnify"
-              variant="outlined"
               density="comfortable"
               clearable
               hide-details
+              class="app-input"
               @update:model-value="debouncedSearch"
             />
           </v-col>
           <v-col cols="12" md="3">
+            <label class="app-input-label" for="products-filter-category">Categoría</label>
             <v-select
+              id="products-filter-category"
               v-model="filters.category_id"
               :items="categoryOptions"
               item-title="name"
               item-value="id"
-              label="Categoría"
               prepend-inner-icon="mdi-tag"
-              variant="outlined"
               density="comfortable"
               clearable
               hide-details
+              class="app-input"
               @update:model-value="applyFilters"
             />
           </v-col>
           <v-col cols="12" md="2">
+            <label class="app-input-label" for="products-filter-sort">Ordenar por</label>
             <v-select
+              id="products-filter-sort"
               v-model="filters.sort_by"
               :items="sortOptions"
-              label="Ordenar por"
-              variant="outlined"
               density="comfortable"
               hide-details
+              class="app-input"
               @update:model-value="applyFilters"
             />
           </v-col>
           <v-col cols="12" md="2">
+            <label class="app-input-label" for="products-filter-order">Orden</label>
             <v-select
+              id="products-filter-order"
               v-model="filters.order"
               :items="orderOptions"
-              label="Orden"
-              variant="outlined"
               density="comfortable"
               hide-details
+              class="app-input"
               @update:model-value="applyFilters"
             />
           </v-col>

@@ -20,30 +20,36 @@
 
       <v-card-text class="pt-6">
         <v-form ref="formRef" @submit.prevent="submitForm">
-          <v-text-field
-            v-model="form.name"
-            label="Nombre de la categoría *"
-            placeholder="Ej: Supermercado, Farmacia, etc."
-            variant="outlined"
-            :rules="nameRules"
-            :error-messages="errors.name"
-            prepend-inner-icon="mdi-tag"
-            required
-            autofocus
-            @input="errors.name = ''"
-          />
+          <div class="mb-4">
+            <label class="app-input-label" for="category-name-input">Nombre de la categoría *</label>
+            <v-text-field
+              id="category-name-input"
+              v-model="form.name"
+              placeholder="Ej: Supermercado, Farmacia, etc."
+              :rules="nameRules"
+              :error-messages="errors.name"
+              prepend-inner-icon="mdi-tag"
+              required
+              autofocus
+              class="app-input"
+              @input="errors.name = ''"
+            />
+          </div>
 
-          <v-textarea
-            v-model="metadataText"
-            label="Metadata (JSON opcional)"
-            placeholder='{"color": "blue", "icon": "cart"}'
-            variant="outlined"
-            rows="4"
-            :error-messages="errors.metadata"
-            hint="Ingrese un objeto JSON válido o déjelo vacío"
-            persistent-hint
-            @input="errors.metadata = ''"
-          />
+          <div>
+            <label class="app-input-label" for="category-metadata-input">Metadata (JSON opcional)</label>
+            <v-textarea
+              id="category-metadata-input"
+              v-model="metadataText"
+              placeholder='{"color": "blue", "icon": "cart"}'
+              rows="4"
+              :error-messages="errors.metadata"
+              hint="Ingrese un objeto JSON válido o déjelo vacío"
+              persistent-hint
+              class="app-input"
+              @input="errors.metadata = ''"
+            />
+          </div>
         </v-form>
       </v-card-text>
 
@@ -184,7 +190,4 @@ watch(() => props.modelValue, (newVal) => {
 </script>
 
 <style scoped>
-:deep(.v-field__input) {
-  font-family: monospace;
-}
 </style>

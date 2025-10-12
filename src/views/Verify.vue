@@ -50,31 +50,35 @@
       >{{ infoMsg }}</v-alert>
 
       <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
-        <v-text-field
-            v-model="email"
-            label="Email"
-            type="email"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.email]"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-email-outline"
-        />
+        <div class="mb-3">
+          <label class="app-input-label" for="verify-email">Email</label>
+          <v-text-field
+              id="verify-email"
+              v-model="email"
+              type="email"
+              density="comfortable"
+              :rules="[rules.required, rules.email]"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-email-outline"
+          />
+        </div>
 
-        <v-text-field
-            v-model="code"
-            label="Código de verificación"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required]"
-            hide-details="auto"
-            class="mb-5"
-            :disabled="loading"
-            prepend-inner-icon="mdi-key-outline"
-            autofocus
-        />
+        <div class="mb-5">
+          <label class="app-input-label" for="verify-code">Código de verificación</label>
+          <v-text-field
+              id="verify-code"
+              v-model="code"
+              density="comfortable"
+              :rules="[rules.required]"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-key-outline"
+              autofocus
+          />
+        </div>
 
         <v-btn
             type="submit"

@@ -41,34 +41,38 @@
       >{{ successMsg }}</v-alert>
 
       <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
-        <v-text-field
-            v-model="code"
-            label="Código de verificación"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required]"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-key-outline"
-            autofocus
-        />
-        
-        <v-text-field
-            v-model="password"
-            label="Nueva contraseña"
-            :type="showPassword ? 'text' : 'password'"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.password]"
-            autocomplete="new-password"
-            hide-details="auto"
-            class="mb-2"
-            :disabled="loading"
-            prepend-inner-icon="mdi-lock-outline"
-            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            @click:append-inner="showPassword = !showPassword"
-        />
+        <div class="mb-3">
+          <label class="app-input-label" for="reset-code">Código de verificación</label>
+          <v-text-field
+              id="reset-code"
+              v-model="code"
+              density="comfortable"
+              :rules="[rules.required]"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-key-outline"
+              autofocus
+          />
+        </div>
+
+        <div class="mb-2">
+          <label class="app-input-label" for="reset-password">Nueva contraseña</label>
+          <v-text-field
+              id="reset-password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              density="comfortable"
+              :rules="[rules.required, rules.password]"
+              autocomplete="new-password"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-lock-outline"
+              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showPassword = !showPassword"
+          />
+        </div>
 
         <!-- Live password feedback -->
         <div v-if="password" class="mb-3 px-1">
@@ -82,22 +86,24 @@
           </div>
         </div>
 
-        <v-text-field
-            v-model="confirmPassword"
-            label="Confirmar nueva contraseña"
-            :type="showConfirmPassword ? 'text' : 'password'"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.passwordMatch]"
-            autocomplete="new-password"
-            hide-details="auto"
-            class="mb-5"
-            :disabled="loading"
-            prepend-inner-icon="mdi-lock-outline"
-            :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            @click:append-inner="showConfirmPassword = !showConfirmPassword"
-            @keyup.enter="onSubmit"
-        />
+        <div class="mb-5">
+          <label class="app-input-label" for="reset-confirm-password">Confirmar nueva contraseña</label>
+          <v-text-field
+              id="reset-confirm-password"
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              density="comfortable"
+              :rules="[rules.required, rules.passwordMatch]"
+              autocomplete="new-password"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-lock-outline"
+              :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showConfirmPassword = !showConfirmPassword"
+              @keyup.enter="onSubmit"
+          />
+        </div>
 
         <v-btn
             type="submit"

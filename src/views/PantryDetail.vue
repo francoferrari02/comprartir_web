@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <div class="view-shell">
       <!-- Error Alert -->
       <v-alert
         v-if="error"
@@ -74,13 +74,14 @@
                 </div>
 
                 <!-- Edit name mode -->
-                <div v-if="editingName">
+                <div v-if="editingName" class="mt-3">
+                  <label class="app-input-label" :for="`pantry-edit-name-${pantry?.id ?? 'current'}`">Nombre de la despensa</label>
                   <v-text-field
+                    :id="`pantry-edit-name-${pantry?.id ?? 'current'}`"
                     v-model="editName"
-                    label="Nombre de la despensa"
-                    variant="outlined"
                     density="comfortable"
                     hide-details
+                    class="app-input"
                     autofocus
                     @keyup.enter="saveName"
                     @keyup.esc="cancelEditName"
@@ -122,39 +123,46 @@
 
             <!-- Buscador y filtros -->
             <div class="mb-4">
-              <v-text-field
-                v-model="searchQuery"
-                prepend-inner-icon="mdi-magnify"
-                label="Buscar productos..."
-                variant="outlined"
-                density="comfortable"
-                clearable
-                hide-details
-                class="mb-3"
-                @update:model-value="debouncedSearch"
-              />
+              <div class="mb-3">
+                <label class="app-input-label" for="pantry-search-products">Buscar productos</label>
+                <v-text-field
+                  id="pantry-search-products"
+                  v-model="searchQuery"
+                  prepend-inner-icon="mdi-magnify"
+                  density="comfortable"
+                  clearable
+                  hide-details
+                  class="app-input"
+                  placeholder="Buscar productos..."
+                  @update:model-value="debouncedSearch"
+                />
+              </div>
 
               <div class="d-flex gap-2">
-                <v-select
-                  v-model="itemsFilters.sort_by"
-                  :items="sortOptions"
-                  label="Ordenar por"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  style="flex: 1;"
-                  @update:model-value="fetchItems"
-                />
-                <v-select
-                  v-model="itemsFilters.order"
-                  :items="orderOptions"
-                  label="Dirección"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  style="flex: 1;"
-                  @update:model-value="fetchItems"
-                />
+                <div style="flex: 1;">
+                  <label class="app-input-label" for="pantry-sort-by">Ordenar por</label>
+                  <v-select
+                    id="pantry-sort-by"
+                    v-model="itemsFilters.sort_by"
+                    :items="sortOptions"
+                    density="compact"
+                    hide-details
+                    class="app-input"
+                    @update:model-value="fetchItems"
+                  />
+                </div>
+                <div style="flex: 1;">
+                  <label class="app-input-label" for="pantry-order">Dirección</label>
+                  <v-select
+                    id="pantry-order"
+                    v-model="itemsFilters.order"
+                    :items="orderOptions"
+                    density="compact"
+                    hide-details
+                    class="app-input"
+                    @update:model-value="fetchItems"
+                  />
+                </div>
               </div>
             </div>
 
@@ -238,25 +246,27 @@
               <!-- Quantity and unit -->
               <v-row dense class="mb-3">
                 <v-col cols="6">
+                  <label class="app-input-label" for="pantry-item-quantity">Cantidad</label>
                   <v-text-field
+                    id="pantry-item-quantity"
                     v-model.number="newItem.quantity"
-                    label="Cantidad"
                     type="number"
-                    variant="outlined"
                     density="comfortable"
                     hide-details
                     min="0.01"
                     step="0.01"
+                    class="app-input"
                   />
                 </v-col>
                 <v-col cols="6">
+                  <label class="app-input-label" for="pantry-item-unit">Unidad</label>
                   <v-select
+                    id="pantry-item-unit"
                     v-model="newItem.unit"
                     :items="unitOptions"
-                    label="Unidad"
-                    variant="outlined"
                     density="comfortable"
                     hide-details
+                    class="app-input"
                   />
                 </v-col>
               </v-row>
@@ -264,7 +274,7 @@
               <v-btn
                 color="primary"
                 block
-                class="btn-pill"
+                class="btn-pill text-body-2 font-weight-medium"
                 prepend-icon="mdi-plus"
                 :loading="addingItem"
                 :disabled="!selectedProductId"
@@ -283,19 +293,22 @@
             </v-card-title>
             <v-divider />
             <v-card-text class="pa-4">
-              <v-text-field
-                v-model="shareEmail"
-                label="Email del usuario"
-                variant="outlined"
-                density="comfortable"
-                type="email"
-                hide-details
-                @keyup.enter="sharePantry"
-              />
+              <div>
+                <label class="app-input-label" for="pantry-share-email">Email del usuario</label>
+                <v-text-field
+                  id="pantry-share-email"
+                  v-model="shareEmail"
+                  density="comfortable"
+                  type="email"
+                  hide-details
+                  class="app-input"
+                  @keyup.enter="sharePantry"
+                />
+              </div>
               <v-btn
                 color="primary"
                 block
-                class="mt-3 btn-pill"
+                class="mt-3 btn-pill text-body-2 font-weight-medium"
                 prepend-icon="mdi-send"
                 :loading="sharingLoading"
                 @click="sharePantry"
@@ -343,7 +356,7 @@
                 color="error"
                 variant="outlined"
                 block
-                class="btn-pill"
+                class="btn-pill text-body-2 font-weight-medium"
                 prepend-icon="mdi-delete"
                 @click="confirmDeletePantry"
               >
@@ -361,34 +374,38 @@
             Editar Producto
           </v-card-title>
           <v-card-text class="pa-4">
-            <v-text-field
-              v-model="editItemDialog.form.productName"
-              label="Nombre del producto"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-              class="mb-3"
-              disabled
-            />
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-item-name">Nombre del producto</label>
+              <v-text-field
+                id="edit-item-name"
+                v-model="editItemDialog.form.productName"
+                density="comfortable"
+                hide-details
+                class="app-input"
+                disabled
+              />
+            </div>
             <v-row dense>
               <v-col cols="6">
+                <label class="app-input-label" for="edit-item-quantity">Cantidad</label>
                 <v-text-field
+                  id="edit-item-quantity"
                   v-model.number="editItemDialog.form.quantity"
-                  label="Cantidad"
                   type="number"
-                  variant="outlined"
                   density="comfortable"
                   hide-details
+                  class="app-input"
                 />
               </v-col>
               <v-col cols="6">
+                <label class="app-input-label" for="edit-item-unit">Unidad</label>
                 <v-select
+                  id="edit-item-unit"
                   v-model="editItemDialog.form.unit"
                   :items="unitOptions"
-                  label="Unidad"
-                  variant="outlined"
                   density="comfortable"
                   hide-details
+                  class="app-input"
                 />
               </v-col>
             </v-row>
@@ -905,12 +922,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shell {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
 .left-col {
   min-width: 0;
   padding-right: 24px;
@@ -929,14 +940,6 @@ onMounted(async () => {
 
 .icon-btn-rounded {
   border-radius: 50%;
-}
-
-.btn-pill {
-  border-radius: 24px !important;
-}
-
-.btn-rounded {
-  border-radius: 8px !important;
 }
 
 /* Products list styling handled by component */

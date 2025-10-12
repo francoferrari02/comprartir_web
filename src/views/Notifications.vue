@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <div class="view-shell">
       <!-- Header -->
       <div class="d-flex align-center justify-space-between mb-6">
         <div>
@@ -329,12 +329,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.shell {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
 .card {
   border-radius: 12px;
   overflow: hidden;

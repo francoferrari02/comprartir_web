@@ -34,75 +34,85 @@
       >{{ successMsg }}</v-alert>
 
       <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
-        <v-text-field
-            v-model="firstName"
-            label="Nombre"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.maxLength(50)]"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-account-outline"
-        />
-        
-        <v-text-field
-            v-model="lastName"
-            label="Apellido"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.maxLength(50)]"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-account-outline"
-        />
-        
-        <v-text-field
-            v-model="email"
-            label="Email"
-            type="email"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.email]"
-            autocomplete="email"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-email-outline"
-        />
-        
-        <v-text-field
-            v-model="password"
-            label="Contraseña"
-            :type="showPassword ? 'text' : 'password'"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.password]"
-            autocomplete="new-password"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-lock-outline"
-            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            @click:append-inner="showPassword = !showPassword"
-        />
-        
-        <v-text-field
-            v-model="confirmPassword"
-            label="Confirmar contraseña"
-            :type="showConfirmPassword ? 'text' : 'password'"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.passwordMatch]"
-            autocomplete="new-password"
-            hide-details="auto"
-            class="mb-5"
-            :disabled="loading"
-            prepend-inner-icon="mdi-lock-outline"
-            :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            @click:append-inner="showConfirmPassword = !showConfirmPassword"
-        />
+        <div class="mb-3">
+          <label class="app-input-label" for="register-first-name">Nombre</label>
+          <v-text-field
+              id="register-first-name"
+              v-model="firstName"
+              density="comfortable"
+              :rules="[rules.required, rules.maxLength(50)]"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-account-outline"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="app-input-label" for="register-last-name">Apellido</label>
+          <v-text-field
+              id="register-last-name"
+              v-model="lastName"
+              density="comfortable"
+              :rules="[rules.required, rules.maxLength(50)]"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-account-outline"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="app-input-label" for="register-email">Email</label>
+          <v-text-field
+              id="register-email"
+              v-model="email"
+              type="email"
+              density="comfortable"
+              :rules="[rules.required, rules.email]"
+              autocomplete="email"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-email-outline"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="app-input-label" for="register-password">Contraseña</label>
+          <v-text-field
+              id="register-password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              density="comfortable"
+              :rules="[rules.required, rules.password]"
+              autocomplete="new-password"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-lock-outline"
+              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showPassword = !showPassword"
+          />
+        </div>
+
+        <div class="mb-5">
+          <label class="app-input-label" for="register-confirm-password">Confirmar contraseña</label>
+          <v-text-field
+              id="register-confirm-password"
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              density="comfortable"
+              :rules="[rules.required, rules.passwordMatch]"
+              autocomplete="new-password"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-lock-outline"
+              :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showConfirmPassword = !showConfirmPassword"
+          />
+        </div>
 
         <v-btn
             type="submit"

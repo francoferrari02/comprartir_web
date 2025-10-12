@@ -304,7 +304,7 @@ onMounted(() => {
 pre {
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: 'Courier New', monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 </style>
 

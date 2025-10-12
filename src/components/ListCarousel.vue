@@ -194,10 +194,6 @@ function openList(list) {
   border: 1px solid rgba(77,168,81,.20) !important;
 }
 
-.tag-chip {
-  font-size: 0.7rem !important;
-}
-
 /* Scrollbar a tono con la paleta */
 .hs::-webkit-scrollbar { 
   height: 8px; 

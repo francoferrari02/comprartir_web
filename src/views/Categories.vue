@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <div class="view-shell">
       <!-- Header -->
       <div class="d-flex justify-space-between align-center mb-6">
         <div>
@@ -23,36 +23,45 @@
       <v-card class="mb-6 pa-4" elevation="2">
         <v-row>
           <v-col cols="12" md="4">
-            <v-text-field
-              v-model="localFilters.name"
-              label="Buscar por nombre"
-              prepend-inner-icon="mdi-magnify"
-              variant="outlined"
-              density="comfortable"
-              clearable
-              hide-details
-              @keyup.enter="applyFilters"
-            />
+            <div class="mb-4">
+              <label class="app-input-label" for="categories-filter-name">Buscar por nombre</label>
+              <v-text-field
+                id="categories-filter-name"
+                v-model="localFilters.name"
+                prepend-inner-icon="mdi-magnify"
+                density="comfortable"
+                clearable
+                hide-details
+                class="app-input"
+                @keyup.enter="applyFilters"
+              />
+            </div>
           </v-col>
           <v-col cols="12" md="3">
-            <v-select
-              v-model="localFilters.sortBy"
-              label="Ordenar por"
-              :items="sortByOptions"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
+            <div class="mb-4">
+              <label class="app-input-label" for="categories-filter-sort">Ordenar por</label>
+              <v-select
+                id="categories-filter-sort"
+                v-model="localFilters.sortBy"
+                :items="sortByOptions"
+                density="comfortable"
+                hide-details
+                class="app-input"
+              />
+            </div>
           </v-col>
           <v-col cols="12" md="3">
-            <v-select
-              v-model="localFilters.order"
-              label="Orden"
-              :items="orderOptions"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
+            <div class="mb-4">
+              <label class="app-input-label" for="categories-filter-order">Orden</label>
+              <v-select
+                id="categories-filter-order"
+                v-model="localFilters.order"
+                :items="orderOptions"
+                density="comfortable"
+                hide-details
+                class="app-input"
+              />
+            </div>
           </v-col>
           <v-col cols="12" md="2" class="d-flex align-center ga-2">
             <v-btn
@@ -394,12 +403,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shell {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
 .category-row {
   cursor: pointer;
   transition: background-color 0.2s;

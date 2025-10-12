@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
-    <div class="shell">
+    <div class="view-shell">
       <!-- Error Alert -->
       <v-alert
         v-if="error"
@@ -42,16 +42,16 @@
             />
 
             <!-- Filtros integrados -->
-            <div class="filters-section pa-4 bg-grey-lighten-4">
+            <div class="filters-section pa-4">
               <div class="d-flex align-center justify-space-between mb-3">
-                <h4 class="text-subtitle-1 font-weight-bold">
+                <h4 class="text-subtitle-1 font-weight-bold text-white">
                   <v-icon size="small" class="mr-1">mdi-filter-outline</v-icon>
                   Filtros y orden
                 </h4>
                 <v-btn
                   variant="tonal"
                   size="small"
-                  class="btn-pill"
+                  class="btn-pill text-body-2 font-weight-medium"
                   @click="showFilters = !showFilters"
                 >
                   <v-icon size="small" class="mr-1">
@@ -66,13 +66,13 @@
                   <v-row dense>
                     <!-- Ordenar por -->
                     <v-col cols="12" sm="6" md="3">
-                      <v-label class="text-caption font-weight-medium mb-1 d-block">
-                        Ordenar por:
-                      </v-label>
+                      <label class="app-input-label filter-label" for="lists-filter-sort-by">
+                        Ordenar por
+                      </label>
                       <v-select
+                        id="lists-filter-sort-by"
                         v-model="filters.sort_by"
                         :items="sortOptions"
-                        variant="outlined"
                         density="compact"
                         hide-details
                         @update:model-value="applyFilters"
@@ -81,13 +81,13 @@
 
                     <!-- Dirección -->
                     <v-col cols="12" sm="6" md="3">
-                      <v-label class="text-caption font-weight-medium mb-1 d-block">
-                        Dirección:
-                      </v-label>
+                      <label class="app-input-label filter-label" for="lists-filter-order">
+                        Dirección
+                      </label>
                       <v-select
+                        id="lists-filter-order"
                         v-model="filters.order"
                         :items="orderOptions"
-                        variant="outlined"
                         density="compact"
                         hide-details
                         @update:model-value="applyFilters"
@@ -96,13 +96,13 @@
 
                     <!-- Tipo de lista -->
                     <v-col cols="12" sm="6" md="3">
-                      <v-label class="text-caption font-weight-medium mb-1 d-block">
-                        Tipo de lista:
-                      </v-label>
+                      <label class="app-input-label filter-label" for="lists-filter-recurring">
+                        Tipo de lista
+                      </label>
                       <v-select
+                        id="lists-filter-recurring"
                         v-model="filters.recurring"
                         :items="recurringOptions"
-                        variant="outlined"
                         density="compact"
                         hide-details
                         @update:model-value="applyFilters"
@@ -115,7 +115,7 @@
                         variant="tonal"
                         size="small"
                         block
-                        class="btn-pill"
+                        class="btn-pill text-body-2 font-weight-medium"
                         prepend-icon="mdi-filter-remove"
                         @click="clearFilters"
                       >
@@ -146,12 +146,13 @@
               <p class="text-body-2 text-medium-emphasis mb-4">
                 {{ searchQuery ? 'No se encontraron listas con ese criterio' : 'Comienza creando tu primera lista de compras' }}
               </p>
-              <v-btn
-                v-if="!searchQuery"
-                color="primary"
-                prepend-icon="mdi-plus"
-                @click="openCreateDialog"
-              >
+                <v-btn
+                  v-if="!searchQuery"
+                  color="primary"
+                  prepend-icon="mdi-plus"
+                  class="text-body-2 font-weight-medium"
+                  @click="openCreateDialog"
+                >
                 Nueva Lista
               </v-btn>
             </div>
@@ -196,22 +197,28 @@
             Nueva Lista de Compras
           </v-card-title>
           <v-card-text class="pa-4">
-            <v-text-field
-              v-model="newList.name"
-              label="Nombre de la lista"
-              variant="outlined"
-              density="comfortable"
-              :error-messages="newListErrors.name"
-              autofocus
-              @keyup.enter="createList"
-            />
-            <v-textarea
-              v-model="newList.description"
-              label="Descripción (opcional)"
-              variant="outlined"
-              density="comfortable"
-              rows="3"
-            />
+            <div class="mb-3">
+              <label class="app-input-label" for="create-list-name">Nombre de la lista</label>
+              <v-text-field
+                id="create-list-name"
+                v-model="newList.name"
+                density="comfortable"
+                :error-messages="newListErrors.name"
+                class="app-input"
+                autofocus
+                @keyup.enter="createList"
+              />
+            </div>
+            <div class="mb-4">
+              <label class="app-input-label" for="create-list-description">Descripción (opcional)</label>
+              <v-textarea
+                id="create-list-description"
+                v-model="newList.description"
+                density="comfortable"
+                rows="3"
+                class="app-input"
+              />
+            </div>
             <v-checkbox
               v-model="newList.recurring"
               label="Lista recurrente"
@@ -248,22 +255,28 @@
             Editar Lista
           </v-card-title>
           <v-card-text class="pa-4">
-            <v-text-field
-              v-model="editDialog.form.name"
-              label="Nombre de la lista"
-              variant="outlined"
-              density="comfortable"
-              :error-messages="editDialog.errors.name"
-              autofocus
-              @keyup.enter="submitEdit"
-            />
-            <v-textarea
-              v-model="editDialog.form.description"
-              label="Descripción (opcional)"
-              variant="outlined"
-              density="comfortable"
-              rows="3"
-            />
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-list-name">Nombre de la lista</label>
+              <v-text-field
+                id="edit-list-name"
+                v-model="editDialog.form.name"
+                density="comfortable"
+                :error-messages="editDialog.errors.name"
+                class="app-input"
+                autofocus
+                @keyup.enter="submitEdit"
+              />
+            </div>
+            <div class="mb-4">
+              <label class="app-input-label" for="edit-list-description">Descripción (opcional)</label>
+              <v-textarea
+                id="edit-list-description"
+                v-model="editDialog.form.description"
+                density="comfortable"
+                rows="3"
+                class="app-input"
+              />
+            </div>
             <v-checkbox
               v-model="editDialog.form.recurring"
               label="Lista recurrente"
@@ -829,12 +842,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.shell { 
-  max-width: 1200px; 
-  margin: 0 auto; 
-  padding: 0 16px; 
-}
-
 .left-col { 
   min-width: 0; 
   padding-right: 24px; 
@@ -857,49 +864,32 @@ onMounted(() => {
 }
 
 .filters-section {
-  border-bottom: 1px solid var(--border);
+  background-color: #2A2A44;
+  border-radius: var(--radius-md);
+  border-bottom: none;
+  color: #ffffff;
+}
+
+.filters-section .app-input-label,
+.filters-section .filter-label,
+.filters-section h4,
+.filters-section p,
+.filters-section span {
+  color: #ffffff !important;
+}
+
+.filters-section .v-icon {
+  color: #ffffff !important;
 }
 
 .carousel-section {
   margin-top: 0;
 }
 
-/* Campos de texto con bordes más redondeados */
-:deep(.filters-section .v-field) {
-  border-radius: 8px !important;
-  background-color: white;
-}
-
-/* Botones tipo píldora para filtros */
-.btn-pill {
-  border-radius: 999px !important;
-  text-transform: none;
-  font-weight: 500;
-  font-size: 0.875rem !important;
-  height: 32px !important;
-  padding: 0 16px !important;
-}
-
-.btn-pill :deep(.v-icon) {
-  font-size: 18px !important;
-}
-
-/* Botones redondeados tipo píldora */
-.btn-rounded {
-  border-radius: 999px !important;
-  text-transform: none;
-  font-weight: 500;
-}
-
 /* Estilos para modales y diálogos con bordes redondeados */
 :deep(.v-dialog > .v-overlay__content > .v-card) {
   border-radius: var(--radius-lg) !important;
   box-shadow: var(--shadow-2) !important;
-}
-
-/* Campos de texto con bordes más redondeados */
-:deep(.v-dialog .v-field) {
-  border-radius: 12px !important;
 }
 
 /* Mejorar apariencia de checkboxes */

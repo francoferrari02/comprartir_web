@@ -1,12 +1,10 @@
 <template>
   <!-- Tarjeta compacta para representar una despensa -->
   <v-card class="pa-4 card card--hover" elevation="1" min-width="240" style="flex:1 1 auto;">
-    <div class="d-flex align-center justify-space-between mb-2">
-      <div class="text-subtitle-1 font-weight-medium">{{ name }}</div>
-      <v-chip size="small" color="secondary" variant="tonal" class="chip-rounded">{{ totalItems }}</v-chip>
+    <div class="d-flex align-center justify-space-between mb-3">
+      <div class="text-h6 font-weight-bold pantry-title">{{ name }}</div>
+      <v-chip size="small" class="chip-rounded chip-counter">{{ totalItems }}</v-chip>
     </div>
-
-    <div class="text-caption mb-2">{{ totalItems }} {{ totalItems === 1 ? 'producto' : 'productos' }}</div>
 
     <!-- Mostrar usuarios compartidos si existen -->
     <div v-if="sharedWith && sharedWith.length > 0" class="mb-2">
@@ -27,34 +25,29 @@
     <v-progress-linear :model-value="itemsPercentage" color="primary" height="6" rounded />
 
     <!-- Botonera: tres botones del mismo tamaño en una línea horizontal -->
-    <div class="d-flex flex-nowrap ga-2 mt-4">
+    <div class="d-flex align-center ga-2 mt-4">
       <v-btn
-        size="small"
+        color="primary"
         variant="flat"
         prepend-icon="mdi-open-in-new"
-        class="btn-uniform btn-open"
+        class="btn-open-pill text-body-2 font-weight-medium"
         @click="openPantry"
       >
         Abrir
       </v-btn>
       <v-btn
-        size="small"
-        variant="outlined"
-        prepend-icon="mdi-pencil"
-        class="btn-uniform btn-edit"
+        icon="mdi-pencil"
+        variant="text"
+        class="btn-icon btn-icon-dark"
         @click.stop="emit('edit')"
-      >
-        Editar
-      </v-btn>
+      />
       <v-btn
-        size="small"
-        variant="outlined"
-        prepend-icon="mdi-delete"
-        class="btn-uniform btn-delete"
+        icon="mdi-delete"
+        variant="text"
+        color="error"
+        class="btn-icon"
         @click.stop="emit('delete')"
-      >
-        Eliminar
-      </v-btn>
+      />
     </div>
   </v-card>
 </template>
@@ -85,63 +78,41 @@ function openPantry() {
 </script>
 
 <style scoped>
-/* Botones uniformes del mismo tamaño con forma de píldora */
-.btn-uniform {
+.pantry-title {
+  color: var(--text);
+}
+
+.chip-rounded {
+  border-radius: 999px !important;
+}
+
+.chip-counter {
+  background-color: #2A2A44 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.btn-open-pill {
   flex: 1;
   min-width: 0;
   border-radius: 999px !important;
   text-transform: none;
-  font-weight: 500;
-  font-size: 0.75rem !important;
-  padding: 0 12px !important;
-  height: 32px !important;
+  height: 40px !important;
+  padding: 0 20px !important;
 }
 
-/* Botón Abrir - Verde sólido */
-.btn-open {
-  background-color: var(--brand) !important;
-  color: white !important;
-  border: none !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+.btn-open-pill :deep(.v-icon) {
+  margin-right: 8px;
 }
 
-.btn-open:hover {
-  background-color: var(--brand-700) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+.btn-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  flex: 0 0 auto;
 }
 
-/* Botón Editar - Gris con borde sutil */
-.btn-edit {
-  background-color: #f5f5f5 !important;
-  color: #374151 !important;
-  border: 1px solid #d1d5db !important;
-}
-
-.btn-edit:hover {
-  background-color: #e5e5e5 !important;
-  border-color: #9ca3af !important;
-}
-
-/* Botón Eliminar - Rojo con fondo claro y borde sutil */
-.btn-delete {
-  background-color: #fef2f2 !important;
-  color: #dc2626 !important;
-  border: 1px solid #fecaca !important;
-}
-
-.btn-delete:hover {
-  background-color: #fee2e2 !important;
-  border-color: #f87171 !important;
-}
-
-/* Override de iconos para que se vean bien */
-.btn-uniform :deep(.v-icon) {
-  font-size: 16px !important;
-  margin-right: 4px;
-}
-
-/* Chips redondeados */
-.chip-rounded {
-  border-radius: 999px !important;
+.btn-icon-dark {
+  color: #2A2A44 !important;
 }
 </style>

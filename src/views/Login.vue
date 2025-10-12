@@ -47,34 +47,38 @@
       >{{ successMsg }}</v-alert>
 
       <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
-        <v-text-field
-            v-model="email"
-            label="Email"
-            type="email"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.email]"
-            autocomplete="email"
-            hide-details="auto"
-            class="mb-3"
-            :disabled="loading"
-            prepend-inner-icon="mdi-email-outline"
-        />
-        <v-text-field
-            v-model="password"
-            label="Contraseña"
-            :type="showPassword ? 'text' : 'password'"
-            variant="outlined"
-            density="comfortable"
-            :rules="[rules.required, rules.minLength]"
-            autocomplete="current-password"
-            hide-details="auto"
-            class="mb-5"
-            :disabled="loading"
-            prepend-inner-icon="mdi-lock-outline"
-            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            @click:append-inner="showPassword = !showPassword"
-        />
+        <div class="mb-3">
+          <label class="app-input-label" for="login-email">Email</label>
+          <v-text-field
+              id="login-email"
+              v-model="email"
+              type="email"
+              density="comfortable"
+              :rules="[rules.required, rules.email]"
+              autocomplete="email"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-email-outline"
+          />
+        </div>
+        <div class="mb-5">
+          <label class="app-input-label" for="login-password">Contraseña</label>
+          <v-text-field
+              id="login-password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              density="comfortable"
+              :rules="[rules.required, rules.minLength]"
+              autocomplete="current-password"
+              hide-details="auto"
+              class="app-input"
+              :disabled="loading"
+              prepend-inner-icon="mdi-lock-outline"
+              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showPassword = !showPassword"
+          />
+        </div>
 
         <v-btn
             type="submit"
@@ -293,14 +297,6 @@ a {
   transition: all 0.2s ease;
 }
 
-.v-text-field :deep(.v-field) {
-  border-radius: 16px;
-}
-
-.v-text-field :deep(.v-field--variant-outlined) {
-  background: rgba(255, 255, 255, 0.92);
-}
-
 @media (max-width: 959px) {
   .login-wrapper {
     background: linear-gradient(180deg, rgba(77, 168, 81, 0.08), rgba(255, 255, 255, 1));
@@ -345,8 +341,5 @@ a {
     box-shadow: 0 42px 110px -40px rgba(0, 0, 0, 0.78);
   }
 
-  .v-text-field :deep(.v-field--variant-outlined) {
-    background: rgba(22, 27, 24, 0.6);
-  }
 }
 </style>

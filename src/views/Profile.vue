@@ -82,7 +82,7 @@
 
               <button
                 type="button"
-                class="avatar-remove"
+                class="avatar-remove text-body-2 font-weight-medium"
                 :disabled="!isEditing || !avatarPreview"
                 @click="handleRemovePhoto"
               >
@@ -113,54 +113,51 @@
 
               <v-form ref="form" v-model="valid" class="profile-form__fields">
                 <div class="field-group">
-                  <label class="field-label" for="profile-name">Nombre</label>
+                  <label class="field-label app-input-label" for="profile-name">Nombre</label>
                   <v-text-field
                     id="profile-name"
                     v-model="editProfile.name"
                     placeholder="Tu nombre"
-                    variant="solo"
                     density="comfortable"
                     hide-details="auto"
                     :rules="[rules.required, rules.maxLength(50)]"
                     :disabled="!isEditing || saving"
-                    class="field-input"
+                    class="field-input app-input"
                   />
                 </div>
 
                 <div class="field-group">
-                  <label class="field-label" for="profile-surname">Apellido</label>
+                  <label class="field-label app-input-label" for="profile-surname">Apellido</label>
                   <v-text-field
                     id="profile-surname"
                     v-model="editProfile.surname"
                     placeholder="Tu apellido"
-                    variant="solo"
                     density="comfortable"
                     hide-details="auto"
                     :rules="[rules.maxLength(50)]"
                     :disabled="!isEditing || saving"
-                    class="field-input"
+                    class="field-input app-input"
                   />
                 </div>
 
                 <div class="field-group">
-                  <label class="field-label" for="profile-email">Email</label>
+                  <label class="field-label app-input-label" for="profile-email">Email</label>
                   <v-text-field
                     id="profile-email"
                     v-model="editProfile.email"
                     placeholder="tu@correo.com"
                     type="email"
-                    variant="solo"
                     density="comfortable"
                     hide-details="auto"
                     :disabled="true"
-                    class="field-input"
+                    class="field-input app-input"
                     hint="No es posible cambiar el email desde esta pantalla"
                     persistent-hint
                   />
                 </div>
 
                 <div class="field-group">
-                  <label class="field-label" for="profile-language">Idioma</label>
+                  <label class="field-label app-input-label" for="profile-language">Idioma</label>
                   <v-select
                     id="profile-language"
                     v-model="editProfile.language"
@@ -168,11 +165,10 @@
                     item-title="label"
                     item-value="value"
                     placeholder="Seleccioná un idioma"
-                    variant="solo"
                     density="comfortable"
                     hide-details="auto"
                     :disabled="!isEditing || saving"
-                    class="field-input"
+                    class="field-input app-input"
                     prepend-inner-icon="mdi-earth"
                   />
                 </div>
@@ -576,8 +572,8 @@ onBeforeUnmount(() => {
 .avatar-remove {
   background: none;
   border: none;
-  color: #6b7280;
-  font-size: 0.9rem;
+  color: var(--muted);
+  font: inherit;
   cursor: pointer;
   text-decoration: underline;
   transition: color 0.2s ease;
@@ -591,7 +587,7 @@ onBeforeUnmount(() => {
 
 .avatar-remove:hover,
 .avatar-remove:focus-visible {
-  color: #374151;
+  color: var(--text);
 }
 
 .profile-form__fields {
@@ -607,31 +603,9 @@ onBeforeUnmount(() => {
 }
 
 .field-label {
-  font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #4b5563;
-}
-
-.field-input :deep(.v-field) {
-  border-radius: 18px;
-  background-color: rgba(255, 255, 255, 0.82);
-  box-shadow: inset 0 2px 8px rgba(42, 42, 68, 0.08);
-  border: 1px solid rgba(42, 42, 68, 0.08);
-  min-height: 54px;
-}
-
-.field-input :deep(.v-field__overlay) {
-  background: transparent;
-}
-
-.field-input :deep(.v-field__outline) {
-  display: none;
-}
-
-.field-input :deep(.v-text-field__details) {
-  margin: 0;
-  padding-inline: 4px;
+  color: var(--muted);
 }
 
 .profile-form__fields {

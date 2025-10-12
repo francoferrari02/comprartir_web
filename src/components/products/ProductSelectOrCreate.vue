@@ -1,46 +1,51 @@
 <template>
-  <v-autocomplete
-    :model-value="internalId"
-    :items="options"
-    :loading="isSearching || isCreating"
-    :label="label"
-    :placeholder="placeholder"
-    :autofocus="autofocus"
-    :disabled="disabled || isCreating"
-    item-title="name"
-    item-value="id"
-    clearable
-    no-filter
-    v-model:search="search"
-    @update:model-value="onSelect"
-    @update:search="onSearch"
-    @keydown.enter.prevent="onEnter"
-  >
-    <template #no-data>
-      <v-list-item>
-        <v-list-item-title>
-          {{ search ? 'No se encontraron productos' : 'Escribí para buscar productos' }}
-        </v-list-item-title>
-      </v-list-item>
-    </template>
+  <div>
+    <label class="app-input-label" :for="fieldId">{{ label }}</label>
+    <v-autocomplete
+      :id="fieldId"
+      :model-value="internalId"
+      :items="options"
+      :loading="isSearching || isCreating"
+      :placeholder="placeholder"
+      :autofocus="autofocus"
+      :disabled="disabled || isCreating"
+      item-title="name"
+      item-value="id"
+      clearable
+      no-filter
+      class="app-input"
+      v-model:search="search"
+      :aria-label="label"
+      @update:model-value="onSelect"
+      @update:search="onSearch"
+      @keydown.enter.prevent="onEnter"
+    >
+      <template #no-data>
+        <v-list-item>
+          <v-list-item-title>
+            {{ search ? 'No se encontraron productos' : 'Escribí para buscar productos' }}
+          </v-list-item-title>
+        </v-list-item>
+      </template>
 
-    <template #append-item>
-      <v-divider v-if="canShowCreate" />
-      <v-list-item
-        v-if="canShowCreate"
-        :disabled="isCreating"
-        @click="createFromQuery"
-        class="create-item"
-      >
-        <template #prepend>
-          <v-icon color="primary">mdi-plus</v-icon>
-        </template>
-        <v-list-item-title>
-          Crear "{{ search }}"
-        </v-list-item-title>
-      </v-list-item>
-    </template>
-  </v-autocomplete>
+      <template #append-item>
+        <v-divider v-if="canShowCreate" />
+        <v-list-item
+          v-if="canShowCreate"
+          :disabled="isCreating"
+          @click="createFromQuery"
+          class="create-item"
+        >
+          <template #prepend>
+            <v-icon color="primary">mdi-plus</v-icon>
+          </template>
+          <v-list-item-title>
+            Crear "{{ search }}"
+          </v-list-item-title>
+        </v-list-item>
+      </template>
+    </v-autocomplete>
+  </div>
 </template>
 
 <script setup>
@@ -53,6 +58,7 @@ const props = defineProps({
   placeholder: { type: String, default: 'Escribe para buscar o crear…' },
   autofocus: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
+  inputId: { type: String, default: null },
 })
 
 const emit = defineEmits(['update:modelValue', 'created'])
@@ -63,6 +69,8 @@ const isSearching = ref(false)
 const isCreating = ref(false)
 const internalId = ref(null)
 let debounceT = null
+const generatedId = `product-select-${Math.random().toString(36).slice(2, 10)}`
+const fieldId = computed(() => props.inputId || generatedId)
 
 const canShowCreate = computed(() => {
   const q = (search.value || '').trim()

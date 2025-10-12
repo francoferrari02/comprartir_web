@@ -20,13 +20,16 @@
     </div>
 
     <!-- Buscador inferior -->
-    <v-text-field
-      v-model="query"
-      prepend-inner-icon="mdi-magnify"
-      label="Buscar en tus listas"
-      variant="outlined"
-      hide-details
-    />
+    <div>
+      <label class="app-input-label" for="welcome-search">Buscar en tus listas</label>
+      <v-text-field
+        id="welcome-search"
+        v-model="query"
+        prepend-inner-icon="mdi-magnify"
+        hide-details
+        class="app-input"
+      />
+    </div>
   </v-card>
 </template>
 
