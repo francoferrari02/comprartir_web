@@ -37,7 +37,7 @@ export async function createNewUser(
     user.surname = userData.surname;
     user.email = userData.email;
     user.password = getHashedPassword(userData.password);
-    user.metadata = userData.metadata;
+    user.metadata = userData.metadata || {};
 
     const errors = await validate(user);
     if (errors.length > 0) {

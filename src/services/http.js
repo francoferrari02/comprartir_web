@@ -42,6 +42,16 @@ api.interceptors.response.use(
         // Have a response: map server message/status and propagate cleanly
         const { status, data } = error.response;
         const serverMsg = data?.message || data?.error || 'Request failed';
+        
+        // Log detailed error info for debugging
+        console.error(`🔴 API Error [${status}]:`, {
+            url: error.config?.url,
+            method: error.config?.method,
+            status,
+            message: serverMsg,
+            data: data
+        });
+        
         const err = new Error(serverMsg);
         err.status = status;
         err.data = data;
@@ -55,6 +65,12 @@ api.interceptors.response.use(
             if (!p.includes('/login') && !p.includes('/register') && !p.includes('/reset-password') && !p.includes('/verify') && !p.includes('/forgot-password')) {
                 window.location.href = '/login';
             }
+        }
+        
+        // 500 → Internal Server Error - más contexto
+        if (status === 500) {
+            console.error('🔴 Server Internal Error - Check backend logs for details');
+            err.message = 'Error interno del servidor. Por favor, intenta de nuevo.';
         }
 
         return Promise.reject(err);

@@ -184,13 +184,16 @@ async function onSubmit() {
     loading.value = true
 
     // Step 1: Register user
-    await register({
+    const registerPayload = {
       name: firstName.value.trim(),
       surname: lastName.value.trim(),
       email: userEmail,
-      password: password.value,
-      metadata: {}
-    })
+      password: password.value
+    }
+    
+    console.log('📤 Sending registration request:', { ...registerPayload, password: '***' })
+    
+    await register(registerPayload)
     
     // Step 2: Send verification code
     await sendVerification(userEmail)
@@ -223,6 +226,12 @@ async function onSubmit() {
       }
     } else if (error?.response?.status === 409) {
       message = 'Ya existe una cuenta con ese email'
+    } else if (error?.response?.status === 500) {
+      message = 'Error interno del servidor. Por favor verifica: \n' +
+                '1. Que el servidor esté corriendo en http://localhost:8080\n' +
+                '2. Que la base de datos esté conectada\n' +
+                '3. Los logs del servidor para más detalles'
+      console.error('💡 Tip: Revisa la consola del servidor (Spring Boot) para ver el error completo')
     } else if (error?.response?.data?.message) {
       message = error.response.data.message
     } else if (error?.message) {
