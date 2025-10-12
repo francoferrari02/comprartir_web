@@ -546,17 +546,9 @@ async function fetchItemCounts() {
   for (const pantry of pantries.value) {
     try {
       const itemsResponse = await getPantryItems(pantry.id, { per_page: 1000 })
-      console.log(`📊 Pantry ${pantry.id} (${pantry.name}) - Response:`, itemsResponse)
+      console.log(`📊 Pantry ${pantry.id} (${pantry.name}) - Items:`, itemsResponse.data)
 
-      // El backend retorna { data: [...], pagination: {...} }
-      let items = []
-      if (Array.isArray(itemsResponse)) {
-        items = itemsResponse
-      } else if (itemsResponse.data && Array.isArray(itemsResponse.data)) {
-        items = itemsResponse.data
-      } else if (itemsResponse.items && Array.isArray(itemsResponse.items)) {
-        items = itemsResponse.items
-      }
+      const items = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
 
       counts[pantry.id] = {
         total: items.length

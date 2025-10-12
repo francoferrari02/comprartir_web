@@ -1,5 +1,5 @@
 import AppDataSource from "../db";
-import {BadRequestError, handleCaughtError, NotFoundError} from "../types/errors";
+import {BadRequestError, handleCaughtError, NotFoundError, ConflictError} from "../types/errors";
 import {User} from "../entities/user";
 import {List} from "../entities/list";
 import {ListFilterOptions, ListUpdateData, RegisterListData} from "../types/list";
@@ -9,6 +9,7 @@ import {PantryItem} from "../entities/pantryItem";
 import {Purchase} from "../entities/purchase";
 import { ERROR_MESSAGES } from '../types/errorMessages';
 import { Mailer, EmailType } from './email.service';
+import { PaginatedResponse, createPaginationMeta } from '../types/pagination';
 
 /**
  * Creates a new list.
@@ -35,9 +36,14 @@ export async function createListService(listData: RegisterListData): Promise<Lis
         await queryRunner.commitTransaction();
 
         return list.getFormattedList();
-    } catch (err) {
+    } catch (err: any) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-        throw err;
+
+        if (err?.code === 'SQLITE_CONSTRAINT' && err.message?.includes('unique_list_name_per_owner')) {
+            throw new ConflictError(ERROR_MESSAGES.CONFLICT.LIST_NAME_EXISTS);
+        }
+
+        handleCaughtError(err);
     } finally {
         await queryRunner.release();
     }
@@ -50,12 +56,11 @@ export async function createListService(listData: RegisterListData): Promise<Lis
  * @returns {Promise<List[]>} List information
  * @throws {NotFoundError} If the list is not found
  */
-export async function getListsService(listData: ListFilterOptions): Promise<List[]> {
+export async function getListsService(listData: ListFilterOptions): Promise<PaginatedResponse<any>> {
     try {
         const queryBuilder = List.createQueryBuilder("list")
             .leftJoinAndSelect("list.owner", "owner")
             .leftJoinAndSelect("list.sharedWith", "sharedWith")
-            .leftJoinAndSelect("list.items", "items", "items.deletedAt IS NULL")
             .andWhere("list.deletedAt IS NULL");
 
         if (listData.owner === true) {
@@ -96,15 +101,22 @@ export async function getListsService(listData: ListFilterOptions): Promise<List
         }
         const orderDirection = listData.order ?? "ASC";
 
-        queryBuilder
-            .orderBy(orderField, orderDirection)
-            .take(listData.per_page)
-            .skip((listData.page! - 1) * (listData.per_page ?? 10));
+        queryBuilder.orderBy(orderField, orderDirection);
 
-        const lists = await queryBuilder.getMany();
+        const take = listData.per_page ?? 10;
+        const page = listData.page ?? 1;
 
-        if (!lists.length) return [];
-        return lists.map(list => list.getFormattedList());
+        const [lists, total] = await queryBuilder
+            .take(take)
+            .skip((page - 1) * take)
+            .getManyAndCount();
+
+        const formattedLists = lists.map(list => list.getFormattedList());
+
+        return {
+            data: formattedLists,
+            pagination: createPaginationMeta(total, page, take)
+        };
     } catch (err) {
         handleCaughtError(err);
     }
@@ -213,16 +225,10 @@ export async function purchaseListService(listId: number, user: User, metadata: 
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-        // Use query builder to properly load non-deleted items
-        const list = await queryRunner.manager
-            .createQueryBuilder(List, "list")
-            .leftJoinAndSelect("list.owner", "owner")
-            .leftJoinAndSelect("list.sharedWith", "sharedWith")
-            .leftJoinAndSelect("list.items", "items", "items.deletedAt IS NULL")
-            .where("list.id = :listId", { listId })
-            .andWhere("list.deletedAt IS NULL")
-            .getOne();
-
+        const list = await queryRunner.manager.findOne(List, {
+            where: { id: listId },
+            relations: ["items", "owner", "sharedWith"]
+        });
         if (!list || (list.owner.id !== user.id && !list.sharedWith.some(u => u.id === user.id))) {
             throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.LIST);
         }
@@ -231,23 +237,24 @@ export async function purchaseListService(listId: number, user: User, metadata: 
             throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_IN_SHOPPING_LIST);
         }
 
-        // Mark ALL items as purchased and update lastPurchasedAt
         const listItems: ListItem[] = [];
         for (const item of list.items) {
-            const listItem = await queryRunner.manager.findOne(ListItem, {
-                where: { id: item.id, deletedAt: null }
-            });
+            const listItem = await queryRunner.manager.findOne(ListItem, { where: { id: item.id } });
             if (listItem) {
-                listItem.purchased = true;
-                listItem.lastPurchasedAt = new Date();
-                listItems.push(listItem);
-                await queryRunner.manager.save(listItem);
+                if(listItem.purchased) {
+                    listItem.lastPurchasedAt = new Date();
+                    listItems.push(listItem);
+                    await queryRunner.manager.save(listItem);
+                }
             } else {
                 throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.ITEM);
             }
         }
 
-        // Create purchase record
+        if(listItems.length <= 0) {
+            throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_PURCHASED_IN_SHOPPING_LIST);
+        }
+
         const purchase = new Purchase();
         list.lastPurchasedAt = new Date();
         await queryRunner.manager.save(list);
@@ -257,8 +264,9 @@ export async function purchaseListService(listId: number, user: User, metadata: 
         purchase.metadata = metadata ?? {};
         await queryRunner.manager.save(purchase);
 
-        // Do NOT delete the list - just mark items as purchased
-        // The list should remain available with all items marked as purchased
+        if (!list.recurring) {
+            await queryRunner.manager.softRemove(list);
+        }
 
         await queryRunner.commitTransaction();
         return list.getFormattedList();

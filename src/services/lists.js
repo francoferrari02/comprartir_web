@@ -1,6 +1,7 @@
 // src/services/lists.js
 import { api } from './http'
 import { mockShoppingLists, delay } from './mockData'
+import { normalizePaginatedResponse, unwrapEntityResponse } from './pagination'
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
@@ -10,11 +11,17 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 export async function getShoppingLists(params = {}) {
     if (USE_MOCKS) {
         await delay(300)
-        return mockShoppingLists.getAll(params)
+        return normalizePaginatedResponse(mockShoppingLists.getAll(params), {
+            page: params.page,
+            per_page: params.per_page,
+        })
     }
     try {
         const { data } = await api.get('/shopping-lists', { params })
-        return data
+        return normalizePaginatedResponse(data, {
+            page: params.page,
+            per_page: params.per_page,
+        })
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener las listas',
@@ -31,7 +38,7 @@ export async function createShoppingList(body) {
     }
     try {
         const { data } = await api.post('/shopping-lists', body)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al crear la lista',
@@ -48,7 +55,7 @@ export async function getShoppingListById(id) {
     }
     try {
         const { data } = await api.get(`/shopping-lists/${id}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener la lista',
@@ -65,7 +72,7 @@ export async function updateShoppingList(id, body) {
     }
     try {
         const { data } = await api.put(`/shopping-lists/${id}`, body)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al actualizar la lista',
@@ -82,7 +89,7 @@ export async function deleteShoppingList(id) {
     }
     try {
         const { data } = await api.delete(`/shopping-lists/${id}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al eliminar la lista',
@@ -99,7 +106,7 @@ export async function purchaseShoppingList(id, metadata = {}) {
     }
     try {
         const { data } = await api.post(`/shopping-lists/${id}/purchase`, { metadata })
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al marcar como comprada',
@@ -116,7 +123,7 @@ export async function resetShoppingList(id) {
     }
     try {
         const { data } = await api.post(`/shopping-lists/${id}/reset`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al resetear la lista',
@@ -133,7 +140,7 @@ export async function moveToPantry(id) {
     }
     try {
         const { data } = await api.post(`/shopping-lists/${id}/move-to-pantry`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al mover a despensa',
@@ -150,7 +157,7 @@ export async function shareShoppingList(id, email) {
     }
     try {
         const { data } = await api.post(`/shopping-lists/${id}/share`, { email })
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al compartir la lista',
@@ -167,7 +174,7 @@ export async function getSharedUsers(id) {
     }
     try {
         const { data } = await api.get(`/shopping-lists/${id}/shared-users`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener usuarios compartidos',
@@ -184,7 +191,7 @@ export async function revokeShareShoppingList(id, userId) {
     }
     try {
         const { data } = await api.delete(`/shopping-lists/${id}/share/${userId}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al revocar acceso',
@@ -199,11 +206,17 @@ export async function revokeShareShoppingList(id, userId) {
 export async function getListItems(listId, params = {}) {
     if (USE_MOCKS) {
         await delay(300)
-        return mockShoppingLists.getItems(listId, params)
+        return normalizePaginatedResponse(mockShoppingLists.getItems(listId, params), {
+            page: params.page,
+            per_page: params.per_page,
+        })
     }
     try {
         const { data } = await api.get(`/shopping-lists/${listId}/items`, { params })
-        return data
+        return normalizePaginatedResponse(data, {
+            page: params.page,
+            per_page: params.per_page,
+        })
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener los ítems',
@@ -226,8 +239,8 @@ export async function addListItem(listId, body) {
         console.log('📤 addListItem - URL construida:', url)
 
         const { data } = await api.post(url, body)
-        console.log('✅ addListItem - Response:', data)
-        return data
+    console.log('✅ addListItem - Response:', data)
+    return unwrapEntityResponse(data)
     } catch (error) {
         console.error('❌ addListItem - Error:', error)
         throw {
@@ -246,7 +259,7 @@ export async function updateListItem(listId, itemId, body) {
     }
     try {
         const { data } = await api.put(`/shopping-lists/${listId}/items/${itemId}`, body)
-        return data
+    return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al actualizar el ítem',
@@ -263,7 +276,7 @@ export async function toggleItemPurchased(listId, itemId, purchased) {
     }
     try {
         const { data } = await api.patch(`/shopping-lists/${listId}/items/${itemId}`, { purchased })
-        return data
+    return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al marcar el ítem',
@@ -280,7 +293,7 @@ export async function deleteListItem(listId, itemId) {
     }
     try {
         const { data } = await api.delete(`/shopping-lists/${listId}/items/${itemId}`)
-        return data
+    return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al eliminar el ítem',

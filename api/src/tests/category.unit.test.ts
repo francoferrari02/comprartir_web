@@ -30,9 +30,10 @@ describe('Category Service - Unit tests', () => {
     await CategoryService.createNewCategoryService({ name: 'A', owner: user });
     await CategoryService.createNewCategoryService({ name: 'B', owner: user });
 
-    const categories = await CategoryService.getUserCategoriesService({ owner: user, page: '1', per_page: 10, sort_by: 'createdAt', order: 'DESC' });
-    expect(Array.isArray(categories)).toBe(true);
-    expect(categories.length).toBeGreaterThanOrEqual(2);
+  const categories = await CategoryService.getUserCategoriesService({ owner: user, page: '1', per_page: 10, sort_by: 'createdAt', order: 'DESC' });
+  expect(Array.isArray(categories.data)).toBe(true);
+  expect(categories.data.length).toBeGreaterThanOrEqual(2);
+  expect(categories.pagination.total).toBeGreaterThanOrEqual(2);
   });
 
   it('should get category by id', async () => {

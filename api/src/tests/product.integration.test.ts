@@ -48,19 +48,20 @@ describe('Product API - Integration tests', () => {
     await request(app).post('/api/products').set('Authorization', `Bearer ${jwt}`).send({ name: 'FP1', category: { id: createdCat.id } });
     await request(app).post('/api/products').set('Authorization', `Bearer ${jwt}`).send({ name: 'FP2', category: { id: createdCat.id } });
 
-    const all = await request(app).get('/api/products').set('Authorization', `Bearer ${jwt}`);
-    expect(all.status).toBe(200);
-    expect(Array.isArray(all.body.products || all.body)).toBe(true);
+  const all = await request(app).get('/api/products').set('Authorization', `Bearer ${jwt}`);
+  expect(all.status).toBe(200);
+  expect(Array.isArray(all.body.data)).toBe(true);
+  expect(all.body.pagination.total).toBeGreaterThanOrEqual(2);
 
-    const byCategory = await request(app).get(`/api/products?category_id=${createdCat.id}`).set('Authorization', `Bearer ${jwt}`);
-    expect(byCategory.status).toBe(200);
-    const listByCat = byCategory.body.products || byCategory.body;
-    expect(listByCat.length).toBeGreaterThanOrEqual(2);
+  const byCategory = await request(app).get(`/api/products?category_id=${createdCat.id}`).set('Authorization', `Bearer ${jwt}`);
+  expect(byCategory.status).toBe(200);
+  expect(byCategory.body.data.length).toBeGreaterThanOrEqual(2);
+  expect(byCategory.body.pagination.total).toBeGreaterThanOrEqual(2);
 
-    const byPantry = await request(app).get(`/api/products?pantry_id=${createdPantry.id}`).set('Authorization', `Bearer ${jwt}`);
-    expect(byPantry.status).toBe(200);
-    const listByPantry = byPantry.body.products || byPantry.body;
-    expect(listByPantry.length).toBeGreaterThanOrEqual(1);
+  const byPantry = await request(app).get(`/api/products?pantry_id=${createdPantry.id}`).set('Authorization', `Bearer ${jwt}`);
+  expect(byPantry.status).toBe(200);
+  expect(byPantry.body.data.length).toBeGreaterThanOrEqual(1);
+  expect(byPantry.body.pagination.total).toBeGreaterThanOrEqual(1);
   });
 
   it('should get, update and delete a product', async () => {

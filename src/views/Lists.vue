@@ -512,23 +512,17 @@ async function fetchLists() {
       params.owner = filters.value.owner
     }
 
-    const response = await getShoppingLists(params)
+    const { data, pagination: meta } = await getShoppingLists(params)
+    lists.value = Array.isArray(data) ? data : []
 
-    if (Array.isArray(response)) {
-      lists.value = response
-    } else if (response.data) {
-      lists.value = response.data
-      if (response.pagination) {
-        pagination.value = {
-          ...pagination.value,
-          ...response.pagination
-        }
+    if (meta) {
+      pagination.value = {
+        ...pagination.value,
+        ...meta
       }
     } else {
-      lists.value = response.items || response.results || []
-      if (response.total !== undefined) {
-        pagination.value.totalItems = response.total
-      }
+      pagination.value.totalItems = lists.value.length
+      pagination.value.totalPages = 1
     }
 
     // Actualizar el store con las listas
@@ -553,18 +547,10 @@ async function fetchItemCounts() {
     lists.value.map(async (list) => {
       try {
         console.log(`📤 fetchItemCounts - Cargando items para lista ${list.id} (${list.name})`)
-        const itemsResponse = await getListItems(list.id, { per_page: 1000 })
-        console.log(`📥 fetchItemCounts - Response para lista ${list.id}:`, itemsResponse)
+        const { data: itemsData } = await getListItems(list.id, { per_page: 1000 })
+        console.log(`📥 fetchItemCounts - Items para lista ${list.id}:`, itemsData)
 
-        // Manejar diferentes formatos de respuesta
-        let items = []
-        if (Array.isArray(itemsResponse)) {
-          items = itemsResponse
-        } else if (itemsResponse.data) {
-          items = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
-        } else if (itemsResponse.items) {
-          items = itemsResponse.items
-        }
+        const items = Array.isArray(itemsData) ? itemsData : []
 
         console.log(`✅ fetchItemCounts - Lista ${list.id} tiene ${items.length} items:`, items)
         // Guardar en el store usando la nueva acción
@@ -679,6 +665,7 @@ async function createList() {
 
     // Better error message handling
     let errorMessage = 'Error al crear la lista'
+    const status = err?.status || err?.response?.status
 
     if (typeof err === 'object' && err !== null) {
       if (err.message) {
@@ -690,6 +677,11 @@ async function createList() {
       }
     } else if (typeof err === 'string') {
       errorMessage = err
+    }
+
+    if (status === 409) {
+      errorMessage = 'Ya existe una lista con ese nombre. Elegí otro nombre.'
+      newListErrors.value.name = [errorMessage]
     }
 
     error.value = errorMessage
@@ -748,6 +740,7 @@ async function submitEdit() {
 
     // Better error message handling
     let errorMessage = 'Error al actualizar la lista'
+    const status = err?.status || err?.response?.status
 
     if (typeof err === 'object' && err !== null) {
       if (err.message) {
@@ -759,6 +752,11 @@ async function submitEdit() {
       }
     } else if (typeof err === 'string') {
       errorMessage = err
+    }
+
+    if (status === 409) {
+      errorMessage = 'Ya existe una lista con ese nombre. Elegí otro nombre.'
+      editDialog.value.errors.name = [errorMessage]
     }
 
     editDialog.value.error = errorMessage

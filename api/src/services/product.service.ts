@@ -9,6 +9,7 @@ import {
   GetProductsData,
   ProductUpdateData, RegisterProductData
 } from "../types/product";
+import { PaginatedResponse, createPaginationMeta } from '../types/pagination';
 
 /**
 * Retrieves user's products.
@@ -17,7 +18,7 @@ import {
 * @returns {Promise<Product[]>} Product information
 * @throws {NotFoundError} If no products are found
 */
-export async function getProductsService(productData: GetProductsData): Promise<Product[]> {
+export async function getProductsService(productData: GetProductsData): Promise<PaginatedResponse<any>> {
   try {
     if (productData.category_id) {
       const category = await Category.findOne({ where: { id: productData.category_id, deletedAt: null } });
@@ -46,15 +47,23 @@ export async function getProductsService(productData: GetProductsData): Promise<
       order = { name: orderDirection };
     }
 
-    const products: Product[] = await Product.find({
+    const take = productData.per_page ?? 10;
+    const page = productData.page ?? 1;
+
+    const [products, total] = await Product.findAndCount({
       where: whereOptions,
       relations: ["owner", "category"],
       order,
-      take: productData.per_page,
-      skip: (productData.page - 1) * (productData.per_page || 10),
+      take,
+      skip: (page - 1) * take,
     });
 
-    return products.map((p) => p.getFormattedProduct());
+    const formattedProducts = products.map((p) => p.getFormattedProduct());
+
+    return {
+      data: formattedProducts,
+      pagination: createPaginationMeta(total, page, take)
+    };
   } catch (err: unknown) {
     handleCaughtError(err);
   }

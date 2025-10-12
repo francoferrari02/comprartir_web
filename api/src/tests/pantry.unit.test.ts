@@ -25,9 +25,10 @@ describe('Pantry Service - Unit tests', () => {
     expect(created).toBeDefined();
     expect(created.name).toBe('Home Pantry');
 
-    const list: any = await PantryService.getPantriesService(user as any, true, 'createdAt', 'ASC', 1, 10);
-    expect(Array.isArray(list)).toBe(true);
-    expect(list.length).toBeGreaterThanOrEqual(1);
+  const list: any = await PantryService.getPantriesService(user as any, true, 'createdAt', 'ASC', 1, 10);
+  expect(Array.isArray(list.data)).toBe(true);
+  expect(list.data.length).toBeGreaterThanOrEqual(1);
+  expect(list.pagination.total).toBeGreaterThanOrEqual(1);
 
     const fetched: any = await PantryService.getPantryByIdService(created.id, user as any);
     expect(fetched).toBeDefined();

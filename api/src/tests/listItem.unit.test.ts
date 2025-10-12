@@ -31,9 +31,10 @@ describe('ListItem Service - Unit tests', () => {
     const item = added.item || added;
     expect(item.quantity).toBeDefined();
 
-    const items: any = await ListItemService.getListItemsService({ listId: list.id, page: 1, per_page: 10 } as any);
-    expect(Array.isArray(items)).toBe(true);
-    expect(items.length).toBeGreaterThanOrEqual(1);
+  const items: any = await ListItemService.getListItemsService({ listId: list.id, page: 1, per_page: 10 } as any);
+  expect(Array.isArray(items.data)).toBe(true);
+  expect(items.data.length).toBeGreaterThanOrEqual(1);
+  expect(items.pagination.total).toBeGreaterThanOrEqual(1);
 
     const updated: any = await ListItemService.updateListItemService(list.id, item.id, { quantity: 5 } as any);
     expect(updated.quantity).toBeDefined();

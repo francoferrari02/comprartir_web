@@ -78,24 +78,15 @@ export const useCategoriesStore = defineStore('categories', {
       this.error = null
       
       try {
-        const response = await getCategories(this.filterParams)
+        const { data, pagination } = await getCategories(this.filterParams)
 
-        // Handle different response formats
-        if (Array.isArray(response)) {
-          this.items = response
-          this.categories = response
-        } else if (response.data) {
-          this.items = response.data
-          this.categories = response.data
-          if (response.pagination) {
-            this.pagination = { ...this.pagination, ...response.pagination }
-          }
-        } else if (response.items || response.results) {
-          this.items = response.items || response.results
-          this.categories = this.items
-          if (response.total !== undefined) {
-            this.pagination.totalItems = response.total
-            this.pagination.totalPages = Math.ceil(response.total / this.pagination.perPage)
+        this.items = Array.isArray(data) ? data : []
+        this.categories = this.items
+
+        if (pagination) {
+          this.pagination = {
+            ...this.pagination,
+            ...pagination,
           }
         }
         
@@ -147,7 +138,9 @@ export const useCategoriesStore = defineStore('categories', {
         // Add to local list
         this.items.unshift(newCategory)
         this.categories = this.items
-        this.pagination.totalItems += 1
+  this.pagination.totalItems = (this.pagination.totalItems ?? 0) + 1
+  this.pagination.total = (this.pagination.total ?? 0) + 1
+  this.pagination.total_pages = Math.max(1, Math.ceil((this.pagination.total ?? 0) / (this.pagination.perPage || this.pagination.per_page || 1)))
         
         return newCategory
       } catch (error) {
@@ -213,7 +206,10 @@ export const useCategoriesStore = defineStore('categories', {
         // Remove from local list
         this.items = this.items.filter(c => c.id !== id)
         this.categories = this.items
-        this.pagination.totalItems = Math.max(0, this.pagination.totalItems - 1)
+  const updatedTotal = Math.max(0, (this.pagination.total ?? this.pagination.totalItems ?? this.items.length)) - 1
+  this.pagination.totalItems = Math.max(0, (this.pagination.totalItems ?? this.items.length) - 1)
+  this.pagination.total = updatedTotal
+  this.pagination.total_pages = Math.max(1, Math.ceil(updatedTotal / (this.pagination.perPage || this.pagination.per_page || 1)))
 
         if (this.currentCategory?.id === id) {
           this.currentCategory = null

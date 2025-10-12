@@ -1,6 +1,7 @@
 // src/services/pantryItems.js
 import { api } from './http'
 import { mockPantries, delay } from './mockData'
+import { normalizePaginatedResponse, unwrapEntityResponse } from './pagination'
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
@@ -10,11 +11,17 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 export async function getPantryItems(id, params = {}) {
     if (USE_MOCKS) {
         await delay(300)
-        return mockPantries.getItems(id, params)
+        return normalizePaginatedResponse(mockPantries.getItems(id, params), {
+            page: params.page,
+            per_page: params.per_page,
+        })
     }
     try {
         const { data } = await api.get(`/pantries/${id}/items`, { params })
-        return data
+        return normalizePaginatedResponse(data, {
+            page: params.page,
+            per_page: params.per_page,
+        })
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener los ítems',
@@ -31,7 +38,7 @@ export async function addPantryItem(id, body) {
     }
     try {
         const { data } = await api.post(`/pantries/${id}/items`, body)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al añadir el ítem',
@@ -48,7 +55,7 @@ export async function updatePantryItem(id, itemId, body) {
     }
     try {
         const { data } = await api.put(`/pantries/${id}/items/${itemId}`, body)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al actualizar el ítem',
@@ -65,7 +72,7 @@ export async function deletePantryItem(id, itemId) {
     }
     try {
         const { data } = await api.delete(`/pantries/${id}/items/${itemId}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al eliminar el ítem',

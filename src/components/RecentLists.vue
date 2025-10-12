@@ -87,7 +87,7 @@ async function fetchRecentLists() {
       per_page: 20 // Traer más para tener mejor chance de encontrar recientes
     })
 
-    const lists = response.data || []
+    const lists = Array.isArray(response.data) ? response.data : []
 
     console.log('🔍 RecentLists - Total listas recibidas:', lists.length)
     if (lists.length > 0) {
@@ -151,7 +151,7 @@ async function fetchRecentLists() {
       recentLists.map(async (list) => {
         try {
           const itemsResponse = await getListItems(list.id, { per_page: 1000 })
-          const listItems = itemsResponse.data || []
+          const listItems = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
           const bought = listItems.filter(item => item.purchased).length
           const total = listItems.length
 

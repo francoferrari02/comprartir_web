@@ -65,7 +65,7 @@ onMounted(async () => {
   try {
     // Obtener todas las listas y filtrar las compartidas conmigo (donde no soy owner)
     const response = await getShoppingLists({ per_page: 100 })
-    const allLists = response.data || response || []
+  const allLists = Array.isArray(response.data) ? response.data : []
 
     // Obtener ID del usuario actual
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}')

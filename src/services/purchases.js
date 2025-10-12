@@ -1,5 +1,6 @@
 // src/services/purchases.js
 import { api } from './http'
+import { normalizePaginatedResponse, unwrapEntityResponse } from './pagination'
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
@@ -16,11 +17,17 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 export async function getPurchases(params = {}) {
     if (USE_MOCKS) {
         // TODO: implement mock if needed
-        return []
+        return normalizePaginatedResponse([], {
+            page: params.page,
+            per_page: params.per_page,
+        })
     }
     try {
         const { data } = await api.get('/purchases', { params })
-        return data
+        return normalizePaginatedResponse(data, {
+            page: params.page,
+            per_page: params.per_page,
+        })
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener el historial de compras',
@@ -41,7 +48,7 @@ export async function getPurchaseById(id) {
     }
     try {
         const { data } = await api.get(`/purchases/${id}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener los detalles de la compra',
@@ -62,7 +69,7 @@ export async function restorePurchase(id) {
     }
     try {
         const { data } = await api.post(`/purchases/${id}/restore`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al restaurar la compra',

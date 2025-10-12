@@ -5,6 +5,7 @@ import { Product } from "../entities/product";
 import { User } from "../entities/user";
 import {NotFoundError, handleCaughtError, ConflictError} from "../types/errors";
 import { ERROR_MESSAGES } from '../types/errorMessages';
+import { PaginatedResponse, createPaginationMeta } from '../types/pagination';
 
 /**
  * Retrieves pantry items for a given pantry, with support for pagination, sorting, and search.
@@ -29,7 +30,7 @@ export async function getPantryItemsService(
     sort_by?: string,
     search?: string,
     category_id?: number
-): Promise<{data: any[], pagination: {currentPage: number, perPage: number, totalPages: number, totalItems: number}}> {
+): Promise<PaginatedResponse<any>> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -78,21 +79,15 @@ export async function getPantryItemsService(
 
         await queryRunner.commitTransaction();
 
-        // Devolver con paginación en lugar de solo el array
+        const formattedItems = items.map(i => i.getFormattedListItem());
+
         return {
-            data: items.map(i => i.getFormattedListItem()),
-            pagination: {
-                currentPage: page,
-                perPage: per_page,
-                totalPages: Math.ceil(total / per_page),
-                totalItems: total
-            }
+            data: formattedItems,
+            pagination: createPaginationMeta(total, page, per_page)
         };
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-        handleCaughtError(err);
-        // Esta línea nunca se alcanza porque handleCaughtError lanza el error, pero TypeScript no lo sabe
-        throw err; // Agregar esto para que TypeScript sepa que la función siempre termina
+    handleCaughtError(err);
     } finally {
         await queryRunner.release();
     }

@@ -29,18 +29,14 @@ export const useProductsStore = defineStore('products', {
       this.loading = true;
       this.error = '';
       try {
-        const data = await getProducts({ ...this.filters, ...params });
-        // Handle different response formats
-        if (Array.isArray(data)) {
-          this.items = data;
-          this.total = data.length;
-        } else if (data.items || data.data || data.results) {
-          this.items = data.items ?? data.data ?? data.results ?? [];
-          this.total = data.total ?? data.count ?? this.items.length;
+        const { data, pagination } = await getProducts({ ...this.filters, ...params });
+        this.items = Array.isArray(data) ? data : [];
+        if (pagination) {
+          this.total = pagination.total ?? this.items.length;
+          this.filters.page = pagination.page ?? this.filters.page;
+          this.filters.per_page = pagination.per_page ?? this.filters.per_page;
         } else {
-          // Backend might return { products: [...], total: N }
-          this.items = data.products ?? [];
-          this.total = data.total ?? this.items.length;
+          this.total = this.items.length;
         }
       } catch (e) {
         this.error = e.response?.data?.message || e.message || 'Error al cargar productos';
@@ -67,7 +63,7 @@ export const useProductsStore = defineStore('products', {
       try {
         const created = await createProduct(payload);
         this.items.unshift(created);
-        this.total++;
+        this.total = (this.total ?? 0) + 1;
         return created;
       } catch (e) {
         const error = e.response?.data?.message || e.message || 'Error al crear producto';
@@ -101,7 +97,7 @@ export const useProductsStore = defineStore('products', {
         if (this.current?.id === id) {
           this.current = null;
         }
-        this.total--;
+        this.total = Math.max(0, (this.total ?? 0) - 1);
       } catch (e) {
         const error = e.response?.data?.message || e.message || 'Error al eliminar producto';
         console.error('Error deleting product:', e);

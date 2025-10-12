@@ -623,30 +623,19 @@ async function fetchItems() {
     }
 
     console.log('📤 PantryDetail - fetchItems - Params:', params)
-    const response = await getPantryItems(pantry.value.id, params)
-    console.log('📥 PantryDetail - fetchItems - Response completa:', response)
+    const { data, pagination } = await getPantryItems(pantry.value.id, params)
+    console.log('📥 PantryDetail - fetchItems - Items:', data)
 
-    // Manejar diferentes formatos de respuesta
-    let fetchedItems = []
-    if (Array.isArray(response)) {
-      fetchedItems = response
-      console.log('✅ PantryDetail - Response es array directo')
-    } else if (response.data) {
-      fetchedItems = Array.isArray(response.data) ? response.data : []
-      console.log('✅ PantryDetail - Response tiene data:', fetchedItems.length)
-    } else if (response.items) {
-      fetchedItems = response.items
-      console.log('✅ PantryDetail - Response tiene items:', fetchedItems.length)
-    }
+    const fetchedItems = Array.isArray(data) ? data : []
 
     items.value = fetchedItems
     console.log('💾 PantryDetail - Items guardados:', items.value.length, 'items')
     console.log('📋 PantryDetail - Items:', items.value)
 
-    if (response.pagination) {
+    if (pagination) {
       itemsPagination.value = {
         ...itemsPagination.value,
-        ...response.pagination
+        ...pagination
       }
       console.log('📄 PantryDetail - Pagination:', itemsPagination.value)
     }
@@ -671,7 +660,7 @@ async function fetchSharedUsers() {
 
   try {
     const response = await getPantrySharedUsers(pantry.value.id)
-    sharedUsers.value = response.data || response || []
+    sharedUsers.value = Array.isArray(response) ? response : (response?.data ?? [])
   } catch (err) {
     console.error('Error fetching shared users:', err)
     // No mostrar error al usuario si no puede ver los usuarios compartidos

@@ -288,22 +288,10 @@ async function fetchItems() {
     }
 
     console.log('📤 fetchItems - Params:', params)
-    const response = await getListItems(list.value.id, params)
-    console.log('📥 fetchItems - Response completa:', response)
+    const { data, pagination } = await getListItems(list.value.id, params)
+    console.log('📥 fetchItems - Items:', data)
 
-    // Intentar diferentes formatos de respuesta
-    let fetchedItems = []
-    if (Array.isArray(response)) {
-      fetchedItems = response
-    } else if (response.data) {
-      if (Array.isArray(response.data)) {
-        fetchedItems = response.data
-      } else if (response.data.items) {
-        fetchedItems = response.data.items
-      }
-    } else if (response.items) {
-      fetchedItems = response.items
-    }
+    const fetchedItems = Array.isArray(data) ? data : []
 
     console.log('✅ fetchItems - Items extraídos:', fetchedItems.length, 'items')
     console.log('📋 fetchItems - Items:', fetchedItems)
@@ -312,10 +300,10 @@ async function fetchItems() {
     // Guardar en el store
     listsStore.setCurrentItems(fetchedItems)
 
-    if (response.pagination) {
+    if (pagination) {
       itemsPagination.value = {
         ...itemsPagination.value,
-        ...response.pagination
+        ...pagination
       }
       console.log('📄 fetchItems - Pagination:', itemsPagination.value)
     }
@@ -332,7 +320,7 @@ async function fetchSharedUsers() {
 
   try {
     const response = await getSharedUsers(list.value.id)
-    sharedUsers.value = response.data || []
+    sharedUsers.value = Array.isArray(response) ? response : (response?.data ?? [])
   } catch (err) {
     console.error('Error fetching shared users:', err)
   }

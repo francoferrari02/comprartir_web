@@ -29,9 +29,10 @@ describe('Product Service - Unit tests', () => {
     expect(created).toBeDefined();
     expect(created.name).toBe('Milk');
 
-    const list: any = await ProductService.getProductsService({ owner: user, page: 1, per_page: 10, sort_by: 'name', order: 'ASC' } as any);
-    expect(Array.isArray(list)).toBe(true);
-    expect(list.length).toBeGreaterThanOrEqual(1);
+  const list: any = await ProductService.getProductsService({ owner: user, page: 1, per_page: 10, sort_by: 'name', order: 'ASC' } as any);
+  expect(Array.isArray(list.data)).toBe(true);
+  expect(list.data.length).toBeGreaterThanOrEqual(1);
+  expect(list.pagination.total).toBeGreaterThanOrEqual(1);
 
     const prodObj: any = created;
     const fetched: any = await ProductService.getProductByIdService(prodObj.id, user as any);
@@ -59,10 +60,12 @@ describe('Product Service - Unit tests', () => {
     await ProductService.createProductService({ name: 'P1', category: { id: cat1.id }, owner: user } as any);
     await ProductService.createProductService({ name: 'P2', category: { id: cat2.id }, owner: user } as any);
 
-    const res1: any = await ProductService.getProductsService({ owner: user, page: 1, per_page: 10, category_id: cat1.id } as any);
-    expect(res1.length).toBeGreaterThanOrEqual(1);
+  const res1: any = await ProductService.getProductsService({ owner: user, page: 1, per_page: 10, category_id: cat1.id } as any);
+  expect(res1.data.length).toBeGreaterThanOrEqual(1);
+  expect(res1.pagination.total).toBeGreaterThanOrEqual(1);
 
-    const res2: any = await ProductService.getProductsService({ owner: user, page: 1, per_page: 10, pantry_id: pantry2.id } as any);
-    expect(res2.length).toBeGreaterThanOrEqual(1);
+  const res2: any = await ProductService.getProductsService({ owner: user, page: 1, per_page: 10, pantry_id: pantry2.id } as any);
+  expect(res2.data.length).toBeGreaterThanOrEqual(1);
+  expect(res2.pagination.total).toBeGreaterThanOrEqual(1);
   });
 });

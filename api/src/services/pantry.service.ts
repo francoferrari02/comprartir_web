@@ -8,6 +8,7 @@ import {PantryItem} from "../entities/pantryItem";
 import { ERROR_MESSAGES } from '../types/errorMessages';
 import { QueryFailedError } from 'typeorm';
 import { Mailer, EmailType } from './email.service';
+import { PaginatedResponse, createPaginationMeta } from '../types/pagination';
 
 /**
  * Creates a new pantry for the given user.
@@ -55,29 +56,40 @@ export async function createPantryService(data: { name: string, metadata?: any }
  * @returns {Promise<Pantry[]>} Array of formatted pantries
  * @throws {Error} If any error occurs during the process
  */
-export async function getPantriesService(user: User, owner?: boolean, sort_by: "createdAt" | "updatedAt" | "name" = "createdAt", order: "ASC" | "DESC" = "ASC", page: number = 1, per_page: number = 10): Promise<Pantry[]> {
+export async function getPantriesService(user: User, owner?: boolean, sort_by: "createdAt" | "updatedAt" | "name" = "createdAt", order: "ASC" | "DESC" = "ASC", page: number = 1, per_page: number = 10): Promise<PaginatedResponse<any>> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
         let pantries: Pantry[] = [];
+        let total = 0;
         const skip = (page - 1) * per_page;
         const take = per_page;
         if (owner === undefined) {
-            pantries = await queryRunner.manager
+            const baseQuery = queryRunner.manager
                 .createQueryBuilder(Pantry, "pantry")
-                .leftJoinAndSelect("pantry.owner", "owner")
-                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
+                .leftJoin("pantry.owner", "owner")
+                .leftJoin("pantry.sharedWith", "sharedWith")
                 .where("pantry.deletedAt IS NULL")
                 .andWhere(
                     "owner.id = :userId OR sharedWith.id = :userId",
                     { userId: user.id }
-                )
+                );
+
+            total = await baseQuery.getCount();
+
+            pantries = await baseQuery
+                .leftJoinAndSelect("pantry.owner", "owner")
+                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
                 .orderBy(`pantry.${sort_by}`, order)
                 .skip(skip)
                 .take(take)
                 .getMany();
         } else if (owner === true) {
+            total = await queryRunner.manager.count(Pantry, {
+                where: { owner: { id: user.id }, deletedAt: null }
+            });
+
             pantries = await queryRunner.manager.find(Pantry, {
                 where: { owner: { id: user.id }, deletedAt: null },
                 relations: ["owner", "sharedWith"],
@@ -86,22 +98,34 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
                 take
             });
         } else {
-            pantries = await queryRunner.manager
+            const baseQuery = queryRunner.manager
                 .createQueryBuilder(Pantry, "pantry")
-                .leftJoinAndSelect("pantry.owner", "owner")
-                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
+                .leftJoin("pantry.owner", "owner")
+                .leftJoin("pantry.sharedWith", "sharedWith")
                 .where("pantry.deletedAt IS NULL")
                 .andWhere(
                     "sharedWith.id = :userId AND owner.id != :userId",
                     { userId: user.id }
-                )
+                );
+
+            total = await baseQuery.getCount();
+
+            pantries = await baseQuery
+                .leftJoinAndSelect("pantry.owner", "owner")
+                .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
                 .orderBy(`pantry.${sort_by}`, order)
                 .skip(skip)
                 .take(take)
                 .getMany();
         }
         await queryRunner.commitTransaction();
-        return pantries.map(p => p.getFormattedPantry());
+
+        const formattedPantries = pantries.map(p => p.getFormattedPantry());
+
+        return {
+            data: formattedPantries,
+            pagination: createPaginationMeta(total, page, per_page)
+        };
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
         handleCaughtError(err);

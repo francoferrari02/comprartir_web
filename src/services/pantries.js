@@ -1,6 +1,7 @@
 // src/services/pantries.js
 import { api } from './http'
 import { mockPantries, delay } from './mockData'
+import { normalizePaginatedResponse, unwrapEntityResponse } from './pagination'
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
@@ -10,11 +11,17 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 export async function getPantries(params = {}) {
     if (USE_MOCKS) {
         await delay(300)
-        return mockPantries.getAll(params)
+        return normalizePaginatedResponse(mockPantries.getAll(params), {
+            page: params.page,
+            per_page: params.per_page,
+        })
     }
     try {
         const { data } = await api.get('/pantries', { params })
-        return data
+        return normalizePaginatedResponse(data, {
+            page: params.page,
+            per_page: params.per_page,
+        })
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener las despensas',
@@ -31,7 +38,7 @@ export async function createPantry(body) {
     }
     try {
         const { data } = await api.post('/pantries', body)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al crear la despensa',
@@ -48,7 +55,7 @@ export async function getPantryById(id) {
     }
     try {
         const { data } = await api.get(`/pantries/${id}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener la despensa',
@@ -65,7 +72,7 @@ export async function updatePantry(id, body) {
     }
     try {
         const { data } = await api.put(`/pantries/${id}`, body)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al actualizar la despensa',
@@ -82,7 +89,7 @@ export async function deletePantry(id) {
     }
     try {
         const { data } = await api.delete(`/pantries/${id}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al eliminar la despensa',
@@ -101,7 +108,7 @@ export async function sharePantry(id, email) {
     }
     try {
         const { data } = await api.post(`/pantries/${id}/share`, { email })
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al compartir la despensa',
@@ -118,7 +125,7 @@ export async function getPantrySharedUsers(id) {
     }
     try {
         const { data } = await api.get(`/pantries/${id}/shared-users`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al obtener usuarios compartidos',
@@ -135,7 +142,7 @@ export async function revokePantryShare(id, userId) {
     }
     try {
         const { data } = await api.delete(`/pantries/${id}/share/${userId}`)
-        return data
+        return unwrapEntityResponse(data)
     } catch (error) {
         throw {
             message: error.response?.data?.message || 'Error al revocar acceso',

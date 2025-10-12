@@ -396,23 +396,19 @@ async function fetchPurchases() {
     }
 
     console.log('📤 Historial - Fetching purchases with params:', params)
-    const response = await getPurchases(params)
-    console.log('📥 Historial - Response:', response)
+    const { data, pagination: meta } = await getPurchases(params)
+    console.log('📥 Historial - Items:', data)
 
-    // Handle different response formats
-    if (Array.isArray(response)) {
-      purchases.value = response
-      // Si no hay paginación explícita, calcular manualmente
-      pagination.value.totalItems = response.length
-      pagination.value.totalPages = Math.ceil(response.length / filters.value.per_page)
-    } else if (response.data) {
-      purchases.value = response.data
-      if (response.pagination) {
-        pagination.value = {
-          ...pagination.value,
-          ...response.pagination
-        }
+    purchases.value = Array.isArray(data) ? data : []
+
+    if (meta) {
+      pagination.value = {
+        ...pagination.value,
+        ...meta
       }
+    } else {
+      pagination.value.totalItems = purchases.value.length
+      pagination.value.totalPages = Math.ceil(purchases.value.length / filters.value.per_page)
     }
 
     console.log('✅ Historial - Purchases loaded:', purchases.value.length)

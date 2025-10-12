@@ -82,8 +82,8 @@ async function fetchProducts(search = '') {
       params.categoryId = props.categoryId
     }
 
-    const response = await getProducts(params)
-    products.value = response.data || response || []
+  const response = await getProducts(params)
+  products.value = Array.isArray(response?.data) ? response.data : []
   } catch (error) {
     console.error('Error fetching products:', error)
     products.value = []

@@ -35,15 +35,16 @@ describe('PantryItem Service - Unit tests', () => {
     const item = added;
     expect(item.quantity).toBeDefined();
 
-    const items: any = await PantryItemService.getPantryItemsService(pantry.id, user as any, 1, 10, 'DESC');
-    expect(Array.isArray(items)).toBe(true);
-    expect(items.length).toBeGreaterThanOrEqual(1);
+  const items: any = await PantryItemService.getPantryItemsService(pantry.id, user as any, 1, 10, 'DESC');
+  expect(Array.isArray(items.data)).toBe(true);
+  expect(items.data.length).toBeGreaterThanOrEqual(1);
+  expect(items.pagination.total).toBeGreaterThanOrEqual(1);
 
     const updated: any = await PantryItemService.updatePantryItemService(pantry.id, item.id, user as any, { quantity: 5 } as any);
     expect((updated as any).quantity).toBeDefined();
 
     await PantryItemService.deletePantryItemService(pantry.id, item.id, user as any);
-    const itemsAfter: any = await PantryItemService.getPantryItemsService(pantry.id, user as any, 1, 10, 'DESC');
-    expect(Array.isArray(itemsAfter)).toBe(true);
+  const itemsAfter: any = await PantryItemService.getPantryItemsService(pantry.id, user as any, 1, 10, 'DESC');
+  expect(Array.isArray(itemsAfter.data)).toBe(true);
   });
 });

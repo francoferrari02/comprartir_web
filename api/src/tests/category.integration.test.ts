@@ -42,10 +42,11 @@ describe('Category API - Integration tests', () => {
     await request(app).post('/api/categories').set('Authorization', `Bearer ${jwt}`).send({ name: 'C1' });
     await request(app).post('/api/categories').set('Authorization', `Bearer ${jwt}`).send({ name: 'C2' });
 
-    const res = await request(app).get('/api/categories').set('Authorization', `Bearer ${jwt}`);
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThanOrEqual(2);
+  const res = await request(app).get('/api/categories').set('Authorization', `Bearer ${jwt}`);
+  expect(res.status).toBe(200);
+  expect(Array.isArray(res.body.data)).toBe(true);
+  expect(res.body.data.length).toBeGreaterThanOrEqual(2);
+  expect(res.body.pagination.total).toBeGreaterThanOrEqual(2);
   });
 
   it('should get, update and delete a category', async () => {

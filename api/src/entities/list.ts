@@ -10,7 +10,8 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
+  Unique
 } from "typeorm";
 import {IsOptional, Length} from "class-validator";
 import {User} from "./user";
@@ -18,6 +19,7 @@ import {ListItem} from "./listItem";
 import {Purchase} from "./purchase";
 
 @Entity()
+@Unique("unique_list_name_per_owner", ["name", "owner"])
 export class List extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -85,7 +87,6 @@ export class List extends BaseEntity {
       metadata: this.metadata ?? null,
       owner: this.owner?.getFormattedUser() ?? null,
       sharedWith: this.sharedWith ? this.sharedWith.map(user => (user.getFormattedUser())) : [],
-      items: this.items ? this.items.map(item => item.getFormattedListItem()) : [],
       lastPurchasedAt: this.formatDate(this.lastPurchasedAt),
       createdAt: this.formatDate(this.createdAt),
       updatedAt: this.formatDate(this.updatedAt),

@@ -41,8 +41,10 @@ describe('Purchase Service - Unit tests', () => {
     expect(purchases.length).toBeGreaterThanOrEqual(1);
     const purchase = purchases[0];
 
-    const res = await PurchaseService.getPurchasesService({ user: user, page: 1, per_page: 10 } as any);
-    expect(Array.isArray(res)).toBe(true);
+  const res = await PurchaseService.getPurchasesService({ user: user, page: 1, per_page: 10 } as any);
+  expect(Array.isArray(res.data)).toBe(true);
+  expect(res.data.length).toBeGreaterThanOrEqual(1);
+  expect(res.pagination.total).toBeGreaterThanOrEqual(1);
 
     const fetched = await PurchaseService.getPurchaseByIdService(purchase.id, user as any);
     expect(fetched).toBeDefined();
