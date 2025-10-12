@@ -30,44 +30,30 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
     (res) => res,
-    (err) => {
-        // Log detallado para debugging
-        console.error('API error:', {
-            url: err?.config?.url,
-            method: err?.config?.method,
-            code: err?.code,
-            status: err?.response?.status,
-            data: err?.response?.data,
-            message: err?.message,
-        });
-
-        // Problemas de red / servidor caído
-        if (err?.code === 'ERR_NETWORK' || err?.code === 'ECONNREFUSED' || !err?.response) {
-            err.message = `No se puede conectar al servidor (${BASE_URL}). Verifica que la API esté corriendo.`;
-            console.error('🔴 API Server not available at:', BASE_URL);
+    (error) => {
+        // Network or CORS blocked: no response object
+        if (!error.response) {
+            console.error('🔴 Network/CORS error calling API:', error?.message || error);
+            const err = new Error('Network/CORS error: API inaccesible desde el navegador');
+            err.isNetworkError = true;
             return Promise.reject(err);
         }
 
+        // Have a response: map server message/status and propagate cleanly
+        const { status, data } = error.response;
+        const serverMsg = data?.message || data?.error || 'Request failed';
+        const err = new Error(serverMsg);
+        err.status = status;
+        err.data = data;
+
         // 401 → token inválido/expirado
-        if (err?.response?.status === 401) {
+        if (status === 401) {
             setAuthToken(null); // limpia storage y header
 
             // Evitar loop si ya estás en auth screens
             const p = window.location.pathname;
             if (!p.includes('/login') && !p.includes('/register') && !p.includes('/reset-password') && !p.includes('/verify') && !p.includes('/forgot-password')) {
                 window.location.href = '/login';
-            }
-        }
-
-        // Mensajes de error más claros
-        if (err?.response?.data) {
-            const { message } = err.response.data || {};
-            if (message) err.message = message;
-
-            switch (err.response.status) {
-                case 400: if (!message) err.message = 'Solicitud inválida'; break;
-                case 404: if (!message) err.message = 'Recurso no encontrado'; break;
-                case 500: if (!message) err.message = 'Error interno del servidor'; break;
             }
         }
 

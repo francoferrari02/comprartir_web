@@ -18,10 +18,8 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  origin: 'http://localhost:5173',
+  credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -31,10 +29,8 @@ app.use(morgan('dev'));
 app.use(apiEndpoints.USER, userRoutes);
 app.use(apiEndpoints.CATEGORIES, categoriesRoutes);
 app.use(apiEndpoints.PRODUCTS, productsRoutes);
-app.use(apiEndpoints.LISTS, listRoutes);
-app.use(apiEndpoints.LISTS, listItemsRoutes);
-app.use(apiEndpoints.PANTRIES, pantriesRoutes);
-app.use(apiEndpoints.PANTRIES, pantryItemsRoutes);
+app.use(apiEndpoints.LISTS, listRoutes, listItemsRoutes);
+app.use(apiEndpoints.PANTRIES, pantriesRoutes, pantryItemsRoutes);
 app.use(apiEndpoints.PURCHASES, purchasesRoutes);
 
 export { app };

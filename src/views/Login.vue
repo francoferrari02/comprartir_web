@@ -79,7 +79,7 @@
       <div class="text-center">
         <div class="text-caption text-medium-emphasis mb-2">
           ¿Olvidaste tu contraseña? 
-          <a href="#" @click.prevent="showForgotPassword" class="text-primary">Recuperarla</a>
+          <router-link :to="{ name: 'forgot-password' }" class="text-primary">Recuperarla</router-link>
         </div>
         
         <v-divider class="my-4"></v-divider>
@@ -90,55 +90,13 @@
         </div>
       </div>
     </v-card>
-
-    <!-- Modal para recuperar contraseña -->
-    <v-dialog v-model="forgotPasswordDialog" max-width="400">
-      <v-card class="pa-6">
-        <v-card-title class="text-h6 mb-4">Recuperar contraseña</v-card-title>
-        
-        <v-form ref="forgotForm" @submit.prevent="sendPasswordRecovery">
-          <v-text-field
-              v-model="forgotEmail"
-              label="Email"
-              type="email"
-              variant="outlined"
-              density="comfortable"
-              :rules="[rules.required, rules.email]"
-              hide-details="auto"
-              class="mb-4"
-              :disabled="forgotLoading"
-          />
-          
-          <div class="d-flex ga-2">
-            <v-btn
-                variant="outlined"
-                @click="forgotPasswordDialog = false"
-                :disabled="forgotLoading"
-                block
-            >
-              Cancelar
-            </v-btn>
-            <v-btn
-                type="submit"
-                color="primary"
-                variant="elevated"
-                class="btn-solid-primary"
-                :loading="forgotLoading"
-                block
-            >
-              Enviar
-            </v-btn>
-          </div>
-        </v-form>
-      </v-card>
-    </v-dialog>
   </v-container>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { login, forgotPassword, isLoggedIn } from '@/services/auth.service'
+import { login, isLoggedIn } from '@/services/auth.service'
 
 const route = useRoute()
 const router = useRouter()
@@ -152,12 +110,6 @@ const valid = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 const form = ref(null)
-
-// Estado del modal de recuperación
-const forgotPasswordDialog = ref(false)
-const forgotEmail = ref('')
-const forgotLoading = ref(false)
-const forgotForm = ref(null)
 
 // Validaciones
 const rules = {
@@ -210,7 +162,7 @@ async function onSubmit() {
   } catch (error) {
     console.error('Login error:', error)
     
-    // Manejo detallado de errores según el swagger
+    // Manejo detallado de errores
     let message = 'Error al iniciar sesión'
     
     // Verificar error de "Cuenta no verificada"
@@ -227,57 +179,21 @@ async function onSubmit() {
       return
     }
 
-    if (error?.response?.status === 400) {
+    if (error?.status === 400 || error?.response?.status === 400) {
       message = 'Email o contraseña incorrectos'
-    } else if (error?.response?.status === 401) {
+    } else if (error?.status === 401 || error?.response?.status === 401) {
       message = 'Credenciales inválidas'
-    } else if (error?.response?.status === 404) {
+    } else if (error?.status === 404 || error?.response?.status === 404) {
       message = 'Usuario no encontrado'
-    } else if (error?.response?.data?.message) {
-      message = error.response.data.message
-    } else if (error?.message) {
+    } else if (error?.message && !error?.isNetworkError) {
       message = error.message
+    } else if (error?.isNetworkError) {
+      message = 'No pudimos procesar tu solicitud. Verificá tu conexión.'
     }
     
     errorMsg.value = message
   } finally {
     loading.value = false
-  }
-}
-
-// Mostrar modal de recuperación de contraseña
-function showForgotPassword() {
-  forgotEmail.value = email.value
-  forgotPasswordDialog.value = true
-}
-
-// Enviar código de recuperación
-async function sendPasswordRecovery() {
-  const validation = await forgotForm.value?.validate()
-  if (!validation?.valid) return
-  
-  try {
-    forgotLoading.value = true
-    await forgotPassword(forgotEmail.value.trim().toLowerCase())
-
-    forgotPasswordDialog.value = false
-    successMsg.value = 'Se enviaron las instrucciones de recuperación a tu email'
-    
-  } catch (error) {
-    console.error('Password recovery error:', error)
-    
-    let message = 'Error al enviar el código de recuperación'
-    if (error?.response?.status === 404) {
-      message = 'No existe una cuenta con ese email'
-    } else if (error?.response?.data?.message) {
-      message = error.response.data.message
-    } else if (error?.message) {
-      message = error.message
-    }
-    
-    errorMsg.value = message
-  } finally {
-    forgotLoading.value = false
   }
 }
 </script>

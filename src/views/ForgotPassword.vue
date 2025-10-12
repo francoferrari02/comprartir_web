@@ -21,6 +21,8 @@
           class="mb-4"
           closable
           @click:close="errorMsg = ''"
+          role="alert"
+          aria-live="polite"
       >{{ errorMsg }}</v-alert>
 
       <v-alert
@@ -31,6 +33,8 @@
           class="mb-4"
           closable
           @click:close="successMsg = ''"
+          role="alert"
+          aria-live="polite"
       >{{ successMsg }}</v-alert>
 
       <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
@@ -47,6 +51,7 @@
             :disabled="loading || emailSent"
             prepend-inner-icon="mdi-email-outline"
             autofocus
+            @keyup.enter="onSubmit"
         />
 
         <v-btn
@@ -62,16 +67,29 @@
           Enviar código
         </v-btn>
 
-        <v-btn
-            v-else
-            color="primary"
-            variant="elevated"
-            class="btn-rounded btn-solid-primary mb-3"
-            @click="goToReset"
-            block
-        >
-          Ir a restablecer contraseña
-        </v-btn>
+        <template v-else>
+          <v-btn
+              color="primary"
+              variant="elevated"
+              class="btn-rounded btn-solid-primary mb-3"
+              @click="goToReset"
+              block
+          >
+            Ingresar código
+          </v-btn>
+
+          <v-btn
+              variant="outlined"
+              color="primary"
+              class="btn-rounded mb-3"
+              :loading="resending"
+              :disabled="resendCooldown > 0"
+              @click="resendCode"
+              block
+          >
+            {{ resendCooldown > 0 ? `Reenviar código (${resendCooldown}s)` : 'Reenviar código' }}
+          </v-btn>
+        </template>
       </v-form>
 
       <div class="text-center">
@@ -85,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { forgotPassword } from '@/services/auth.service'
 
@@ -95,11 +113,14 @@ const router = useRouter()
 // Estado del formulario
 const email = ref('')
 const loading = ref(false)
+const resending = ref(false)
 const valid = ref(false)
 const emailSent = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 const form = ref(null)
+const resendCooldown = ref(0)
+let cooldownInterval = null
 
 // Validaciones
 const rules = {
@@ -117,6 +138,24 @@ onMounted(() => {
   }
 })
 
+onUnmounted(() => {
+  if (cooldownInterval) {
+    clearInterval(cooldownInterval)
+  }
+})
+
+// Iniciar cooldown de 30 segundos
+function startCooldown() {
+  resendCooldown.value = 30
+  cooldownInterval = setInterval(() => {
+    resendCooldown.value--
+    if (resendCooldown.value <= 0) {
+      clearInterval(cooldownInterval)
+      cooldownInterval = null
+    }
+  }, 1000)
+}
+
 // Función principal
 async function onSubmit() {
   errorMsg.value = ''
@@ -130,19 +169,22 @@ async function onSubmit() {
     await forgotPassword(email.value.trim().toLowerCase())
 
     emailSent.value = true
-    successMsg.value = 'Te enviamos un código a tu email. Revisá tu bandeja de entrada.'
+    successMsg.value = 'Te enviamos un código a tu correo. Revisá tu bandeja de entrada.'
+    startCooldown()
 
   } catch (error) {
     console.error('Forgot password error:', error)
 
     let message = 'Error al enviar el código de recuperación'
 
-    if (error?.response?.status === 404) {
-      message = 'No existe una cuenta con ese email'
-    } else if (error?.response?.data?.message) {
-      message = error.response.data.message
-    } else if (error?.message) {
+    if (error?.status === 404 || error?.response?.status === 404) {
+      message = 'Email no registrado'
+    } else if (error?.status === 400 || error?.response?.status === 400) {
+      message = 'Email inválido'
+    } else if (error?.message && !error?.isNetworkError) {
       message = error.message
+    } else if (error?.isNetworkError) {
+      message = 'No pudimos procesar tu solicitud. Verificá tu conexión.'
     }
 
     errorMsg.value = message
@@ -151,9 +193,40 @@ async function onSubmit() {
   }
 }
 
-// Redirigir a la página de reset
+// Reenviar código
+async function resendCode() {
+  errorMsg.value = ''
+  successMsg.value = ''
+
+  try {
+    resending.value = true
+    await forgotPassword(email.value.trim().toLowerCase())
+
+    successMsg.value = 'Código reenviado exitosamente'
+    startCooldown()
+
+  } catch (error) {
+    console.error('Resend code error:', error)
+
+    let message = 'Error al reenviar el código'
+    if (error?.message && !error?.isNetworkError) {
+      message = error.message
+    } else if (error?.isNetworkError) {
+      message = 'No pudimos procesar tu solicitud. Verificá tu conexión.'
+    }
+
+    errorMsg.value = message
+  } finally {
+    resending.value = false
+  }
+}
+
+// Redirigir a la página de reset con email
 function goToReset() {
-  router.push('/reset-password')
+  router.push({
+    path: '/reset-password',
+    query: { email: email.value }
+  })
 }
 </script>
 

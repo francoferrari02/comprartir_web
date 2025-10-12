@@ -43,7 +43,7 @@ export async function verifyAccount(payload) {
 
 // POST /users/forgot-password?email=<email>
 export async function forgotPassword(email) {
-    const response = await api.post('/users/forgot-password', null, {
+    const response = await api.post('/users/forgot-password', {}, {
         params: { email }
     })
     return response.data

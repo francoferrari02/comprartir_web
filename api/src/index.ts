@@ -40,6 +40,30 @@ db.initialize()
 
 const app: Express = express();
 
+// Allow front origin; use env FRONT_ORIGIN with default to Vite
+const FRONT_ORIGIN = process.env.FRONT_ORIGIN ?? 'http://localhost:5173';
+
+// CORS configuration - must be before routes
+app.use(cors({
+  origin: FRONT_ORIGIN,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','Refresh-Token'],
+  exposedHeaders: ['Authorization','Refresh-Token'],
+  credentials: false,
+}));
+
+// CORS fallback middleware to guarantee headers on error responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', FRONT_ORIGIN);
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Refresh-Token');
+  res.header('Access-Control-Expose-Headers', 'Authorization, Refresh-Token');
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -51,14 +75,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-
 app.use(cookieParser());
-
-app.use(cors({
-  origin: '*', // Permitir cualquier origen
-  allowedHeaders: ['Authorization', 'Refresh-Token', 'Content-Type'],
-  exposedHeaders: ['Authorization', 'Refresh-Token']
-}));
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,

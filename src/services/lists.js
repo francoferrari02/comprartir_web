@@ -176,14 +176,14 @@ export async function getSharedUsers(id) {
     }
 }
 
-// DELETE /shopping-lists/{id}/shared-users/{userId}
+// DELETE /shopping-lists/{id}/share/{userId}
 export async function revokeShareShoppingList(id, userId) {
     if (USE_MOCKS) {
         await delay(300)
         return mockShoppingLists.revokeShare(id, userId)
     }
     try {
-        const { data } = await api.delete(`/shopping-lists/${id}/shared-users/${userId}`)
+        const { data } = await api.delete(`/shopping-lists/${id}/share/${userId}`)
         return data
     } catch (error) {
         throw {
