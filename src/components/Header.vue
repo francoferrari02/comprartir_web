@@ -104,6 +104,11 @@
                   prepend-icon="mdi-logout"
                   @click="handleLogout"
               />
+              <v-list-item
+                  title="Cambiar contraseña"
+                  prepend-icon="mdi-lock-reset"
+                  @click="handleChangePassword"
+              />
             </v-list>
           </v-card>
         </v-menu>
@@ -113,9 +118,9 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed, inject, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { logout } from '@/services/auth.service'
+import { logout, getProfile } from '@/services/auth.service'
 import { useNotificationsStore } from '@/stores/notifications'
 import logoSrc from '@/assets/Logo_Comprartir.png'
 
@@ -161,12 +166,46 @@ async function handleLogout() {
   }
 }
 
+async function loadUserEmail() {
+  if (!isAuthenticated?.value) {
+    userEmail.value = ''
+    return
+  }
+
+  try {
+    const profile = await getProfile()
+    userEmail.value = typeof profile?.email === 'string' ? profile.email.trim().toLowerCase() : ''
+  } catch (error) {
+    console.error('Error loading user email:', error)
+    userEmail.value = ''
+  }
+}
+
+function handleChangePassword() {
+  const normalizedEmail = userEmail.value ? userEmail.value.trim().toLowerCase() : ''
+  const emailQuery = normalizedEmail ? { email: normalizedEmail } : {}
+  router.push({ path: '/forgot-password', query: emailQuery })
+}
+
 onMounted(() => {
   // Initialize notifications
   if (isAuthenticated.value) {
     notificationsStore.init()
   }
+  loadUserEmail()
 })
+
+watch(
+  () => isAuthenticated?.value,
+  value => {
+    if (value) {
+      notificationsStore.init()
+      loadUserEmail()
+    } else {
+      userEmail.value = ''
+    }
+  }
+)
 </script>
 
 <style scoped>
