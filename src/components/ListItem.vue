@@ -8,7 +8,17 @@
     @click="handleCardClick"
   >
     <div class="d-flex align-center justify-space-between mb-3">
-      <div class="text-h6 font-weight-bold list-title">{{ name }}</div>
+      <div class="d-flex align-center ga-2 list-title-container">
+        <div class="text-h6 font-weight-bold list-title">{{ name }}</div>
+        <v-icon
+          v-if="recurring"
+          size="small"
+          color="primary"
+          class="recurring-icon"
+        >
+          mdi-sync
+        </v-icon>
+      </div>
       <v-chip size="small" class="chip-rounded chip-counter">{{ bought }}/{{ total }}</v-chip>
     </div>
 
@@ -59,6 +69,7 @@ const props = defineProps({
   bought: { type: Number, required: true },
   total: { type: Number, required: true },
   sharedWith: { type: Array, default: () => [] },
+  recurring: { type: Boolean, default: false },
   showActions: { type: Boolean, default: true },
   showShared: { type: Boolean, default: true },
   cardClickable: { type: Boolean, default: false },
@@ -95,6 +106,16 @@ function openList() {
 <style scoped>
 .list-title {
   color: var(--text);
+}
+
+.list-title-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.recurring-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 /* Sección de usuarios compartidos con altura fija */

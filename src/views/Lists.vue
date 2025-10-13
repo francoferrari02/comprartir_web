@@ -518,9 +518,13 @@ const orderOptions = [
 
 const recurringOptions = [
   { title: 'Todas', value: null },
-  { title: 'Compartidas', value: true },
-  { title: 'No Compartidas', value: false }
+  { title: 'Recurrentes', value: true },
+  { title: 'No Recurrentes', value: false }
 ]
+
+const categoryOptions = ref([
+  { title: 'Todas las categorías', value: null }
+])
 
 // Methods
 async function fetchLists() {

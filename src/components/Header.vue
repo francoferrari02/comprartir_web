@@ -8,7 +8,29 @@
         </router-link>
       </div>
 
-      <div class="header-nav" v-if="isAuthenticated" role="navigation" aria-label="Secciones principales">
+      <!-- Menú hamburguesa para móvil -->
+      <v-menu v-if="isAuthenticated" location="bottom start" offset="8" class="d-lg-none">
+        <template #activator="{ props }">
+          <v-btn icon class="mobile-menu-btn d-lg-none" v-bind="props" aria-label="Menú">
+            <v-icon>mdi-menu</v-icon>
+          </v-btn>
+        </template>
+        <v-card class="dropdown-menu" min-width="240">
+          <v-list density="comfortable">
+            <v-list-item
+              v-for="link in navLinks"
+              :key="link.to"
+              :to="link.to"
+              :title="link.label"
+              :prepend-icon="link.icon"
+              :active="isNavActive(link.to)"
+            />
+          </v-list>
+        </v-card>
+      </v-menu>
+
+      <!-- Nav para pantallas grandes -->
+      <div class="header-nav d-none d-lg-flex" v-if="isAuthenticated" role="navigation" aria-label="Secciones principales">
         <v-btn
           v-for="link in navLinks"
           :key="link.to"
@@ -273,40 +295,39 @@ watch(
 
 .appbar-shell {
   width: 100%;
-  
   position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 72px;
-  padding: 0 40px;
-  
+  padding: 0 20px;
 }
 
 .header-brand {
-  justify-self: start;
-  padding-left: 20px;
-  
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.mobile-menu-btn {
+  margin-left: auto;
+  margin-right: 8px;
 }
 
 .header-nav {
   display: flex;
   justify-content: center;
   gap: 14px;
-  flex-wrap: wrap;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 1;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .header-actions {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  justify-self: end;
   margin-left: auto;
-  padding-right: 20px;
-  
+  flex-shrink: 0;
 }
 
 /* Logo como link neutro */
@@ -406,26 +427,41 @@ watch(
   background-color: var(--btn-bg-hover, #3E8E47) !important;
 }
 
-@media (max-width: 1024px){
-  .header-nav {
-    position: static;
-    transform: none;
-    margin: 0 auto;
+@media (max-width: 1264px) {
+  .appbar-shell {
+    padding: 0 16px;
   }
 }
 
-@media (max-width: 900px){  
-  .header-nav { display: none; }
-  .auth-group { gap: 4px; }
+@media (max-width: 960px) {
+  .appbar-shell {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .header-brand {
+    padding-left: 0;
+  }
+
+  .header-actions {
+    padding-right: 0;
+    gap: 8px;
+  }
+
+  .actions-btn {
+    height: 44px !important;
+    width: 44px !important;
+  }
 }
 
-@media (max-width: 600px){
-  .auth-group .v-btn {
-    min-width: auto;
-    padding: 0 8px;
+@media (max-width: 600px) {
+  .brand {
+    font-size: 1rem !important;
   }
-  .auth-group .v-btn .v-btn__prepend {
-    display: none;
+
+  .brand-logo {
+    width: 44px !important;
+    height: 44px !important;
   }
 }
 </style>

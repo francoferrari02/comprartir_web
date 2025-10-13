@@ -20,6 +20,7 @@
               :bought="list.bought"
               :total="list.total"
               :shared-with="list.sharedWith || []"
+              :recurring="list.recurring"
               @delete="$emit('delete-list', list)"
               @edit="$emit('edit-list', list)"
             />
