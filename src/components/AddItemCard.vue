@@ -12,40 +12,59 @@
         class="mb-3"
         :disabled="loading"
         :category-key="selectedCategoryKey"
+        :category-id="selectedCategoryId"
         @product-selected="onProductSelected"
         @created="onProductSelected"
-        @category-required="onCategoryRequired"
       />
 
       <div class="mb-3">
         <label class="app-input-label" for="add-item-category">Categoría</label>
-        <v-select
+        <v-autocomplete
           id="add-item-category"
-          v-model="selectedCategoryKey"
+          v-model="selectedCategoryValue"
           :items="categoryOptions"
           item-title="title"
           item-value="value"
+          clearable
           density="comfortable"
           placeholder="Seleccioná una categoría"
-          :error="Boolean(categoryError)"
-          :error-messages="categoryError ? [categoryError] : []"
+          :loading="loadingCategories || creatingCategory"
+          :disabled="loadingCategories"
+          v-model:search="categorySearch"
           class="app-input"
         >
           <template #selection="{ item }">
             <div class="d-flex align-center" style="gap: 8px;">
-              <v-icon size="18" color="#2a2a44">{{ item?.raw?.icon }}</v-icon>
+              <v-icon v-if="item?.raw?.icon" size="18" color="#2a2a44">{{ item.raw.icon }}</v-icon>
               <span>{{ item?.raw?.title }}</span>
             </div>
           </template>
           <template #item="{ props, item }">
             <v-list-item v-bind="props">
               <template #prepend>
-                <v-icon color="#2a2a44">{{ item.raw.icon }}</v-icon>
+                <v-icon v-if="item.raw.icon" color="#2a2a44">{{ item.raw.icon }}</v-icon>
               </template>
               <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
             </v-list-item>
           </template>
-        </v-select>
+          <template #append-item>
+            <v-divider v-if="canCreateCategory" class="my-2" />
+            <v-list-item
+              v-if="canCreateCategory"
+              :disabled="creatingCategory"
+              class="create-category-item"
+              @click="createCategoryFromSearch"
+            >
+              <template #prepend>
+                <v-icon color="primary">mdi-plus-circle</v-icon>
+              </template>
+              <v-list-item-title>
+                Crear categoría "{{ categorySearch.trim() }}"
+              </v-list-item-title>
+            </v-list-item>
+          </template>
+        </v-autocomplete>
+        <p class="text-caption text-medium-emphasis mt-1">Podés dejarla vacía o crear una nueva categoría.</p>
       </div>
 
       <!-- Quantity and unit -->
@@ -110,9 +129,10 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
 import { CATEGORY_DEFINITIONS, CATEGORY_BY_KEY, CATEGORY_KEY_BY_NAME } from '@/constants/categories'
+import { getCategories, createCategory } from '@/services/categories'
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -121,17 +141,91 @@ const props = defineProps({
 
 const emit = defineEmits(['add-item'])
 
+const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
+
 const selectedProductId = ref(null)
-const selectedCategoryKey = ref(null)
-const categoryError = ref('')
+const selectedCategoryValue = ref(null)
+const categorySearch = ref('')
 const quantity = ref(1)
 const unit = ref('un')
 
-const categoryOptions = CATEGORY_DEFINITIONS.map(category => ({
-  title: category.name,
-  value: category.key,
-  icon: category.icon,
-}))
+const loadingCategories = ref(false)
+const creatingCategory = ref(false)
+const serverCategories = ref([])
+const extraCategories = ref([])
+
+const mergedCategories = computed(() => {
+  const map = new Map()
+
+  const addCategory = (category) => {
+    if (!category || !category.name) return
+    const name = category.name.trim()
+    if (!name) return
+    const key = name.toLowerCase()
+    const existing = map.get(key)
+    const icon = category.icon || existing?.icon || DEFAULT_CATEGORY_ICON
+    const payload = {
+      name,
+      icon,
+      keyValue: category.key ?? existing?.keyValue ?? null,
+      id: category.id ?? existing?.id ?? null,
+    }
+
+    map.set(key, payload)
+  }
+
+  CATEGORY_DEFINITIONS.forEach(def => addCategory({
+    name: def.name,
+    icon: def.icon,
+    key: def.key,
+  }))
+
+  serverCategories.value.forEach(cat => addCategory(cat))
+  extraCategories.value.forEach(cat => addCategory(cat))
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+})
+
+const categoryOptions = computed(() => {
+  return mergedCategories.value.map(cat => {
+    const value = cat.id ? `id:${cat.id}` : cat.keyValue ? `key:${cat.keyValue}` : `name:${slugifyName(cat.name)}`
+    return {
+      title: cat.name,
+      value,
+      icon: cat.icon || DEFAULT_CATEGORY_ICON,
+      id: cat.id ?? null,
+      key: cat.keyValue ?? null,
+      name: cat.name,
+    }
+  })
+})
+
+const categoryLookupByValue = computed(() => {
+  const map = new Map()
+  categoryOptions.value.forEach(option => {
+    map.set(option.value, option)
+  })
+  return map
+})
+
+const categoryLookupByName = computed(() => {
+  const map = new Map()
+  categoryOptions.value.forEach(option => {
+    map.set(option.name.toLowerCase(), option)
+  })
+  return map
+})
+
+const selectedCategoryData = computed(() => categoryLookupByValue.value.get(selectedCategoryValue.value) ?? null)
+
+const selectedCategoryKey = computed(() => selectedCategoryData.value?.key ?? null)
+const selectedCategoryId = computed(() => selectedCategoryData.value?.id ?? null)
+
+const canCreateCategory = computed(() => {
+  const name = (categorySearch.value || '').trim()
+  if (!name) return false
+  return !categoryLookupByName.value.has(name.toLowerCase())
+})
 
 const units = [
   'un',
@@ -147,6 +241,10 @@ const units = [
   'botella'
 ]
 
+onMounted(() => {
+  loadCategories()
+})
+
 async function addProduct() {
   if (!selectedProductId.value) return
 
@@ -161,8 +259,8 @@ async function addProduct() {
 
   // Reset form
   selectedProductId.value = null
-  selectedCategoryKey.value = null
-  categoryError.value = ''
+  selectedCategoryValue.value = null
+  categorySearch.value = ''
   quantity.value = 1
   unit.value = 'un'
 }
@@ -176,40 +274,129 @@ function quickAdd(product) {
 
 function onProductSelected(product) {
   if (!product) {
+    selectedCategoryValue.value = null
     return
   }
-  const key = deriveCategoryKey(product)
-  if (key) {
-    selectedCategoryKey.value = key
+  if (!product.category) {
+    selectedCategoryValue.value = null
+    return
+  }
+
+  const normalized = normalizeProductCategory(product.category)
+  if (!normalized) {
+    selectedCategoryValue.value = null
+    return
+  }
+
+  addExtraCategory(normalized)
+
+  nextTick(() => {
+    const option = categoryLookupByName.value.get(normalized.name.toLowerCase())
+    if (option) {
+      selectedCategoryValue.value = option.value
+    }
+  })
+}
+
+function normalizeProductCategory(category) {
+  if (!category) return null
+
+  const rawName = category.name || (category.metadata?.key && CATEGORY_BY_KEY[category.metadata.key]?.name)
+  const name = rawName ? rawName.trim() : null
+  if (!name) return null
+
+  const metadataKey = category.metadata?.key ?? CATEGORY_KEY_BY_NAME[name.toLowerCase()] ?? null
+  const icon = category.metadata?.icon || (metadataKey && CATEGORY_BY_KEY[metadataKey]?.icon) || DEFAULT_CATEGORY_ICON
+  const id = category.id ?? null
+
+  return { name, icon, key: metadataKey, id }
+}
+
+function addExtraCategory(category) {
+  if (!category?.name) return
+  const lower = category.name.toLowerCase()
+  const existing = extraCategories.value.find(cat => cat.name.toLowerCase() === lower)
+  if (existing) {
+    existing.icon = category.icon || existing.icon
+    existing.id = category.id ?? existing.id
+    existing.key = category.key ?? existing.key
+    return
+  }
+  extraCategories.value.push({
+    name: category.name,
+    icon: category.icon || DEFAULT_CATEGORY_ICON,
+    id: category.id ?? null,
+    key: category.key ?? null,
+  })
+}
+
+async function loadCategories() {
+  loadingCategories.value = true
+  try {
+    const response = await getCategories({ per_page: 100, order: 'asc', sort_by: 'name' })
+    const list = Array.isArray(response) ? response : response?.data ?? []
+    serverCategories.value = list.map(cat => ({
+      id: cat.id ?? null,
+      name: cat.name,
+      icon: cat.metadata?.icon || DEFAULT_CATEGORY_ICON,
+      key: cat.metadata?.key ?? null,
+    }))
+  } catch (error) {
+    console.error('loadCategories error', error)
+    serverCategories.value = []
+  } finally {
+    loadingCategories.value = false
   }
 }
 
-function onCategoryRequired() {
-  categoryError.value = 'Seleccioná una categoría para crear este producto'
+async function createCategoryFromSearch() {
+  const name = (categorySearch.value || '').trim()
+  if (!name || !canCreateCategory.value) return
+
+  creatingCategory.value = true
+  try {
+    const newCategory = await createCategory({
+      name,
+      metadata: {
+        icon: DEFAULT_CATEGORY_ICON,
+      },
+    })
+
+    const saved = {
+      id: newCategory?.id ?? null,
+      name: newCategory?.name ?? name,
+      icon: newCategory?.metadata?.icon || DEFAULT_CATEGORY_ICON,
+      key: newCategory?.metadata?.key ?? null,
+    }
+
+    serverCategories.value = [saved, ...serverCategories.value]
+
+    nextTick(() => {
+      const option = categoryLookupByName.value.get(saved.name.toLowerCase())
+      if (option) {
+        selectedCategoryValue.value = option.value
+      }
+      categorySearch.value = ''
+    })
+  } catch (error) {
+    console.error('createCategoryFromSearch error', error)
+  } finally {
+    creatingCategory.value = false
+  }
 }
 
-function deriveCategoryKey(product) {
-  const metadataKey = product?.category?.metadata?.key
-  if (metadataKey && CATEGORY_BY_KEY[metadataKey]) {
-    return metadataKey
-  }
-
-  const name = product?.category?.name?.toLowerCase()
-  if (name && CATEGORY_KEY_BY_NAME[name]) {
-    return CATEGORY_KEY_BY_NAME[name]
-  }
-
-  return null
+function slugifyName(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
 }
-
-watch(selectedCategoryKey, (value) => {
-  if (value) {
-    categoryError.value = ''
-  }
-})
 </script>
 
 <style scoped>
 .gap-2 { gap: 8px; }
 .chip-rounded { border-radius: 16px; }
+.create-category-item { cursor: pointer; }
 </style>

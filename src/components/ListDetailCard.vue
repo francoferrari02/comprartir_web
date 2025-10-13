@@ -297,17 +297,50 @@
         </v-card-title>
         <v-divider />
         <v-card-text class="pa-4">
-          <!-- Nombre del producto (solo lectura) -->
+          <!-- Nombre del producto -->
           <div class="mb-3">
             <label class="app-input-label" for="details-product-name">Producto</label>
             <v-text-field
               id="details-product-name"
-              :model-value="detailsDialog.productName"
+              v-model="detailsDialog.form.productName"
               density="comfortable"
-              readonly
               prepend-inner-icon="mdi-package-variant"
+              placeholder="Nombre del producto"
               class="app-input"
             />
+          </div>
+
+          <!-- Categoría del producto -->
+          <div class="mb-3">
+            <label class="app-input-label" for="details-product-category">Categoría</label>
+            <v-autocomplete
+              id="details-product-category"
+              v-model="detailsCategoryValue"
+              :items="detailsCategoryOptions"
+              item-title="title"
+              item-value="value"
+              clearable
+              density="comfortable"
+              placeholder="Sin categoría"
+              :loading="detailsCategoriesLoading"
+              class="app-input"
+            >
+              <template #selection="{ item }">
+                <div class="d-flex align-center" style="gap: 8px;">
+                  <v-icon v-if="item?.raw?.icon" size="18" color="#2a2a44">{{ item.raw.icon }}</v-icon>
+                  <span>{{ item?.raw?.title }}</span>
+                </div>
+              </template>
+              <template #item="{ props, item }">
+                <v-list-item v-bind="props">
+                  <template #prepend>
+                    <v-icon v-if="item.raw.icon" color="#2a2a44">{{ item.raw.icon }}</v-icon>
+                  </template>
+                  <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
+                </v-list-item>
+              </template>
+            </v-autocomplete>
+            <p class="text-caption text-medium-emphasis mt-1">Dejar vacío para quitar la categoría.</p>
           </div>
 
           <!-- Cantidad -->
@@ -352,14 +385,6 @@
             />
           </div>
 
-          <!-- Estado de compra -->
-          <v-switch
-            v-model="detailsDialog.form.purchased"
-            label="Marcar como comprado"
-            color="success"
-            hide-details
-            inset
-          />
         </v-card-text>
         <v-divider />
         <v-card-actions class="pa-4 d-flex justify-space-between">
@@ -400,8 +425,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import ProductItem from './ProductItem.vue'
+import { CATEGORY_DEFINITIONS, CATEGORY_BY_KEY, CATEGORY_KEY_BY_NAME } from '@/constants/categories'
+import { useCategoriesStore } from '@/stores/categories'
+import { updateProduct as updateProductService } from '@/services/products.service'
+import { ensureCategoryByKey } from '@/services/categories'
 
 const props = defineProps({
   list: {
@@ -437,6 +466,13 @@ const emit = defineEmits([
   'delete-list'
 ])
 
+const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
+const categoriesStore = useCategoriesStore()
+
+const detailsCategoryValue = ref(null)
+const extraCategories = ref([])
+const detailsCategoriesLoading = computed(() => categoriesStore.loading)
+
 const editingName = ref(false)
 const editName = ref(props.list.name)
 const editingDescription = ref(false)
@@ -447,12 +483,15 @@ const detailsDialog = ref({
   open: false,
   loading: false,
   productId: null,
-  productName: '',
+  productEntityId: null,
+  originalProductName: '',
+  originalCategoryId: null,
+  originalCategoryKey: null,
   form: {
+    productName: '',
     quantity: 1,
     unit: 'un',
-    description: '',
-    purchased: false
+    description: ''
   }
 })
 
@@ -472,6 +511,71 @@ const unitOptions = [
   'sobre',
   'frasco'
 ]
+
+const mergedCategories = computed(() => {
+  const map = new Map()
+
+  const addCategory = (category) => {
+    if (!category || !category.name) return
+    const name = category.name.trim()
+    if (!name) return
+    const key = name.toLowerCase()
+    const existing = map.get(key)
+    const icon = category.icon || existing?.icon || DEFAULT_CATEGORY_ICON
+
+    map.set(key, {
+      name,
+      icon,
+      keyValue: category.key ?? existing?.keyValue ?? null,
+      id: category.id ?? existing?.id ?? null,
+    })
+  }
+
+  CATEGORY_DEFINITIONS.forEach(def => addCategory({
+    name: def.name,
+    icon: def.icon,
+    key: def.key,
+  }))
+
+  const storeCategories = categoriesStore.items || []
+  storeCategories.forEach(cat => addCategory({
+    name: cat.name,
+    icon: cat.metadata?.icon || DEFAULT_CATEGORY_ICON,
+    key: cat.metadata?.key ?? null,
+    id: cat.id ?? null,
+  }))
+
+  extraCategories.value.forEach(cat => addCategory(cat))
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+})
+
+const detailsCategoryOptions = computed(() => mergedCategories.value.map(cat => ({
+  title: cat.name,
+  value: cat.id ? `id:${cat.id}` : cat.keyValue ? `key:${cat.keyValue}` : `name:${slugifyName(cat.name)}`,
+  icon: cat.icon || DEFAULT_CATEGORY_ICON,
+  id: cat.id ?? null,
+  key: cat.keyValue ?? null,
+  name: cat.name,
+})))
+
+const detailsCategoryLookupByValue = computed(() => {
+  const map = new Map()
+  detailsCategoryOptions.value.forEach(option => {
+    map.set(option.value, option)
+  })
+  return map
+})
+
+const detailsCategoryLookupByName = computed(() => {
+  const map = new Map()
+  detailsCategoryOptions.value.forEach(option => {
+    map.set(option.name.toLowerCase(), option)
+  })
+  return map
+})
+
+const detailsSelectedCategory = computed(() => detailsCategoryLookupByValue.value.get(detailsCategoryValue.value) ?? null)
 
 // Computed
 const purchasedCount = computed(() => {
@@ -557,51 +661,105 @@ watch(() => props.list.description, (newDescription) => {
   editDescription.value = newDescription || ''
 })
 
+onMounted(() => {
+  if (!categoriesStore.items.length && !categoriesStore.loading) {
+    categoriesStore.fetch().catch((error) => {
+      console.error('Error fetching categories for details dialog:', error)
+    })
+  }
+})
+
 // Product details methods
-function openProductDetails(productId) {
-  const product = props.products.find(p => p.id === productId)
-  if (!product) return
+function openProductDetails(itemId) {
+  const item = props.products.find(p => p.id === itemId)
+  if (!item) return
 
-  // Obtener el nombre del producto desde diferentes estructuras posibles
-  const productName = product.product?.name || product.productName || product.name || `Producto #${product.id}`
+  const productEntity = item.product || {}
+  const productName = productEntity.name || item.productName || item.name || `Producto #${item.id}`
+  const normalizedCategory = normalizeProductCategory(productEntity.category || item.category)
 
-  detailsDialog.value = {
-    open: true,
-    loading: false,
-    productId: product.id,
-    productName: productName,
-    form: {
-      quantity: product.quantity || 1,
-      unit: product.unit || 'un',
-      description: product.metadata?.description || product.metadata?.notes || '',
-      purchased: product.purchased || false
-    }
+  detailsDialog.value.open = true
+  detailsDialog.value.loading = false
+  detailsDialog.value.productId = item.id
+  detailsDialog.value.productEntityId = productEntity.id ?? item.productId ?? null
+  detailsDialog.value.originalProductName = productName
+  detailsDialog.value.originalCategoryId = normalizedCategory?.id ?? null
+  detailsDialog.value.originalCategoryKey = normalizedCategory?.key ?? null
+  detailsDialog.value.form = {
+    productName,
+    quantity: item.quantity || 1,
+    unit: item.unit || 'un',
+    description: item.metadata?.description || item.metadata?.notes || ''
+  }
+
+  if (normalizedCategory) {
+    addExtraCategory(normalizedCategory)
+    nextTick(() => {
+      const option = detailsCategoryLookupByName.value.get(normalizedCategory.name.toLowerCase())
+      detailsCategoryValue.value = option ? option.value : null
+    })
+  } else {
+    detailsCategoryValue.value = null
   }
 }
 
 function closeDetailsDialog() {
   detailsDialog.value.open = false
+  detailsCategoryValue.value = null
 }
 
 async function saveProductDetails() {
   detailsDialog.value.loading = true
 
   try {
-    const updates = {
+    const itemUpdates = {
       quantity: Number(detailsDialog.value.form.quantity),
       unit: String(detailsDialog.value.form.unit),
       metadata: {
-        ...detailsDialog.value.form.metadata,
         description: detailsDialog.value.form.description || null
       }
     }
 
-    // Si cambió el estado de compra, también actualizar
-    if (detailsDialog.value.form.purchased !== props.products.find(p => p.id === detailsDialog.value.productId)?.purchased) {
-      emit('toggle-product', detailsDialog.value.productId)
+    let updatedProductEntity = null
+    const productPayload = {}
+    const newName = (detailsDialog.value.form.productName || '').trim()
+    const originalName = (detailsDialog.value.originalProductName || '').trim()
+
+    if (newName && newName !== originalName) {
+      productPayload.name = newName
     }
 
-    emit('update-product', detailsDialog.value.productId, updates)
+    const selectedCategory = detailsSelectedCategory.value
+    const originalCategoryId = detailsDialog.value.originalCategoryId ?? null
+    const originalCategoryKey = detailsDialog.value.originalCategoryKey ?? null
+
+    if (!selectedCategory) {
+      if (originalCategoryId || originalCategoryKey) {
+        productPayload.category = null
+      }
+    } else {
+      const selectedId = selectedCategory.id ?? null
+      const selectedKey = selectedCategory.key ?? null
+
+      if ((selectedId ?? null) !== (originalCategoryId ?? null) || (selectedKey ?? null) !== (originalCategoryKey ?? null)) {
+        if (selectedId) {
+          productPayload.category = { id: Number(selectedId) }
+        } else if (selectedKey) {
+          const ensured = await ensureCategoryByKey(selectedKey)
+          if (ensured?.id) {
+            productPayload.category = { id: Number(ensured.id) }
+          }
+        }
+      }
+    }
+
+    const hasProductChanges = Object.keys(productPayload).length > 0
+
+    if (hasProductChanges && detailsDialog.value.productEntityId) {
+      updatedProductEntity = await updateProductService(detailsDialog.value.productEntityId, productPayload)
+    }
+
+    emit('update-product', detailsDialog.value.productId, itemUpdates, updatedProductEntity)
     closeDetailsDialog()
   } catch (error) {
     console.error('Error updating product details:', error)
@@ -615,6 +773,48 @@ function confirmDeleteFromDetails() {
     emit('delete-product', detailsDialog.value.productId)
     closeDetailsDialog()
   }
+}
+
+function normalizeProductCategory(category) {
+  if (!category) return null
+
+  const rawName = category.name || (category.metadata?.key && CATEGORY_BY_KEY[category.metadata.key]?.name)
+  const name = rawName ? rawName.trim() : null
+  if (!name) return null
+
+  const metadataKey = category.metadata?.key ?? CATEGORY_KEY_BY_NAME[name.toLowerCase()] ?? null
+  const icon = category.metadata?.icon || (metadataKey && CATEGORY_BY_KEY[metadataKey]?.icon) || DEFAULT_CATEGORY_ICON
+  const id = category.id ?? null
+
+  return { name, icon, key: metadataKey, id }
+}
+
+function addExtraCategory(category) {
+  if (!category?.name) return
+  const lower = category.name.toLowerCase()
+  const existing = extraCategories.value.find(cat => cat.name.toLowerCase() === lower)
+  if (existing) {
+    existing.icon = category.icon || existing.icon
+    existing.id = category.id ?? existing.id
+    existing.key = category.key ?? existing.key
+    return
+  }
+
+  extraCategories.value.push({
+    name: category.name,
+    icon: category.icon || DEFAULT_CATEGORY_ICON,
+    id: category.id ?? null,
+    key: category.key ?? null,
+  })
+}
+
+function slugifyName(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
 }
 
 // Exponer el método para que ProductItem pueda llamarlo

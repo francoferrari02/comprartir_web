@@ -387,16 +387,23 @@ async function toggleProduct(itemId) {
   }
 }
 
-async function updateProduct(itemId, updates) {
+async function updateProduct(itemId, updates, updatedProductEntity = null) {
   try {
-    const updated = await updateListItem(list.value.id, itemId, updates)
+    const itemPayload = updates || {}
+    const updated = await updateListItem(list.value.id, itemId, itemPayload)
     // Update local state
     const index = items.value.findIndex(i => i.id === itemId)
     if (index !== -1) {
       const current = items.value[index]
-      const mergedProduct = updated?.product
-        ? { ...current.product, ...updated.product }
-        : current.product
+      const mergedProduct = (() => {
+        if (updatedProductEntity) {
+          return { ...current.product, ...updatedProductEntity }
+        }
+        if (updated?.product) {
+          return { ...current.product, ...updated.product }
+        }
+        return current.product
+      })()
 
       const mergedItem = {
         ...current,
@@ -404,17 +411,24 @@ async function updateProduct(itemId, updates) {
         product: mergedProduct ?? current.product
       }
 
-      if (!mergedItem.productName) {
+      if (updatedProductEntity?.name) {
+        mergedItem.productName = updatedProductEntity.name
+      } else if (!mergedItem.productName) {
         mergedItem.productName = mergedItem.product?.name ?? current.productName ?? null
+      }
+
+      if (updatedProductEntity?.category) {
+        if (mergedItem.product) {
+          mergedItem.product = {
+            ...mergedItem.product,
+            category: updatedProductEntity.category
+          }
+        }
+        mergedItem.category = updatedProductEntity.category
       }
 
       items.value[index] = mergedItem
       listsStore.updateItem(itemId, mergedItem)
-    }
-
-    // Actualizar el store global si cambia el estado purchased
-    if (updates.purchased !== undefined) {
-      listsStore.localToggleItem(list.value.id, itemId, updates.purchased)
     }
 
     showSnackbar('Ítem actualizado', 'success')

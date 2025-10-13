@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
 import { getCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '@/services/categories'
 
+function dedupeCategories(list = []) {
+  const map = new Map()
+
+  list.forEach((category) => {
+    if (!category || !category.name) return
+    const key = category.name.trim().toLowerCase()
+    // Prefer the first occurrence to keep pagination order stable
+    if (!map.has(key)) {
+      map.set(key, category)
+    }
+  })
+
+  return Array.from(map.values())
+}
+
 export const useCategoriesStore = defineStore('categories', {
   state: () => ({
     // Categories list (changed from 'categories' to 'items' for consistency)
@@ -80,7 +95,7 @@ export const useCategoriesStore = defineStore('categories', {
       try {
         const { data, pagination } = await getCategories(this.filterParams)
 
-        this.items = Array.isArray(data) ? data : []
+        this.items = dedupeCategories(Array.isArray(data) ? data : [])
         this.categories = this.items
 
         if (pagination) {
@@ -135,12 +150,15 @@ export const useCategoriesStore = defineStore('categories', {
       try {
         const newCategory = await createCategory(data)
 
-        // Add to local list
-        this.items.unshift(newCategory)
+        // Add to local list and dedupe to avoid duplicate names
+        this.items = dedupeCategories([newCategory, ...this.items])
         this.categories = this.items
-  this.pagination.totalItems = (this.pagination.totalItems ?? 0) + 1
-  this.pagination.total = (this.pagination.total ?? 0) + 1
-  this.pagination.total_pages = Math.max(1, Math.ceil((this.pagination.total ?? 0) / (this.pagination.perPage || this.pagination.per_page || 1)))
+
+        const perPage = this.pagination.perPage || this.pagination.per_page || 10
+        const totalItems = this.items.length
+        this.pagination.totalItems = totalItems
+        this.pagination.total = totalItems
+        this.pagination.total_pages = Math.max(1, Math.ceil(totalItems / perPage))
         
         return newCategory
       } catch (error) {
@@ -167,13 +185,17 @@ export const useCategoriesStore = defineStore('categories', {
       try {
         const updated = await updateCategory(id, data)
 
-        // Update in local list
+        // Update in local list and re-dedupe by name
         const index = this.items.findIndex(c => c.id === id)
         if (index > -1) {
-          this.items[index] = updated
-          this.categories = this.items
+          this.items.splice(index, 1, updated)
+        } else {
+          this.items = [updated, ...this.items]
         }
-        
+
+        this.items = dedupeCategories(this.items)
+        this.categories = this.items
+
         if (this.currentCategory?.id === id) {
           this.currentCategory = updated
         }
@@ -203,13 +225,15 @@ export const useCategoriesStore = defineStore('categories', {
       try {
         await deleteCategory(id)
 
-        // Remove from local list
-        this.items = this.items.filter(c => c.id !== id)
+        // Remove from local list and update counts
+        this.items = dedupeCategories(this.items.filter(c => c.id !== id))
         this.categories = this.items
-  const updatedTotal = Math.max(0, (this.pagination.total ?? this.pagination.totalItems ?? this.items.length)) - 1
-  this.pagination.totalItems = Math.max(0, (this.pagination.totalItems ?? this.items.length) - 1)
-  this.pagination.total = updatedTotal
-  this.pagination.total_pages = Math.max(1, Math.ceil(updatedTotal / (this.pagination.perPage || this.pagination.per_page || 1)))
+
+        const perPage = this.pagination.perPage || this.pagination.per_page || 10
+        const totalItems = this.items.length
+        this.pagination.totalItems = totalItems
+        this.pagination.total = totalItems
+        this.pagination.total_pages = Math.max(1, Math.ceil(totalItems / perPage))
 
         if (this.currentCategory?.id === id) {
           this.currentCategory = null

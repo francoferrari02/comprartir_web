@@ -29,7 +29,7 @@
       </template>
 
       <template #append-item>
-        <v-divider v-if="canShowCreate || showCategoryHint" />
+        <v-divider v-if="canShowCreate" />
         <v-list-item
           v-if="canShowCreate"
           :disabled="isCreating"
@@ -41,14 +41,6 @@
           </template>
           <v-list-item-title>
             Crear "{{ search }}"
-          </v-list-item-title>
-        </v-list-item>
-        <v-list-item v-else-if="showCategoryHint" disabled class="create-item">
-          <template #prepend>
-            <v-icon color="warning">mdi-alert-circle-outline</v-icon>
-          </template>
-          <v-list-item-title>
-            Elegí una categoría para crear "{{ search }}"
           </v-list-item-title>
         </v-list-item>
       </template>
@@ -68,9 +60,10 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   inputId: { type: String, default: null },
   categoryKey: { type: String, default: null },
+  categoryId: { type: [String, Number, null], default: null },
 })
 
-const emit = defineEmits(['update:modelValue', 'created', 'product-selected', 'category-required'])
+const emit = defineEmits(['update:modelValue', 'created', 'product-selected'])
 
 const options = ref([])
 const search = ref('')
@@ -81,16 +74,9 @@ let debounceT = null
 const generatedId = `product-select-${Math.random().toString(36).slice(2, 10)}`
 const fieldId = computed(() => props.inputId || generatedId)
 
-const hasCategoryForCreation = computed(() => Boolean(props.categoryKey))
-
 const canShowCreate = computed(() => {
   const q = (search.value || '').trim()
-  return q.length > 0 && options.value.length === 0 && !isSearching.value && hasCategoryForCreation.value
-})
-
-const showCategoryHint = computed(() => {
-  const q = (search.value || '').trim()
-  return q.length > 0 && options.value.length === 0 && !isSearching.value && !hasCategoryForCreation.value
+  return q.length > 0 && options.value.length === 0 && !isSearching.value
 })
 
 function normalizeToId(val) {
@@ -144,14 +130,17 @@ async function fetchOptions() {
 async function createFromQuery() {
   const name = (search.value || '').trim()
   if (!name) return
-  if (!hasCategoryForCreation.value) {
-    emit('category-required')
-    return
-  }
   isCreating.value = true
   try {
     // Use ensureProduct to avoid duplicates
-    const product = await ensureProduct(name, { categoryKey: props.categoryKey })
+    const ensureOptions = {}
+    if (props.categoryId) {
+      ensureOptions.categoryId = props.categoryId
+    } else if (props.categoryKey) {
+      ensureOptions.categoryKey = props.categoryKey
+    }
+
+    const product = await ensureProduct(name, ensureOptions)
     // Update list optimistically so it appears selectable
     if (product && product.id) {
       options.value = [product, ...options.value]
