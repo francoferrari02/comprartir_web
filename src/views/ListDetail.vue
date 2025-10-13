@@ -71,6 +71,9 @@
             @move-to-pantry="confirmMoveToPantry"
             @print-list="printList"
             @delete-list="confirmDeleteList"
+            @search-update="handleSearchUpdate"
+            @sort-update="handleSortUpdate"
+            @category-filter-update="handleCategoryFilterUpdate"
           />
 
           <!-- Pagination for items -->
@@ -149,6 +152,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useListsStore } from '@/stores/lists'
+import { useCategoriesStore } from '@/stores/categories'
 import { useNotifications } from '@/composables/useNotifications'
 import {
   getShoppingListById,
@@ -220,6 +224,9 @@ const itemsFilters = ref({
   sort_by: 'createdAt',
   order: 'ASC'
 })
+
+// Debounce timer for search
+let searchDebounceTimer = null
 
 // Snackbar
 const snackbar = ref({
@@ -327,6 +334,53 @@ async function fetchItems() {
   }
 }
 
+// Handlers para los eventos de filtros del componente hijo
+function handleSearchUpdate(searchValue) {
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    itemsFilters.value.search = searchValue || ''
+    itemsPagination.value.currentPage = 1
+    fetchItems()
+  }, 300)
+}
+
+function handleSortUpdate(sortData) {
+  itemsFilters.value.sort_by = sortData.sort_by
+  itemsFilters.value.order = sortData.order
+  itemsPagination.value.currentPage = 1
+  fetchItems()
+}
+
+function handleCategoryFilterUpdate(categoryName) {
+  console.log('🔍 handleCategoryFilterUpdate - categoryName:', categoryName)
+
+  if (categoryName) {
+    // Buscar el ID de la categoría en el store
+    const categoriesStore = useCategoriesStore()
+    const category = categoriesStore.items.find(cat =>
+      cat.name.toLowerCase() === categoryName.toLowerCase()
+    )
+
+    if (category?.id) {
+      console.log('✅ Categoría encontrada:', category)
+      itemsFilters.value.category_id = category.id
+      delete itemsFilters.value.category_name
+    } else {
+      console.warn('⚠️ No se encontró la categoría:', categoryName)
+      // Si no se encuentra, intentar filtrar por nombre
+      itemsFilters.value.category_name = categoryName
+      delete itemsFilters.value.category_id
+    }
+  } else {
+    // Limpiar ambos filtros
+    delete itemsFilters.value.category_name
+    delete itemsFilters.value.category_id
+  }
+
+  itemsPagination.value.currentPage = 1
+  fetchItems()
+}
+
 async function fetchSharedUsers() {
   if (!list.value) return
 
@@ -391,6 +445,15 @@ async function updateProduct(itemId, updates, updatedProductEntity = null) {
   try {
     const itemPayload = updates || {}
     const updated = await updateListItem(list.value.id, itemId, itemPayload)
+
+    // Si se actualizó la categoría, refrescar la lista completa para obtener datos actualizados
+    if (updatedProductEntity?.category !== undefined) {
+      console.log('🔄 Categoría actualizada, refrescando items desde el servidor...')
+      await fetchItems()
+      showSnackbar('Ítem actualizado', 'success')
+      return
+    }
+
     // Update local state
     const index = items.value.findIndex(i => i.id === itemId)
     if (index !== -1) {
@@ -471,6 +534,40 @@ async function addItem(itemData) {
   addingItem.value = true
 
   try {
+    // 🔥 PASO 1: Si hay categoría, actualizar el producto primero
+    if (itemData.categoryId || itemData.categoryKey) {
+      console.log('📦 addItem - Actualizando producto con categoría:', {
+        categoryId: itemData.categoryId,
+        categoryKey: itemData.categoryKey
+      })
+
+      try {
+        const { updateProduct } = await import('@/services/products.service')
+        const { ensureCategoryByKey } = await import('@/services/categories')
+
+        let categoryPayload = null
+
+        if (itemData.categoryId) {
+          categoryPayload = { id: Number(itemData.categoryId) }
+        } else if (itemData.categoryKey) {
+          // Resolver la categoría por su key
+          const category = await ensureCategoryByKey(itemData.categoryKey)
+          if (category?.id) {
+            categoryPayload = { id: Number(category.id) }
+          }
+        }
+
+        if (categoryPayload) {
+          await updateProduct(productId, { category: categoryPayload })
+          console.log('✅ addItem - Producto actualizado con categoría')
+        }
+      } catch (catError) {
+        console.warn('⚠️ addItem - Error al actualizar categoría del producto:', catError)
+        // Continuar de todas formas
+      }
+    }
+
+    // 🔥 PASO 2: Agregar el item a la lista
     const payload = {
       product: { id: Number(productId) },
       quantity: Number(itemData.quantity ?? 1),
@@ -493,7 +590,7 @@ async function addItem(itemData) {
         productName,
         list.value.name,
         list.value.id,
-        currentUser.name || 'Un usuario',
+        currentUser.value?.name || 'Un usuario',
         'list'
       )
       console.log('📬 Notificación enviada: Item agregado a lista compartida')

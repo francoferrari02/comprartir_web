@@ -140,7 +140,7 @@
                 />
               </div>
 
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 mb-3">
                 <div style="flex: 1;">
                   <label class="app-input-label" for="pantry-sort-by">Ordenar por</label>
                   <v-select
@@ -165,6 +165,22 @@
                     @update:model-value="fetchItems"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label class="app-input-label" for="pantry-filter-category">Filtrar por categoría</label>
+                <v-select
+                  id="pantry-filter-category"
+                  v-model="selectedCategoryFilter"
+                  :items="categoryFilterOptions"
+                  prepend-inner-icon="mdi-tag"
+                  density="compact"
+                  hide-details
+                  clearable
+                  class="app-input"
+                  placeholder="Todas las categorías"
+                  @update:model-value="handleCategoryFilterChange"
+                />
               </div>
             </div>
 
@@ -243,7 +259,62 @@
                 placeholder="Escribe para buscar o crear…"
                 class="mb-3"
                 :disabled="addingItem"
+                :category-key="selectedCategoryKey"
+                :category-id="selectedCategoryId"
+                @product-selected="onProductSelected"
+                @created="onProductSelected"
               />
+
+              <!-- Category selector -->
+              <div class="mb-3">
+                <label class="app-input-label" for="pantry-item-category">Categoría</label>
+                <v-autocomplete
+                  id="pantry-item-category"
+                  v-model="selectedCategoryValue"
+                  :items="categoryOptions"
+                  item-title="title"
+                  item-value="value"
+                  clearable
+                  density="comfortable"
+                  placeholder="Seleccioná una categoría"
+                  :loading="loadingCategories || creatingCategory"
+                  :disabled="loadingCategories"
+                  v-model:search="categorySearch"
+                  class="app-input"
+                >
+                  <template #selection="{ item }">
+                    <div class="d-flex align-center" style="gap: 8px;">
+                      <v-icon v-if="item?.raw?.icon" size="18" color="#2a2a44">{{ item.raw.icon }}</v-icon>
+                      <span>{{ item?.raw?.title }}</span>
+                    </div>
+                  </template>
+                  <template #item="{ props, item }">
+                    <v-list-item v-bind="props">
+                      <template #prepend>
+                        <v-icon v-if="item.raw.icon" color="#2a2a44">{{ item.raw.icon }}</v-icon>
+                      </template>
+                      <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
+                    </v-list-item>
+                  </template>
+                  <template #append-item>
+                    <v-divider v-if="canCreateCategory" class="my-2" />
+                    <v-list-item
+                      v-if="canCreateCategory"
+                      :disabled="creatingCategory"
+                      class="create-category-item"
+                      @click="createCategoryFromSearch"
+                    >
+                      <template #prepend>
+                        <v-icon color="primary">mdi-plus-circle</v-icon>
+                      </template>
+                      <v-list-item-title>
+                        Crear categoría "{{ categorySearch.trim() }}"
+                      </v-list-item-title>
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
+                <p class="text-caption text-medium-emphasis mt-1">Podés dejarla vacía o crear una nueva categoría.</p>
+              </div>
 
               <!-- Quantity and unit -->
               <v-row dense class="mb-3">
@@ -370,66 +441,120 @@
       </v-row>
 
       <!-- Edit Item Dialog -->
-      <v-dialog v-model="editItemDialog.open" max-width="500">
-        <v-card>
-          <v-card-title class="text-h6 pa-4">
-            Editar Producto
+      <v-dialog v-model="editItemDialog.open" max-width="600">
+        <v-card class="dialog-card">
+          <v-card-title class="text-h6 pa-4 d-flex align-center justify-space-between">
+            <span>Detalles del producto</span>
+            <v-btn
+              icon="mdi-close"
+              size="small"
+              variant="text"
+              @click="closeEditItem"
+            />
           </v-card-title>
+          <v-divider />
           <v-card-text class="pa-4">
+            <!-- Nombre del producto -->
             <div class="mb-3">
-              <label class="app-input-label" for="edit-item-name">Nombre del producto</label>
+              <label class="app-input-label" for="edit-item-name">Producto</label>
               <v-text-field
                 id="edit-item-name"
                 v-model="editItemDialog.form.productName"
                 density="comfortable"
-                hide-details
+                prepend-inner-icon="mdi-package-variant"
+                placeholder="Nombre del producto"
                 class="app-input"
-                disabled
               />
             </div>
-            <v-row dense>
-              <v-col cols="6">
-                <label class="app-input-label" for="edit-item-quantity">Cantidad</label>
-                <v-text-field
-                  id="edit-item-quantity"
-                  v-model.number="editItemDialog.form.quantity"
-                  type="number"
-                  density="comfortable"
-                  hide-details
-                  class="app-input"
-                />
-              </v-col>
-              <v-col cols="6">
-                <label class="app-input-label" for="edit-item-unit">Unidad</label>
-                <v-select
-                  id="edit-item-unit"
-                  v-model="editItemDialog.form.unit"
-                  :items="unitOptions"
-                  density="comfortable"
-                  hide-details
-                  class="app-input"
-                />
-              </v-col>
-            </v-row>
+
+            <!-- Categoría del producto -->
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-item-category">Categoría</label>
+              <v-text-field
+                id="edit-item-category"
+                v-model="editItemDialog.form.categoryName"
+                density="comfortable"
+                prepend-inner-icon="mdi-tag-outline"
+                placeholder="Categoría del producto"
+                class="app-input"
+              />
+              <p class="text-caption text-medium-emphasis mt-1">Dejar vacío para quitar la categoría.</p>
+            </div>
+
+            <!-- Cantidad -->
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-item-quantity">Cantidad</label>
+              <v-text-field
+                id="edit-item-quantity"
+                v-model.number="editItemDialog.form.quantity"
+                type="number"
+                density="comfortable"
+                prepend-inner-icon="mdi-counter"
+                min="0.01"
+                step="0.01"
+                class="app-input"
+              />
+            </div>
+
+            <!-- Unidad -->
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-item-unit">Unidad</label>
+              <v-select
+                id="edit-item-unit"
+                v-model="editItemDialog.form.unit"
+                :items="unitOptions"
+                density="comfortable"
+                prepend-inner-icon="mdi-scale-balance"
+                class="app-input"
+              />
+            </div>
+
+            <!-- Descripción/Notas (metadata) -->
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-item-description">Notas o descripción (opcional)</label>
+              <v-textarea
+                id="edit-item-description"
+                v-model="editItemDialog.form.description"
+                density="comfortable"
+                rows="3"
+                prepend-inner-icon="mdi-text"
+                placeholder="Ej: Marca específica, variedad, recordatorios..."
+                class="app-input"
+              />
+            </div>
           </v-card-text>
-          <v-card-actions class="pa-4">
-            <v-spacer />
+          <v-divider />
+          <v-card-actions class="pa-4 d-flex justify-space-between">
+            <!-- Botón eliminar a la izquierda -->
             <v-btn
-              variant="text"
+              color="error"
+              variant="outlined"
+              prepend-icon="mdi-delete"
               class="btn-rounded"
-              @click="closeEditItem"
+              @click="confirmDeleteFromEdit"
             >
-              Cancelar
+              Eliminar
             </v-btn>
-            <v-btn
-              color="primary"
-              variant="flat"
-              class="btn-rounded"
-              :loading="editItemDialog.loading"
-              @click="submitEditItem"
-            >
-              Guardar
-            </v-btn>
+
+            <!-- Botones de acción a la derecha -->
+            <div class="d-flex gap-2">
+              <v-btn
+                variant="text"
+                class="btn-rounded"
+                @click="closeEditItem"
+              >
+                Cancelar
+              </v-btn>
+              <v-btn
+                color="primary"
+                variant="flat"
+                class="btn-rounded"
+                :loading="editItemDialog.loading"
+                @click="submitEditItem"
+              >
+                Guardar cambios
+              </v-btn>
+            </div>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -474,12 +599,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNotifications } from '@/composables/useNotifications'
 import { getPantryById, updatePantry, deletePantry, sharePantry as sharePantryService, getPantrySharedUsers, revokePantryShare } from '@/services/pantries'
 import { getPantryItems, addPantryItem, updatePantryItem, deletePantryItem } from '@/services/pantryItems'
 import { getProfile } from '@/services/auth'
+import { getCategories, createCategory } from '@/services/categories'
 import PantryProductItem from '@/components/PantryProductItem.vue'
 import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
 import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
@@ -513,6 +639,16 @@ const searchQuery = ref('')
 const shareEmail = ref('')
 const selectedProductId = ref(null)
 const currentUser = ref(null) // ← Usuario actual
+const selectedCategoryFilter = ref(null) // ← Para el filtro de categoría en la vista
+
+// Category management
+const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
+const selectedCategoryValue = ref(null)
+const categorySearch = ref('')
+const loadingCategories = ref(false)
+const creatingCategory = ref(false)
+const serverCategories = ref([])
+const extraCategories = ref([])
 
 // Pagination for items
 const itemsPagination = ref({
@@ -598,6 +734,95 @@ const unitOptions = [
   'lata',
   'botella'
 ]
+
+// Category computed properties
+const mergedCategories = computed(() => {
+  const map = new Map()
+
+  const addCategory = (category) => {
+    if (!category || !category.name) return
+    const name = category.name.trim()
+    if (!name) return
+    const key = name.toLowerCase()
+    const existing = map.get(key)
+    const icon = category.icon || existing?.icon || DEFAULT_CATEGORY_ICON
+    const payload = {
+      name,
+      icon,
+      keyValue: category.key ?? existing?.keyValue ?? null,
+      id: category.id ?? existing?.id ?? null,
+    }
+
+    map.set(key, payload)
+  }
+
+  serverCategories.value.forEach(cat => addCategory(cat))
+  extraCategories.value.forEach(cat => addCategory(cat))
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+})
+
+const categoryOptions = computed(() => {
+  return mergedCategories.value.map(cat => {
+    const value = cat.id ? `id:${cat.id}` : cat.keyValue ? `key:${cat.keyValue}` : `name:${slugifyName(cat.name)}`
+    return {
+      title: cat.name,
+      value,
+      icon: cat.icon || DEFAULT_CATEGORY_ICON,
+      id: cat.id ?? null,
+      key: cat.keyValue ?? null,
+      name: cat.name,
+    }
+  })
+})
+
+const categoryLookupByValue = computed(() => {
+  const map = new Map()
+  categoryOptions.value.forEach(option => {
+    map.set(option.value, option)
+  })
+  return map
+})
+
+const categoryLookupByName = computed(() => {
+  const map = new Map()
+  categoryOptions.value.forEach(option => {
+    map.set(option.name.toLowerCase(), option)
+  })
+  return map
+})
+
+const selectedCategoryData = computed(() => categoryLookupByValue.value.get(selectedCategoryValue.value) ?? null)
+
+const selectedCategoryKey = computed(() => selectedCategoryData.value?.key ?? null)
+const selectedCategoryId = computed(() => selectedCategoryData.value?.id ?? null)
+
+const canCreateCategory = computed(() => {
+  const name = (categorySearch.value || '').trim()
+  if (!name) return false
+  return !categoryLookupByName.value.has(name.toLowerCase())
+})
+
+// Computed para opciones de filtro por categoría
+const categoryFilterOptions = computed(() => {
+  // Obtener todas las categorías únicas de mergedCategories
+  return mergedCategories.value.map(cat => cat.name).sort()
+})
+
+// Computed para mostrar la categoría en el diálogo de edición
+const editItemCategoryName = computed(() => {
+  if (!editItemDialog.value.form.id) return ''
+
+  // Buscar el item en la lista de items
+  const item = items.value.find(i => i.id === editItemDialog.value.form.id)
+  if (!item) return ''
+
+  // Obtener la categoría del producto
+  const category = item?.product?.category || item?.category
+  if (!category) return ''
+
+  return category.name || ''
+})
 
 // Debounce timer for search
 let searchDebounce = null
@@ -758,13 +983,19 @@ async function addItem() {
 }
 
 function openEditItem(item) {
+  // Obtener la categoría del producto
+  const category = item?.product?.category || item?.category
+  const categoryName = category?.name || ''
+
   editItemDialog.value = {
     open: true,
     form: {
       id: item.id,
       productName: item.productName || item.product?.name || 'Producto',
+      categoryName: categoryName,
       quantity: item.quantity,
-      unit: item.unit
+      unit: item.unit,
+      description: item.metadata?.description || ''
     },
     loading: false
   }
@@ -778,21 +1009,110 @@ async function submitEditItem() {
   editItemDialog.value.loading = true
 
   try {
+    // Manejar la categoría primero si hay cambios
+    const categoryNameInput = (editItemDialog.value.form.categoryName || '').trim()
+    let categoryToAssociate = null
+
+    if (categoryNameInput) {
+      // Buscar si la categoría ya existe en las categorías cargadas
+      let existingCategory = mergedCategories.value.find(cat =>
+        cat.name.toLowerCase() === categoryNameInput.toLowerCase()
+      )
+
+      // Si no existe, crearla
+      if (!existingCategory) {
+        console.log('🆕 Creando nueva categoría:', categoryNameInput)
+        try {
+          const newCategory = await createCategory({
+            name: categoryNameInput,
+            metadata: {
+              icon: DEFAULT_CATEGORY_ICON,
+            },
+          })
+
+          existingCategory = {
+            id: newCategory.id,
+            name: newCategory.name,
+            icon: newCategory.metadata?.icon || DEFAULT_CATEGORY_ICON,
+            keyValue: newCategory.metadata?.key || null
+          }
+
+          // Agregar a las categorías del servidor
+          serverCategories.value = [{
+            id: newCategory.id,
+            name: newCategory.name,
+            icon: newCategory.metadata?.icon || DEFAULT_CATEGORY_ICON,
+            key: newCategory.metadata?.key || null,
+          }, ...serverCategories.value]
+
+          console.log('✅ Categoría creada:', newCategory)
+        } catch (error) {
+          console.error('❌ Error creando categoría:', error)
+          showSnackbar('Error al crear la categoría: ' + (error.message || 'Error desconocido'), 'error')
+          editItemDialog.value.loading = false
+          return
+        }
+      }
+
+      categoryToAssociate = existingCategory
+    }
+
+    // Preparar el payload para actualizar el producto en el backend
+    const productPayload = {}
+
+    // Siempre incluir el nombre del producto
+    if (editItemDialog.value.form.productName) {
+      productPayload.name = editItemDialog.value.form.productName
+    }
+
+    // Agregar categoría si existe
+    if (categoryToAssociate?.id) {
+      productPayload.category = { id: Number(categoryToAssociate.id) }
+    } else if (!categoryNameInput) {
+      // Si se borró la categoría, enviar null
+      productPayload.category = null
+    }
+
+    // Obtener el ID del producto del item
+    const item = items.value.find(i => i.id === editItemDialog.value.form.id)
+    const productId = item?.product?.id || item?.productId
+
+    // Actualizar el producto si tenemos cambios y un ID válido
+    if (productId && Object.keys(productPayload).length > 0) {
+      console.log('🔄 Actualizando producto ID:', productId, 'con payload:', productPayload)
+      try {
+        const { updateProduct } = await import('@/services/products.service')
+        await updateProduct(productId, productPayload)
+        console.log('✅ Producto actualizado en el backend')
+      } catch (error) {
+        console.warn('⚠️ Error al actualizar el producto:', error)
+        // Continuar de todas formas con la actualización del item
+      }
+    }
+
+    // Preparar el payload para actualizar el item de la despensa
+    const itemPayload = {
+      quantity: editItemDialog.value.form.quantity,
+      unit: editItemDialog.value.form.unit
+    }
+
+    // Agregar descripción si existe
+    if (editItemDialog.value.form.description !== undefined) {
+      itemPayload.metadata = { description: editItemDialog.value.form.description }
+    }
+
+    // Actualizar el item de la despensa
     const updated = await updatePantryItem(
       pantry.value.id,
       editItemDialog.value.form.id,
-      {
-        quantity: editItemDialog.value.form.quantity,
-        unit: editItemDialog.value.form.unit
-      }
+      itemPayload
     )
 
-    const index = items.value.findIndex(i => i.id === editItemDialog.value.form.id)
-    if (index !== -1) {
-      items.value[index] = { ...items.value[index], ...updated }
-    }
-
     showSnackbar('Producto actualizado', 'success')
+
+    // Refrescar la lista para obtener los datos actualizados del servidor con la categoría
+    await fetchItems()
+
     closeEditItem()
   } catch (err) {
     console.error('Error updating item:', err)
@@ -917,8 +1237,171 @@ async function saveName() {
   editingName.value = false
 }
 
+// Función para confirmar eliminación desde el diálogo de edición
+function confirmDeleteFromEdit() {
+  const itemId = editItemDialog.value.form.id
+  if (!itemId) return
+
+  // Cerrar el diálogo de edición primero
+  closeEditItem()
+
+  // Eliminar el item
+  deleteItem(itemId)
+}
+
+// Category functions
+function onProductSelected(product) {
+  if (!product) {
+    selectedCategoryValue.value = null
+    return
+  }
+  if (!product.category) {
+    selectedCategoryValue.value = null
+    return
+  }
+
+  const normalized = normalizeProductCategory(product.category)
+  if (!normalized) {
+    selectedCategoryValue.value = null
+    return
+  }
+
+  addExtraCategory(normalized)
+
+  nextTick(() => {
+    const option = categoryLookupByName.value.get(normalized.name.toLowerCase())
+    if (option) {
+      selectedCategoryValue.value = option.value
+    }
+  })
+}
+
+function normalizeProductCategory(category) {
+  if (!category) return null
+
+  const name = category.name?.trim()
+  if (!name) return null
+
+  const metadataKey = category.metadata?.key ?? null
+  const icon = category.metadata?.icon || DEFAULT_CATEGORY_ICON
+  const id = category.id ?? null
+
+  return { name, icon, key: metadataKey, id }
+}
+
+function addExtraCategory(category) {
+  if (!category?.name) return
+  const lower = category.name.toLowerCase()
+  const existing = extraCategories.value.find(cat => cat.name.toLowerCase() === lower)
+  if (existing) {
+    existing.icon = category.icon || existing.icon
+    existing.id = category.id ?? existing.id
+    existing.key = category.key ?? existing.key
+    return
+  }
+  extraCategories.value.push({
+    name: category.name,
+    icon: category.icon || DEFAULT_CATEGORY_ICON,
+    id: category.id ?? null,
+    key: category.key ?? null,
+  })
+}
+
+async function loadCategories() {
+  loadingCategories.value = true
+  try {
+    const response = await getCategories({ per_page: 100, order: 'asc', sort_by: 'name' })
+    const list = Array.isArray(response) ? response : response?.data ?? []
+    serverCategories.value = list.map(cat => ({
+      id: cat.id ?? null,
+      name: cat.name,
+      icon: cat.metadata?.icon || DEFAULT_CATEGORY_ICON,
+      key: cat.metadata?.key ?? null,
+    }))
+  } catch (error) {
+    console.error('loadCategories error', error)
+    serverCategories.value = []
+  } finally {
+    loadingCategories.value = false
+  }
+}
+
+async function createCategoryFromSearch() {
+  const name = (categorySearch.value || '').trim()
+  if (!name || !canCreateCategory.value) return
+
+  creatingCategory.value = true
+  try {
+    const newCategory = await createCategory({
+      name,
+      metadata: {
+        icon: DEFAULT_CATEGORY_ICON,
+      },
+    })
+
+    const saved = {
+      id: newCategory?.id ?? null,
+      name: newCategory?.name ?? name,
+      icon: newCategory?.metadata?.icon || DEFAULT_CATEGORY_ICON,
+      key: newCategory?.metadata?.key ?? null,
+    }
+
+    serverCategories.value = [saved, ...serverCategories.value]
+
+    nextTick(() => {
+      const option = categoryLookupByName.value.get(saved.name.toLowerCase())
+      if (option) {
+        selectedCategoryValue.value = option.value
+      }
+      categorySearch.value = ''
+    })
+  } catch (error) {
+    console.error('createCategoryFromSearch error', error)
+  } finally {
+    creatingCategory.value = false
+  }
+}
+
+function slugifyName(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+// Handler para el cambio de filtro de categoría
+function handleCategoryFilterChange(categoryName) {
+  console.log('🔍 PantryDetail - handleCategoryFilterChange - categoryName:', categoryName)
+
+  if (categoryName) {
+    // Buscar el ID de la categoría en mergedCategories
+    const category = mergedCategories.value.find(cat =>
+      cat.name.toLowerCase() === categoryName.toLowerCase()
+    )
+
+    if (category?.id) {
+      console.log('✅ Categoría encontrada:', category)
+      itemsFilters.value.category_id = category.id
+    } else {
+      console.warn('⚠️ No se encontró la categoría:', categoryName)
+      // Si no se encuentra el ID, limpiar el filtro
+      itemsFilters.value.category_id = null
+    }
+  } else {
+    // Limpiar el filtro
+    itemsFilters.value.category_id = null
+  }
+
+  // Resetear a la primera página y hacer fetch
+  itemsPagination.value.currentPage = 1
+  fetchItems()
+}
+
 // Lifecycle
 onMounted(async () => {
+  loadCategories()
   await fetchPantry()
   if (pantry.value) {
     await Promise.all([fetchItems(), fetchSharedUsers()])

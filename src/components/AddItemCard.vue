@@ -174,12 +174,7 @@ const mergedCategories = computed(() => {
     map.set(key, payload)
   }
 
-  CATEGORY_DEFINITIONS.forEach(def => addCategory({
-    name: def.name,
-    icon: def.icon,
-    key: def.key,
-  }))
-
+  // Solo usar categorías del servidor y extras (de productos)
   serverCategories.value.forEach(cat => addCategory(cat))
   extraCategories.value.forEach(cat => addCategory(cat))
 
@@ -248,11 +243,28 @@ onMounted(() => {
 async function addProduct() {
   if (!selectedProductId.value) return
 
+  // Preparar datos de categoría si existe selección
+  let categoryData = null
+  if (selectedCategoryValue.value && selectedCategoryData.value) {
+    if (selectedCategoryData.value.id) {
+      // Categoría existente con ID
+      categoryData = {
+        categoryId: selectedCategoryData.value.id
+      }
+    } else if (selectedCategoryData.value.key) {
+      // Categoría por key
+      categoryData = {
+        categoryKey: selectedCategoryData.value.key
+      }
+    }
+  }
+
   const itemToEmit = {
     productId: selectedProductId.value,
     quantity: quantity.value || 1,
     unit: unit.value || 'un',
-    metadata: {}
+    metadata: {},
+    ...(categoryData || {})
   }
 
   emit('add-item', itemToEmit)
@@ -301,12 +313,11 @@ function onProductSelected(product) {
 function normalizeProductCategory(category) {
   if (!category) return null
 
-  const rawName = category.name || (category.metadata?.key && CATEGORY_BY_KEY[category.metadata.key]?.name)
-  const name = rawName ? rawName.trim() : null
+  const name = category.name?.trim()
   if (!name) return null
 
-  const metadataKey = category.metadata?.key ?? CATEGORY_KEY_BY_NAME[name.toLowerCase()] ?? null
-  const icon = category.metadata?.icon || (metadataKey && CATEGORY_BY_KEY[metadataKey]?.icon) || DEFAULT_CATEGORY_ICON
+  const metadataKey = category.metadata?.key ?? null
+  const icon = category.metadata?.icon || DEFAULT_CATEGORY_ICON
   const id = category.id ?? null
 
   return { name, icon, key: metadataKey, id }

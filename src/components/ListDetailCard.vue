@@ -225,6 +225,65 @@
 
     <!-- Products list -->
     <div v-else>
+      <!-- Buscador y filtros -->
+      <div class="mb-4">
+        <div class="mb-3">
+          <label class="app-input-label" for="list-search-products">Buscar productos</label>
+          <v-text-field
+            id="list-search-products"
+            v-model="searchQuery"
+            prepend-inner-icon="mdi-magnify"
+            density="comfortable"
+            clearable
+            hide-details
+            class="app-input"
+            placeholder="Buscar productos..."
+          />
+        </div>
+
+        <div class="d-flex gap-2 mb-3">
+          <div style="flex: 1;">
+            <label class="app-input-label" for="list-sort-by">Ordenar por</label>
+            <v-select
+              id="list-sort-by"
+              v-model="sortBy"
+              :items="sortOptions"
+              density="compact"
+              hide-details
+              class="app-input"
+            />
+          </div>
+          <div style="flex: 1;">
+            <label class="app-input-label" for="list-order">Dirección</label>
+            <v-select
+              id="list-order"
+              v-model="sortOrder"
+              :items="orderOptions"
+              density="compact"
+              hide-details
+              class="app-input"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="app-input-label" for="list-filter-category">Filtrar por categoría</label>
+          <v-select
+            id="list-filter-category"
+            v-model="selectedCategory"
+            :items="categoryFilterOptions"
+            prepend-inner-icon="mdi-tag"
+            density="compact"
+            hide-details
+            clearable
+            class="app-input"
+            placeholder="Todas las categorías"
+          />
+        </div>
+      </div>
+
+      <v-divider class="mb-4" />
+
       <!-- Show/hide completed toggle -->
       <div class="d-flex align-center mb-3">
         <v-btn
@@ -238,13 +297,13 @@
         </v-btn>
         <v-spacer />
         <span class="text-caption text-medium-emphasis">
-          {{ products.length }} {{ products.length === 1 ? 'producto' : 'productos' }}
+          {{ displayedProducts.length }} {{ displayedProducts.length === 1 ? 'producto' : 'productos' }}
         </span>
       </div>
 
       <!-- Products -->
       <div class="products-list">
-        <template v-for="product in filteredProducts" :key="product.id">
+        <template v-for="product in displayedProducts" :key="product.id">
           <ProductItem
             :product="product"
             @toggle="$emit('toggle-product', product.id)"
@@ -315,33 +374,14 @@
           <!-- Categoría del producto -->
           <div class="mb-3">
             <label class="app-input-label" for="details-product-category">Categoría</label>
-            <v-autocomplete
+            <v-text-field
               id="details-product-category"
-              v-model="detailsCategoryValue"
-              :items="detailsCategoryOptions"
-              item-title="title"
-              item-value="value"
-              clearable
+              v-model="detailsCategoryName"
               density="comfortable"
-              placeholder="Sin categoría"
-              :loading="detailsCategoriesLoading"
+              prepend-inner-icon="mdi-tag-outline"
+              placeholder="Categoría del producto"
               class="app-input"
-            >
-              <template #selection="{ item }">
-                <div class="d-flex align-center" style="gap: 8px;">
-                  <v-icon v-if="item?.raw?.icon" size="18" color="#2a2a44">{{ item.raw.icon }}</v-icon>
-                  <span>{{ item?.raw?.title }}</span>
-                </div>
-              </template>
-              <template #item="{ props, item }">
-                <v-list-item v-bind="props">
-                  <template #prepend>
-                    <v-icon v-if="item.raw.icon" color="#2a2a44">{{ item.raw.icon }}</v-icon>
-                  </template>
-                  <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
-                </v-list-item>
-              </template>
-            </v-autocomplete>
+            />
             <p class="text-caption text-medium-emphasis mt-1">Dejar vacío para quitar la categoría.</p>
           </div>
 
@@ -429,10 +469,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import ProductItem from './ProductItem.vue'
-import { CATEGORY_DEFINITIONS, CATEGORY_BY_KEY, CATEGORY_KEY_BY_NAME } from '@/constants/categories'
 import { useCategoriesStore } from '@/stores/categories'
 import { updateProduct as updateProductService } from '@/services/products.service'
-import { ensureCategoryByKey } from '@/services/categories'
 
 const props = defineProps({
   list: {
@@ -465,13 +503,17 @@ const emit = defineEmits([
   'purchase-list',
   'move-to-pantry',
   'print-list',
-  'delete-list'
+  'delete-list',
+  'search-update',
+  'sort-update',
+  'category-filter-update'
 ])
 
 const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
 const categoriesStore = useCategoriesStore()
 
-const detailsCategoryValue = ref(null)
+const detailsCategoryName = ref('')
+const creatingCategoryInDialog = ref(false)
 const extraCategories = ref([])
 const detailsCategoriesLoading = computed(() => categoriesStore.loading)
 
@@ -514,70 +556,13 @@ const unitOptions = [
   'frasco'
 ]
 
-const mergedCategories = computed(() => {
-  const map = new Map()
-
-  const addCategory = (category) => {
-    if (!category || !category.name) return
-    const name = category.name.trim()
-    if (!name) return
-    const key = name.toLowerCase()
-    const existing = map.get(key)
-    const icon = category.icon || existing?.icon || DEFAULT_CATEGORY_ICON
-
-    map.set(key, {
-      name,
-      icon,
-      keyValue: category.key ?? existing?.keyValue ?? null,
-      id: category.id ?? existing?.id ?? null,
-    })
-  }
-
-  CATEGORY_DEFINITIONS.forEach(def => addCategory({
-    name: def.name,
-    icon: def.icon,
-    key: def.key,
-  }))
-
+const categoryNamesList = computed(() => {
   const storeCategories = categoriesStore.items || []
-  storeCategories.forEach(cat => addCategory({
-    name: cat.name,
-    icon: cat.metadata?.icon || DEFAULT_CATEGORY_ICON,
-    key: cat.metadata?.key ?? null,
-    id: cat.id ?? null,
-  }))
-
-  extraCategories.value.forEach(cat => addCategory(cat))
-
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+  const names = storeCategories.map(cat => cat.name)
+  const extraNames = extraCategories.value.map(cat => cat.name)
+  const allNames = [...new Set([...names, ...extraNames])]
+  return allNames.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
 })
-
-const detailsCategoryOptions = computed(() => mergedCategories.value.map(cat => ({
-  title: cat.name,
-  value: cat.id ? `id:${cat.id}` : cat.keyValue ? `key:${cat.keyValue}` : `name:${slugifyName(cat.name)}`,
-  icon: cat.icon || DEFAULT_CATEGORY_ICON,
-  id: cat.id ?? null,
-  key: cat.keyValue ?? null,
-  name: cat.name,
-})))
-
-const detailsCategoryLookupByValue = computed(() => {
-  const map = new Map()
-  detailsCategoryOptions.value.forEach(option => {
-    map.set(option.value, option)
-  })
-  return map
-})
-
-const detailsCategoryLookupByName = computed(() => {
-  const map = new Map()
-  detailsCategoryOptions.value.forEach(option => {
-    map.set(option.name.toLowerCase(), option)
-  })
-  return map
-})
-
-const detailsSelectedCategory = computed(() => detailsCategoryLookupByValue.value.get(detailsCategoryValue.value) ?? null)
 
 // Computed
 const purchasedCount = computed(() => {
@@ -589,11 +574,55 @@ const progress = computed(() => {
   return Math.round((purchasedCount.value / props.products.length) * 100)
 })
 
-const filteredProducts = computed(() => {
+// Métodos de búsqueda y filtrado
+const searchQuery = ref('')
+const selectedCategory = ref(null)
+const sortBy = ref('name')
+const sortOrder = ref('asc')
+
+// Watch para emitir cambios de filtros al padre
+watch(searchQuery, (newValue) => {
+  emit('search-update', newValue)
+})
+
+watch([sortBy, sortOrder], ([newSortBy, newSortOrder]) => {
+  emit('sort-update', { sort_by: newSortBy, order: newSortOrder.toUpperCase() })
+})
+
+watch(selectedCategory, (newValue) => {
+  emit('category-filter-update', newValue)
+})
+
+const categoryFilterOptions = computed(() => {
+  const storeCategories = categoriesStore.items || []
+  const allCategories = [...storeCategories, ...extraCategories.value]
+  const uniqueCategories = Array.from(new Set(allCategories.map(cat => cat.name)))
+  return uniqueCategories.sort()
+})
+
+const sortOptions = [
+  { title: 'Nombre', value: 'name' },
+  { title: 'Cantidad', value: 'quantity' },
+  { title: 'Unidad', value: 'unit' },
+  { title: 'Fecha de creación', value: 'createdAt' },
+]
+
+const orderOptions = [
+  { title: 'Ascendente', value: 'asc' },
+  { title: 'Descendente', value: 'desc' },
+]
+
+const filteredByCompletion = computed(() => {
   if (props.showCompleted) {
     return props.products
   }
   return props.products.filter(p => !p.purchased)
+})
+
+// Solo mostramos los productos filtrados por completados
+// El resto del filtrado y ordenamiento lo hace el backend
+const displayedProducts = computed(() => {
+  return filteredByCompletion.value
 })
 
 // Methods
@@ -694,20 +723,18 @@ function openProductDetails(itemId) {
     description: item.metadata?.description || item.metadata?.notes || ''
   }
 
+  // Establecer el nombre de la categoría actual
+  detailsCategoryName.value = normalizedCategory?.name || ''
+
   if (normalizedCategory) {
     addExtraCategory(normalizedCategory)
-    nextTick(() => {
-      const option = detailsCategoryLookupByName.value.get(normalizedCategory.name.toLowerCase())
-      detailsCategoryValue.value = option ? option.value : null
-    })
-  } else {
-    detailsCategoryValue.value = null
   }
 }
 
 function closeDetailsDialog() {
   detailsDialog.value.open = false
-  detailsCategoryValue.value = null
+  detailsCategoryName.value = ''
+  creatingCategoryInDialog.value = false
 }
 
 async function saveProductDetails() {
@@ -725,46 +752,135 @@ async function saveProductDetails() {
     let updatedProductEntity = null
     const productPayload = {}
     const newName = (detailsDialog.value.form.productName || '').trim()
-    const originalName = (detailsDialog.value.originalProductName || '').trim()
 
-    if (newName && newName !== originalName) {
-      productPayload.name = newName
+    // El backend siempre requiere el nombre, así que lo incluimos siempre
+    if (!newName) {
+      alert('El nombre del producto es requerido')
+      return
     }
 
-    const selectedCategory = detailsSelectedCategory.value
+    productPayload.name = newName
+
+    // Manejar la categoría
+    const categoryNameInput = typeof detailsCategoryName.value === 'string'
+      ? detailsCategoryName.value.trim()
+      : (detailsCategoryName.value?.name || detailsCategoryName.value || '').trim()
+
     const originalCategoryId = detailsDialog.value.originalCategoryId ?? null
-    const originalCategoryKey = detailsDialog.value.originalCategoryKey ?? null
 
-    if (!selectedCategory) {
-      if (originalCategoryId || originalCategoryKey) {
-        productPayload.category = null
-      }
-    } else {
-      const selectedId = selectedCategory.id ?? null
-      const selectedKey = selectedCategory.key ?? null
+    let categoryToAssociate = null
 
-      if ((selectedId ?? null) !== (originalCategoryId ?? null) || (selectedKey ?? null) !== (originalCategoryKey ?? null)) {
-        if (selectedId) {
-          productPayload.category = { id: Number(selectedId) }
-        } else if (selectedKey) {
-          const ensured = await ensureCategoryByKey(selectedKey)
-          if (ensured?.id) {
-            productPayload.category = { id: Number(ensured.id) }
-          }
+    if (categoryNameInput) {
+      // Buscar si la categoría existe
+      const storeCategories = categoriesStore.items || []
+      let existingCategory = storeCategories.find(cat =>
+        cat.name.toLowerCase() === categoryNameInput.toLowerCase()
+      )
+
+      // Si no existe en el store, buscar en extraCategories
+      if (!existingCategory) {
+        const extraCat = extraCategories.value.find(cat =>
+          cat.name.toLowerCase() === categoryNameInput.toLowerCase()
+        )
+        if (extraCat?.id) {
+          existingCategory = extraCat
         }
       }
+
+      // Si la categoría no existe, crearla
+      if (!existingCategory) {
+        console.log('🆕 Creando nueva categoría:', categoryNameInput)
+        creatingCategoryInDialog.value = true
+        try {
+          const { createCategory } = await import('@/services/categories')
+          const newCategory = await createCategory({
+            name: categoryNameInput,
+            metadata: {
+              icon: DEFAULT_CATEGORY_ICON,
+            },
+          })
+
+          existingCategory = newCategory
+
+          // Agregar a extraCategories
+          addExtraCategory({
+            id: newCategory.id,
+            name: newCategory.name,
+            icon: newCategory.metadata?.icon || DEFAULT_CATEGORY_ICON,
+            key: null
+          })
+
+          // Refrescar el store
+          await categoriesStore.fetch()
+
+          console.log('✅ Categoría creada:', newCategory)
+        } catch (error) {
+          console.error('❌ Error creando categoría:', error)
+          alert('Error al crear la categoría: ' + (error.message || 'Error desconocido'))
+          creatingCategoryInDialog.value = false
+          return
+        } finally {
+          creatingCategoryInDialog.value = false
+        }
+      }
+
+      categoryToAssociate = existingCategory
     }
 
+    // Asociar la categoría al producto solo si hay cambios
+    if (categoryToAssociate?.id) {
+      const categoryId = categoryToAssociate.id
+      // Solo actualizar si cambió
+      if (categoryId !== originalCategoryId) {
+        productPayload.category = { id: Number(categoryId) }
+      } else {
+        // Incluir la categoría actual aunque no haya cambiado
+        productPayload.category = { id: Number(categoryId) }
+      }
+    } else if (!categoryNameInput && originalCategoryId) {
+      // Si se borró la categoría
+      productPayload.category = null
+    }
+
+    // Intentar actualizar el producto solo si tenemos un ID válido
     const hasProductChanges = Object.keys(productPayload).length > 0
 
     if (hasProductChanges && detailsDialog.value.productEntityId) {
-      updatedProductEntity = await updateProductService(detailsDialog.value.productEntityId, productPayload)
+      console.log('🔄 Intentando actualizar producto ID:', detailsDialog.value.productEntityId)
+      console.log('🔄 Payload:', productPayload)
+
+      try {
+        updatedProductEntity = await updateProductService(detailsDialog.value.productEntityId, productPayload)
+        console.log('✅ Producto actualizado:', updatedProductEntity)
+      } catch (error) {
+        console.warn('⚠️ No se pudo actualizar el producto:', error)
+
+        // Si el producto no existe (404), crear un mock con los datos actualizados
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          console.log('💡 Producto no encontrado, usando datos locales')
+          updatedProductEntity = {
+            id: detailsDialog.value.productEntityId,
+            name: productPayload.name,
+            category: categoryToAssociate ? {
+              id: categoryToAssociate.id,
+              name: categoryToAssociate.name,
+              metadata: {
+                icon: categoryToAssociate.icon || DEFAULT_CATEGORY_ICON
+              }
+            } : null
+          }
+        } else {
+          // Si es otro error, lanzarlo
+          throw error
+        }
+      }
     }
 
     emit('update-product', detailsDialog.value.productId, itemUpdates, updatedProductEntity)
     closeDetailsDialog()
   } catch (error) {
-    console.error('Error updating product details:', error)
+    console.error('❌ Error updating product details:', error)
+    alert('Error al guardar los cambios: ' + (error.message || 'Error desconocido'))
   } finally {
     detailsDialog.value.loading = false
   }
@@ -780,12 +896,11 @@ function confirmDeleteFromDetails() {
 function normalizeProductCategory(category) {
   if (!category) return null
 
-  const rawName = category.name || (category.metadata?.key && CATEGORY_BY_KEY[category.metadata.key]?.name)
-  const name = rawName ? rawName.trim() : null
+  const name = category.name?.trim()
   if (!name) return null
 
-  const metadataKey = category.metadata?.key ?? CATEGORY_KEY_BY_NAME[name.toLowerCase()] ?? null
-  const icon = category.metadata?.icon || (metadataKey && CATEGORY_BY_KEY[metadataKey]?.icon) || DEFAULT_CATEGORY_ICON
+  const metadataKey = category.metadata?.key ?? null
+  const icon = category.metadata?.icon || DEFAULT_CATEGORY_ICON
   const id = category.id ?? null
 
   return { name, icon, key: metadataKey, id }
@@ -866,5 +981,12 @@ defineExpose({
 
 .v-dialog__content {
   padding: 0;
+}
+
+/* Estilos para la sección de filtros */
+.filters-section {
+  background-color: var(--v-background-base);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>
