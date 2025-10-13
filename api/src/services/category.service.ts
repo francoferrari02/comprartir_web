@@ -60,22 +60,19 @@ export async function getUserCategoriesService(categoryData: GetCategoryData): P
     const orderDirection = categoryData.order && String(categoryData.order).toUpperCase() === "ASC" ? "ASC" : "DESC";
     const order: any = {};
     order[sortField] = orderDirection;
-    const take = categoryData.per_page ?? 10;
-    const page = parseInt(categoryData.page) || 1;
-
     const [categories, total] = await Category.findAndCount({
       where: whereOptions,
       relations: ['owner'],
       order,
-      take,
-      skip: (page - 1) * take,
+      take: categoryData.per_page,
+      skip: (parseInt(categoryData.page) - 1) * (categoryData.per_page || 10),
     });
 
     const formattedCategories = categories.map(c => c.getFormattedCategory());
-
+    
     return {
       data: formattedCategories,
-      pagination: createPaginationMeta(total, page, take)
+      pagination: createPaginationMeta(total, parseInt(categoryData.page), categoryData.per_page)
     };
   } catch (err: unknown) {
     handleCaughtError(err);

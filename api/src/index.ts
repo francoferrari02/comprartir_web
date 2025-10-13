@@ -40,50 +40,6 @@ db.initialize()
 
 const app: Express = express();
 
-// Allow front origins; use env FRONT_ORIGIN (comma separated) with default to Vite
-const FRONT_ORIGINS = (process.env.FRONT_ORIGIN ?? 'http://localhost:5173')
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
-
-const isAllowedOrigin = (origin?: string | null): origin is string => {
-  if (!origin) {
-    return true; // allow non-browser clients without origin header
-  }
-  return FRONT_ORIGINS.includes(origin);
-};
-
-// CORS configuration - must be before routes
-app.use(cors({
-  origin: (origin, callback) => {
-    if (isAllowedOrigin(origin)) {
-      return callback(null, true);
-    }
-    console.warn(`Blocked CORS request from origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','Refresh-Token'],
-  exposedHeaders: ['Authorization','Refresh-Token'],
-  credentials: false,
-}));
-
-// CORS fallback middleware to guarantee headers on error responses
-app.use((req, res, next) => {
-  const requestOrigin = req.headers.origin;
-  const allowedOrigin = isAllowedOrigin(requestOrigin) && requestOrigin ? requestOrigin : FRONT_ORIGINS[0];
-  if (allowedOrigin) {
-    res.header('Access-Control-Allow-Origin', allowedOrigin);
-  }
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Refresh-Token');
-  res.header('Access-Control-Expose-Headers', 'Authorization, Refresh-Token');
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    return res.sendStatus(204);
-  }
-  next();
-});
-
 app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -95,11 +51,18 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+
 app.use(cookieParser());
+
+app.use(cors({
+  origin: '*', // Permitir cualquier origen
+  allowedHeaders: ['Authorization', 'Refresh-Token', 'Content-Type'],
+  exposedHeaders: ['Authorization', 'Refresh-Token']
+}));
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
+  port: parseInt(process.env.SMTP_PORT),
   secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER,
@@ -109,10 +72,9 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((error, _) => {
   if (error) {
-    console.error('❌ Mailer configuration error:', error.message);
-    console.error('Please check your SMTP settings in .env file');
+    console.error(error);
   } else {
-    console.log('✅ Mailer service up and running!');
+    console.log('Mailer service up and running!');
     app.locals.mailer = new Mailer(transporter);
   }
 });

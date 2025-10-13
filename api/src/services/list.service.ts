@@ -38,11 +38,11 @@ export async function createListService(listData: RegisterListData): Promise<Lis
         return list.getFormattedList();
     } catch (err: any) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-
-        if (err?.code === 'SQLITE_CONSTRAINT' && err.message?.includes('unique_list_name_per_owner')) {
+        
+        if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('unique_list_name_per_owner')) {
             throw new ConflictError(ERROR_MESSAGES.CONFLICT.LIST_NAME_EXISTS);
         }
-
+        
         handleCaughtError(err);
     } finally {
         await queryRunner.release();
@@ -61,6 +61,7 @@ export async function getListsService(listData: ListFilterOptions): Promise<Pagi
         const queryBuilder = List.createQueryBuilder("list")
             .leftJoinAndSelect("list.owner", "owner")
             .leftJoinAndSelect("list.sharedWith", "sharedWith")
+            .leftJoinAndSelect("list.items", "items")
             .andWhere("list.deletedAt IS NULL");
 
         if (listData.owner === true) {
@@ -101,21 +102,18 @@ export async function getListsService(listData: ListFilterOptions): Promise<Pagi
         }
         const orderDirection = listData.order ?? "ASC";
 
-        queryBuilder.orderBy(orderField, orderDirection);
+        queryBuilder
+            .orderBy(orderField, orderDirection)
+            .take(listData.per_page)
+            .skip((listData.page! - 1) * (listData.per_page ?? 10));
 
-        const take = listData.per_page ?? 10;
-        const page = listData.page ?? 1;
-
-        const [lists, total] = await queryBuilder
-            .take(take)
-            .skip((page - 1) * take)
-            .getManyAndCount();
+        const [lists, total] = await queryBuilder.getManyAndCount();
 
         const formattedLists = lists.map(list => list.getFormattedList());
-
+        
         return {
             data: formattedLists,
-            pagination: createPaginationMeta(total, page, take)
+            pagination: createPaginationMeta(total, listData.page!, listData.per_page!)
         };
     } catch (err) {
         handleCaughtError(err);
@@ -237,19 +235,22 @@ export async function purchaseListService(listId: number, user: User, metadata: 
             throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_IN_SHOPPING_LIST);
         }
 
-        // Mark ALL items as purchased and update lastPurchasedAt
         const listItems: ListItem[] = [];
         for (const item of list.items) {
             const listItem = await queryRunner.manager.findOne(ListItem, { where: { id: item.id } });
             if (listItem) {
-                // Mark item as purchased if not already
-                listItem.purchased = true;
-                listItem.lastPurchasedAt = new Date();
-                listItems.push(listItem);
-                await queryRunner.manager.save(listItem);
+                if(listItem.purchased) {
+                    listItem.lastPurchasedAt = new Date();
+                    listItems.push(listItem);
+                    await queryRunner.manager.save(listItem);
+                }
             } else {
                 throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.ITEM);
             }
+        }
+
+        if(listItems.length <= 0) {
+            throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.NO_ITEMS_PURCHASED_IN_SHOPPING_LIST);
         }
 
         const purchase = new Purchase();
@@ -411,10 +412,10 @@ export async function shareListService(listId: number, fromUser: User, toUserEma
 
         if (list.sharedWith && list.sharedWith.some(u => u.id === toUser.id)) {
             await queryRunner.release();
-            return list.getFormattedList();
+            throw new ConflictError(ERROR_MESSAGES.CONFLICT.ALREADY_SHARED);
         }
 
-        list.sharedWith = [...(list.sharedWith || []), toUser]; // Save User instance, not formatted object
+        list.sharedWith = [...(list.sharedWith || []), toUser];
         await queryRunner.manager.save(list);
 
         await queryRunner.commitTransaction();
@@ -468,8 +469,7 @@ export async function getSharedUsersService(listId: number, user: User): Promise
         }
 
         return list.sharedWith.map(user => {
-            removeUserForListShared(user);
-            return user;
+            return user.getFormattedUser();
         });
 
     } catch (err) {

@@ -14,11 +14,7 @@ export async function getPantryItems(req: Request, res: Response): Promise<void>
         if (!pantryId) throw new BadRequestError(ERROR_MESSAGES.VALIDATION.INVALID_ID);
         const page = req.query.page ? Number(req.query.page) : 1;
         const per_page = req.query.per_page ? Number(req.query.per_page) : 10;
-
-        // Convertir order a mayúsculas para aceptar tanto 'asc'/'desc' como 'ASC'/'DESC'
-        const orderParam = req.query.order ? String(req.query.order).toUpperCase() : 'DESC';
-        const order = (orderParam === 'ASC' || orderParam === 'DESC') ? orderParam : 'DESC';
-
+        const order = req.query.order === 'ASC' ? 'ASC' : 'DESC';
         const allowedSortBy = ["name", "unit", "quantity", "productName"];
         const sort_by = allowedSortBy.includes(String(req.query.sort_by)) ? String(req.query.sort_by) as typeof allowedSortBy[number] : undefined;
         const search = req.query.search as string | undefined;

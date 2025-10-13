@@ -113,17 +113,44 @@ export const ensureProduct = async (name, options = {}) => {
 
 /**
  * Create a new product (minimal; UI does not handle categories)
- * @param {Object} data - { name: string, metadata?: object }
+ * @param {Object} data - { name: string, metadata?: object, category?: { id: number } }
  * Si la API exige un campo adicional (p.ej. categoryId), enviar null u omitir según esquema.
+ * 
+ * NOTE: La API ya NO devuelve product.category poblado después de crear.
+ * Hacemos un GET adicional para obtenerlo completo.
  */
 export const createProduct = async (data) => {
   const response = await api.post('/products', data)
-  return unwrapEntityResponse(response.data)
+  const created = unwrapEntityResponse(response.data)
+  
+  // Si el producto fue creado con categoría, recargar para obtenerla poblada
+  if (created && created.id && data.category) {
+    try {
+      return await getProduct(created.id)
+    } catch (error) {
+      console.warn('⚠️ createProduct - Unable to reload product with category', error)
+      return created
+    }
+  }
+  
+  return created
 }
 
 export async function updateProduct(id, data) {
   const response = await api.put(`/products/${id}`, data)
-  return unwrapEntityResponse(response.data)
+  const updated = unwrapEntityResponse(response.data)
+  
+  // Si se actualizó la categoría, recargar para obtenerla poblada
+  if (updated && updated.id && data.category) {
+    try {
+      return await getProduct(updated.id)
+    } catch (error) {
+      console.warn('⚠️ updateProduct - Unable to reload product with category', error)
+      return updated
+    }
+  }
+  
+  return updated
 }
 
 /**

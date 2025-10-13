@@ -10,10 +10,6 @@ const DEFAULT_RESET_PASSWORD_SUBJECT = "Reset Password Verification";
 const DEFAULT_PANTRY_SHARED_SUBJECT = "Pantry Shared with You";
 const DEFAULT_LIST_SHARED_SUBJECT = "Shopping List Shared with You";
 
-// Exact subject and body for verification emails
-const VERIFICATION_SUBJECT = "Verifica tu cuenta de Comprartir";
-const VERIFICATION_BODY_TEMPLATE = "Copia y pega el siguiente token '<%VERIFICATION_CODE%>' en la pagina de verificacion para verificar tu cuenta correctamente.";
-
 const DEFAULT_REGISTRATION_TEMPLATE = `<div style="text-align: center;">
     <h1>
         <strong>Welcome <%FIRST_NAME%></strong>
@@ -69,8 +65,7 @@ export enum EmailType {
   REGISTRATION = 'REGISTRATION',
   RESET_PASSWORD = 'RESET_PASSWORD',
   PANTRY_SHARED = 'PANTRY_SHARED',
-  LIST_SHARED = 'LIST_SHARED',
-  VERIFICATION = 'VERIFICATION'
+  LIST_SHARED = 'LIST_SHARED'
 }
 
 export class Mailer {
@@ -99,9 +94,6 @@ export class Mailer {
         break;
       case EmailType.LIST_SHARED:
         await this.sendListSharedEmail(params[0], params[1], params[2]);
-        break;
-      case EmailType.VERIFICATION:
-        await this.sendVerificationEmail(params[0]);
         break;
       default:
         throw new BadRequestError(ERROR_MESSAGES.VALIDATION.INVALID("email type"));
@@ -144,19 +136,6 @@ export class Mailer {
       ...this.baseEmailOptions,
       subject,
       html: this.getListSharedEmailTemplate(recipientName, listName, ownerName)
-    }
-    await this.transporter.sendMail(emailOptions);
-  }
-
-  private async sendVerificationEmail(verificationCode: string): Promise<void> {
-    const subject = VERIFICATION_SUBJECT;
-    const text = VERIFICATION_BODY_TEMPLATE.replace(/<%VERIFICATION_CODE%>/g, verificationCode);
-
-    const emailOptions: Mail.Options = {
-      ...this.baseEmailOptions,
-      subject,
-      text, // Plain text body as required
-      html: `<p>${text}</p>` // Also include HTML version for compatibility
     }
     await this.transporter.sendMail(emailOptions);
   }

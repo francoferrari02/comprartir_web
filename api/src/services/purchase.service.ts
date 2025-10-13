@@ -58,7 +58,7 @@ export async function getPurchasesService(filter: GetPurchasesData): Promise<Pag
     }
 
     const formattedPurchases = purchases.map(p => p.getFormattedPurchase());
-
+    
     return {
       data: formattedPurchases,
       pagination: createPaginationMeta(total, filter.page || 1, filter.per_page || 10)
@@ -149,11 +149,12 @@ export async function restorePurchaseService(id: number, user: User): Promise<Li
     }
 
     if (!purchase.list) throw new NotFoundError(ERROR_MESSAGES.NOT_FOUND.LIST);
+    if (purchase.list.recurring) throw new BadRequestError(ERROR_MESSAGES.BUSINESS_RULE.CANNOT_RESTORE_RECURRING_LIST);
 
     const newList = new List();
     newList.name = await generateUniqueListName(purchase.list.name, user, queryRunner);
     newList.description = purchase.list.description;
-    newList.recurring = false; // Always create as non-recurring
+    newList.recurring = false;
     newList.metadata = purchase.list.metadata;
     newList.owner = user;
 

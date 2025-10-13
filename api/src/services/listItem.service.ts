@@ -112,22 +112,19 @@ export async function getListItemsService(filterOptions: ListItemFilterOptions):
             orderOptions = { [orderField]: orderDirection };
         }
 
-        const take = filterOptions.per_page ?? 10;
-        const page = filterOptions.page ?? 1;
-
         const [items, total] = await ListItem.findAndCount({
             where: whereOptions,
             relations: ["list", "list.owner", "product", "product.pantry", "product.pantry.owner", "owner", "product.category"],
-            take,
-            skip: (page - 1) * take,
+            take: filterOptions.per_page,
+            skip: (filterOptions.page - 1) * (filterOptions.per_page ?? 10),
             order: orderOptions,
         });
 
         const formattedItems = items.map(i => i.getFormattedListItem());
-
+        
         return {
             data: formattedItems,
-            pagination: createPaginationMeta(total, page, take),
+            pagination: createPaginationMeta(total, filterOptions.page, filterOptions.per_page)
         };
     } catch (err) {
         handleCaughtError(err);
@@ -195,13 +192,12 @@ export async function updateListItemService(
         await queryRunner.manager.save(item);
         await queryRunner.commitTransaction();
 
-        // Refresh item with all required relations for getFormattedListItem()
         const refreshed = await queryRunner.manager.findOne(ListItem, {
             where: { id: item.id },
-            relations: ["list", "list.owner", "product", "product.category"],
+            relations: ["list", "list.owner"],
         });
 
-        return refreshed?.getFormattedListItem() ?? item.getFormattedListItem();
+        return item.getFormattedListItem();
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
         throw err;

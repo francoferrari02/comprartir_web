@@ -65,8 +65,20 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
         let total = 0;
         const skip = (page - 1) * per_page;
         const take = per_page;
+        
         if (owner === undefined) {
-            const baseQuery = queryRunner.manager
+            total = await queryRunner.manager
+                .createQueryBuilder(Pantry, "pantry")
+                .leftJoin("pantry.owner", "owner")
+                .leftJoin("pantry.sharedWith", "sharedWith")
+                .where("pantry.deletedAt IS NULL")
+                .andWhere(
+                    "owner.id = :userId OR sharedWith.id = :userId",
+                    { userId: user.id }
+                )
+                .getCount();
+                
+            pantries = await queryRunner.manager
                 .createQueryBuilder(Pantry, "pantry")
                 .leftJoinAndSelect("pantry.owner", "owner")
                 .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
@@ -74,11 +86,7 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
                 .andWhere(
                     "owner.id = :userId OR sharedWith.id = :userId",
                     { userId: user.id }
-                );
-
-            total = await baseQuery.getCount();
-
-            pantries = await baseQuery
+                )
                 .orderBy(`pantry.${sort_by}`, order)
                 .skip(skip)
                 .take(take)
@@ -87,7 +95,7 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
             total = await queryRunner.manager.count(Pantry, {
                 where: { owner: { id: user.id }, deletedAt: null }
             });
-
+            
             pantries = await queryRunner.manager.find(Pantry, {
                 where: { owner: { id: user.id }, deletedAt: null },
                 relations: ["owner", "sharedWith"],
@@ -96,7 +104,18 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
                 take
             });
         } else {
-            const baseQuery = queryRunner.manager
+            total = await queryRunner.manager
+                .createQueryBuilder(Pantry, "pantry")
+                .leftJoin("pantry.owner", "owner")
+                .leftJoin("pantry.sharedWith", "sharedWith")
+                .where("pantry.deletedAt IS NULL")
+                .andWhere(
+                    "sharedWith.id = :userId AND owner.id != :userId",
+                    { userId: user.id }
+                )
+                .getCount();
+                
+            pantries = await queryRunner.manager
                 .createQueryBuilder(Pantry, "pantry")
                 .leftJoinAndSelect("pantry.owner", "owner")
                 .leftJoinAndSelect("pantry.sharedWith", "sharedWith")
@@ -104,20 +123,16 @@ export async function getPantriesService(user: User, owner?: boolean, sort_by: "
                 .andWhere(
                     "sharedWith.id = :userId AND owner.id != :userId",
                     { userId: user.id }
-                );
-
-            total = await baseQuery.getCount();
-
-            pantries = await baseQuery
+                )
                 .orderBy(`pantry.${sort_by}`, order)
                 .skip(skip)
                 .take(take)
                 .getMany();
         }
         await queryRunner.commitTransaction();
-
+        
         const formattedPantries = pantries.map(p => p.getFormattedPantry());
-
+        
         return {
             data: formattedPantries,
             pagination: createPaginationMeta(total, page, per_page)
@@ -318,7 +333,6 @@ export async function getSharedUsersService(pantryId: number, user: User): Promi
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
         handleCaughtError(err);
-        throw err;
     } finally {
         await queryRunner.release();
     }

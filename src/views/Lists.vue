@@ -149,15 +149,7 @@
               <p class="text-body-2 text-medium-emphasis mb-4">
                 {{ searchQuery ? 'No se encontraron listas con ese criterio' : 'Comienza creando tu primera lista de compras' }}
               </p>
-                <v-btn
-                  v-if="!searchQuery"
-                  color="primary"
-                  prepend-icon="mdi-plus"
-                  class="text-body-2 font-weight-medium"
-                  @click="openCreateDialog"
-                >
-                Nueva Lista
-              </v-btn>
+                
             </div>
 
             <!-- Carrousel de listas -->

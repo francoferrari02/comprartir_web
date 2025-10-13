@@ -12,17 +12,14 @@ export interface PaginatedResponse<T> {
   pagination: PaginationMeta;
 }
 
-export function createPaginationMeta(total: number, page = 1, per_page = 10): PaginationMeta {
-  const safePerPage = per_page && per_page > 0 ? per_page : 10;
-  const safePage = page && page > 0 ? page : 1;
-  const total_pages = Math.ceil(total / safePerPage) || 1;
-
+export function createPaginationMeta(total: number, page: number, per_page: number): PaginationMeta {
+  const total_pages = Math.ceil(total / per_page);
   return {
     total,
-    page: safePage,
-    per_page: safePerPage,
+    page,
+    per_page,
     total_pages,
-    has_next: safePage < total_pages,
-    has_prev: safePage > 1,
+    has_next: page < total_pages,
+    has_prev: page > 1
   };
 }

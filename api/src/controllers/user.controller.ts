@@ -35,11 +35,6 @@ export async function registerUser(req: Request, res: Response): Promise<void> {
     const userData: RegisterUserData = req.body as RegisterUserData;
     const mailer: Mailer = req.app.locals.mailer;
 
-    if (!mailer) {
-      console.error('❌ Mailer not configured! Check SMTP settings in .env');
-      throw new Error('Email service is not available. Please contact the administrator.');
-    }
-
     replyCreated(res, await UserService.createNewUser(userData, mailer));
 
   } catch (err) {

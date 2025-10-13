@@ -18,7 +18,7 @@ import { PaginatedResponse, createPaginationMeta } from '../types/pagination';
  * @param {string} [sort_by] - Field to sort by (name, quantity, unit)
  * @param {string} [search] - Search by product name (case-insensitive, partial match)
  * @param {number} [category_id] - Filter by category ID
- * @returns {Promise<{data: any[], pagination: {currentPage: number, perPage: number, totalPages: number, totalItems: number}}>} Paginated pantry items
+ * @returns {Promise<{PantryItem[]}>} Paginated pantry items
  * @throws {NotFoundError} If the pantry is not found or not accessible by the user
  */
 export async function getPantryItemsService(
@@ -52,8 +52,7 @@ export async function getPantryItemsService(
             .leftJoinAndSelect("product.pantry", "pantry")
             .leftJoinAndSelect("pantry.owner", "owner")
             .where("item.pantry = :pantryId", { pantryId })
-            .andWhere("item.deletedAt IS NULL")
-            .andWhere("product.deletedAt IS NULL");
+            .andWhere("item.deletedAt IS NULL");
 
         if (search) {
             qb.andWhere("LOWER(product.name) LIKE :search", { search: `%${search.toLowerCase()}%` });
@@ -78,16 +77,16 @@ export async function getPantryItemsService(
         const [items, total] = await qb.getManyAndCount();
 
         await queryRunner.commitTransaction();
-
+        
         const formattedItems = items.map(i => i.getFormattedListItem());
-
+        
         return {
             data: formattedItems,
             pagination: createPaginationMeta(total, page, per_page)
         };
     } catch (err) {
         if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-    handleCaughtError(err);
+        handleCaughtError(err);
     } finally {
         await queryRunner.release();
     }

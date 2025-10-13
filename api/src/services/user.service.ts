@@ -37,7 +37,7 @@ export async function createNewUser(
     user.surname = userData.surname;
     user.email = userData.email;
     user.password = getHashedPassword(userData.password);
-    user.metadata = userData.metadata || {};
+    user.metadata = userData.metadata;
 
     const errors = await validate(user);
     if (errors.length > 0) {
@@ -302,8 +302,7 @@ export async function sendVerificationCode(email: string, mailer: Mailer): Promi
 
     await queryRunner.commitTransaction();
 
-    // Use VERIFICATION email type with exact subject/body
-    mailer.sendEmail(EmailType.VERIFICATION, verificationToken.token);
+    mailer.sendEmail(EmailType.REGISTRATION, user.name, verificationToken.token);
 
     return { code: verificationToken.token }
   } catch (err) {

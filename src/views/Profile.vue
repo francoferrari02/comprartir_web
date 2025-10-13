@@ -281,7 +281,7 @@ const themeOptions = [
 
 const notificationOptions = [
   { title: 'Activadas', value: true },
-  { title: 'Desactivadas', value: false }
+  { title: 'Desactivadas (solo las opcionales)', value: false }
 ]
 
 const rules = {
