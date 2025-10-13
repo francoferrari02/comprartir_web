@@ -53,15 +53,28 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getShoppingLists, getListItems } from '@/services/lists'
+import { getProfile } from '@/services/auth'
 import ListItem from '@/components/ListItem.vue'
 
 const items = ref([])
 const loading = ref(false)
+const currentUser = ref(null)
 
 // Fetch recent lists (updated in last day, or created in last 2 days as fallback)
 async function fetchRecentLists() {
   loading.value = true
   try {
+    // Get current user
+    if (!currentUser.value) {
+      try {
+        const profileResponse = await getProfile()
+        currentUser.value = profileResponse
+        console.log('👤 RecentLists - Current user:', currentUser.value)
+      } catch (err) {
+        console.error('❌ RecentLists - Error fetching profile:', err)
+      }
+    }
+
     // Get lists sorted by update date (most recent first)
     const response = await getShoppingLists({
       sort_by: 'updatedAt',
@@ -137,11 +150,21 @@ async function fetchRecentLists() {
           const bought = listItems.filter(item => item.purchased).length
           const total = listItems.length
 
+          // Filter sharedWith to exclude current user
+          // SOLO si NO soy el owner
+          let sharedWith = Array.isArray(list.sharedWith) ? list.sharedWith : []
+          const isOwner = list.owner?.id === currentUser.value?.id
+          
+          if (currentUser.value?.id && !isOwner) {
+            sharedWith = sharedWith.filter(user => user.id !== currentUser.value.id)
+          }
+
           return {
             id: list.id,
             name: list.name,
             bought,
             total,
+            sharedWith,
             createdAt: list.createdAt,
             updatedAt: list.updatedAt
           }
@@ -152,6 +175,7 @@ async function fetchRecentLists() {
             name: list.name,
             bought: 0,
             total: 0,
+            sharedWith: [],
             createdAt: list.createdAt,
             updatedAt: list.updatedAt
           }

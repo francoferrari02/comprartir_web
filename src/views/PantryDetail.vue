@@ -295,6 +295,7 @@
                   @delete="deleteItem(item.id)"
                   @edit="openEditItem(item)"
                   @update-name="(newName) => updateItemName(item.id, newName)"
+                  @update-quantity="updateItemQuantity"
                 />
               </div>
             </div>
@@ -1176,6 +1177,49 @@ async function updateItemName(itemId, newName) {
   } catch (err) {
     console.error('Error updating item name:', err)
     error.value = err.message || 'Error al actualizar el nombre del producto'
+  }
+}
+
+async function updateItemQuantity({ itemId, quantity }) {
+  try {
+    console.log('🔄 Actualizando cantidad:', { itemId, quantity })
+    
+    // Obtener el item actual
+    const item = items.value.find(i => i.id === itemId)
+    if (!item) {
+      console.error('❌ Item no encontrado:', itemId)
+      return
+    }
+    
+    console.log('📦 Item encontrado:', item)
+    
+    // La API requiere tanto quantity como unit (ambos obligatorios)
+    const payload = {
+      quantity: quantity,
+      unit: item.unit || 'un' // Mantener la unidad existente o usar 'un' por defecto
+    }
+    
+    console.log('📤 Enviando payload:', payload)
+    
+    const updated = await updatePantryItem(pantry.value.id, itemId, payload)
+
+    console.log('✅ Respuesta de actualización:', updated)
+
+    const index = items.value.findIndex(i => i.id === itemId)
+    if (index !== -1) {
+      items.value[index] = { ...items.value[index], ...updated }
+    }
+
+    showSnackbar(`Cantidad actualizada: ${quantity}`, 'success')
+  } catch (err) {
+    console.error('❌ Error updating item quantity:', err)
+    console.error('❌ Error message:', err.message)
+    console.error('❌ Error status:', err.status)
+    
+    error.value = err.message || 'Error al actualizar la cantidad del producto'
+    showSnackbar(err.message || 'Error al actualizar la cantidad', 'error')
+    // Recargar los items para revertir el cambio visual
+    await fetchItems()
   }
 }
 

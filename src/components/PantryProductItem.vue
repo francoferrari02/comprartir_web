@@ -7,27 +7,52 @@
       </v-icon>
     </v-btn>
 
-    <!-- Nombre del producto y detalles -->
+    <!-- Nombre del producto -->
     <div class="flex-grow-1 ml-2">
       <span class="product-name">
         {{ productDisplayName }}
       </span>
-      <span v-if="product.quantity" class="text-caption text-medium-emphasis ml-2">
-        {{ product.quantity }} {{ product.unit || 'un' }}
-      </span>
     </div>
 
-    <!-- Icono de categoría -->
-    <v-icon
-      v-if="categoryIcon"
-      size="20"
-      class="category-icon"
-    >
-      {{ categoryIcon }}
-    </v-icon>
+    <!-- Controles de cantidad -->
+    <div class="quantity-controls d-flex align-center">
+      <!-- Botón decrementar -->
+      <v-btn
+        icon
+        size="small"
+        variant="text"
+        color="primary"
+        :disabled="updating || product.quantity <= 0"
+        @click="decrementQuantity"
+      >
+        <v-icon>mdi-minus</v-icon>
+      </v-btn>
+
+      <!-- Cantidad y unidad -->
+      <div class="quantity-display mx-2">
+        <span class="text-body-2 font-weight-bold">
+          {{ product.quantity || 0 }}
+        </span>
+        <span class="text-caption text-medium-emphasis ml-1">
+          {{ product.unit || 'un' }}
+        </span>
+      </div>
+
+      <!-- Botón incrementar -->
+      <v-btn
+        icon
+        size="small"
+        variant="text"
+        color="primary"
+        :disabled="updating"
+        @click="incrementQuantity"
+      >
+        <v-icon>mdi-plus</v-icon>
+      </v-btn>
+    </div>
 
     <!-- Botón detalles -->
-    <v-btn icon size="small" variant="text" @click="$emit('edit')">
+    <v-btn icon size="small" variant="text" class="ml-2" @click="$emit('edit')">
       <v-icon>mdi-information-outline</v-icon>
     </v-btn>
 
@@ -39,9 +64,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
-const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   product: {
@@ -50,7 +73,9 @@ const props = defineProps({
   }
 })
 
-defineEmits(['delete', 'edit', 'update-name'])
+const emit = defineEmits(['delete', 'edit', 'update-name', 'update-quantity'])
+
+const updating = ref(false)
 
 // Computed para obtener el nombre del producto desde diferentes estructuras posibles
 const productDisplayName = computed(() => {
@@ -63,14 +88,39 @@ const productDisplayName = computed(() => {
   )
 })
 
-const categoryIcon = computed(() => {
-  // Intentar obtener la categoría de diferentes estructuras
-  const category = props.product?.product?.category || props.product?.category
-  if (!category) return null
+async function incrementQuantity() {
+  if (updating.value) return
+  
+  updating.value = true
+  const newQuantity = (props.product.quantity || 0) + 1
+  
+  emit('update-quantity', {
+    itemId: props.product.id,
+    quantity: newQuantity
+  })
+  
+  // Reset updating después de un pequeño delay
+  setTimeout(() => {
+    updating.value = false
+  }, 500)
+}
 
-  // Obtener el icono del metadata de la categoría
-  return category.metadata?.icon || DEFAULT_CATEGORY_ICON
-})
+async function decrementQuantity() {
+  if (updating.value || props.product.quantity <= 0) return
+  
+  updating.value = true
+  const newQuantity = Math.max(0, (props.product.quantity || 0) - 1)
+  
+  emit('update-quantity', {
+    itemId: props.product.id,
+    quantity: newQuantity
+  })
+  
+  // Reset updating después de un pequeño delay
+  setTimeout(() => {
+    updating.value = false
+  }, 500)
+}
 </script>
 
 <style scoped>
@@ -89,8 +139,14 @@ const categoryIcon = computed(() => {
   color: rgba(0, 0, 0, 0.87);
 }
 
-.category-icon {
-  color: #2a2a44;
-  margin-right: 4px;
+.quantity-controls {
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  padding: 4px 8px;
+}
+
+.quantity-display {
+  min-width: 60px;
+  text-align: center;
 }
 </style>

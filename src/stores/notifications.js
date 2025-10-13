@@ -44,6 +44,22 @@ export const useNotificationsStore = defineStore('notifications', {
         const stored = localStorage.getItem('notifications')
         if (stored) {
           this.notifications = JSON.parse(stored)
+          
+          // Actualizar colores de notificaciones antiguas
+          this.notifications.forEach(notification => {
+            // Si es una notificación de item agregado y tiene color antiguo, actualizarlo
+            if (notification.type === 'item_added' && notification.color !== 'primary') {
+              notification.color = 'primary'
+            }
+            // Actualizar otros tipos de notificaciones que usaban 'success'
+            if (['pantry_shared', 'item_purchased', 'list_completed'].includes(notification.type) && notification.color === 'success') {
+              notification.color = 'primary'
+            }
+          })
+          
+          // Guardar los cambios
+          this._persist()
+          
           console.log('📬 Notifications loaded from storage:', this.notifications.length)
         }
         this._initialized = true
@@ -143,7 +159,7 @@ export const useNotificationsStore = defineStore('notifications', {
         subtitle: `Despensa: ${data.pantryName}`,
         message: `Ahora tienes acceso a la despensa "${data.pantryName}"`,
         icon: 'mdi-fridge',
-        color: 'success',
+        color: 'primary',
         to: `/pantries/${data.pantryId}`,
         actionText: 'Ver despensa',
         metadata: data
@@ -157,7 +173,7 @@ export const useNotificationsStore = defineStore('notifications', {
         subtitle: `${data.itemName} en ${data.listName || data.pantryName}`,
         message: `Se agregó "${data.itemName}" a ${data.type === 'list' ? 'la lista' : 'la despensa'} compartida`,
         icon: 'mdi-plus-circle',
-        color: 'info',
+        color: 'primary',
         to: data.type === 'list' ? `/lists/${data.listId}` : `/pantries/${data.pantryId}`,
         actionText: 'Ver',
         metadata: data
@@ -171,7 +187,7 @@ export const useNotificationsStore = defineStore('notifications', {
         subtitle: `${data.itemName} en ${data.listName}`,
         message: `"${data.itemName}" fue marcado como comprado`,
         icon: 'mdi-check-bold',
-        color: 'success',
+        color: 'primary',
         to: `/lists/${data.listId}`,
         actionText: 'Ver lista',
         metadata: data
@@ -185,7 +201,7 @@ export const useNotificationsStore = defineStore('notifications', {
         subtitle: `${data.listName}`,
         message: `Todos los productos de "${data.listName}" han sido comprados`,
         icon: 'mdi-check-all',
-        color: 'success',
+        color: 'primary',
         to: `/lists/${data.listId}`,
         actionText: 'Ver lista',
         metadata: data

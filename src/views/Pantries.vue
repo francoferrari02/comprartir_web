@@ -176,55 +176,13 @@
         <!-- COLUMNA DERECHA (sidebar) -->
         <v-col cols="12" md="4" class="right-col">
           <!-- Resumen con subtarjetas -->
-          <v-card class="card card--hover mb-4">
-            <v-card-title class="text-h6 pa-4">
-              <v-icon class="mr-2">mdi-chart-box-outline</v-icon>
-              Resumen
-            </v-card-title>
-            <v-divider />
-            <v-card-text class="pa-4">
-              <div v-if="loading" class="text-center py-4">
-                <v-progress-circular indeterminate size="32" />
-              </div>
-              <div v-else>
-                <!-- Sub-tarjeta de Despensas -->
-                <div class="summary-sub-card mb-3">
-                  <div class="sub-card-header mb-2">
-                    <v-icon size="small" class="mr-1" color="primary">mdi-fridge-outline</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold">Despensas</span>
-                  </div>
-                  <div class="stat-item mb-2">
-                    <div class="d-flex align-center justify-space-between">
-                      <span class="text-body-2">Total de despensas</span>
-                      <span class="text-h6 font-weight-bold">{{ summaryStats.totalPantries }}</span>
-                    </div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="d-flex align-center justify-space-between">
-                      <span class="text-body-2">Despensas compartidas</span>
-                      <span class="text-h6 font-weight-bold text-success">{{ summaryStats.sharedPantries }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <v-divider class="my-3" />
-
-                <!-- Sub-tarjeta de Productos -->
-                <div class="summary-sub-card mb-3">
-                  <div class="sub-card-header mb-2">
-                    <v-icon size="small" class="mr-1" color="primary">mdi-package-variant</v-icon>
-                    <span class="text-subtitle-2 font-weight-bold">Productos</span>
-                  </div>
-                  <div class="stat-item">
-                    <div class="d-flex align-center justify-space-between">
-                      <span class="text-body-2">Total de productos</span>
-                      <span class="text-h6 font-weight-bold">{{ summaryStats.totalItems }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
+          <PantrySummaryCard 
+            :stats="summaryStats"
+            :loading="loading"
+            class="card card--hover mb-4"
+            @filter-all-pantries="filterAllPantries"
+            @filter-shared-pantries="filterSharedPantries"
+          />
         </v-col>
       </v-row>
 
@@ -373,8 +331,10 @@ import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePantriesStore } from '@/stores/pantries'
 import { getPantryItems } from '@/services/pantryItems'
+import { getProfile } from '@/services/auth'
 import PantrySearch from '@/components/PantrySearch.vue'
 import PantryCarousel from '@/components/PantryCarousel.vue'
+import PantrySummaryCard from '@/components/PantrySummaryCard.vue'
 import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const router = useRouter()
@@ -390,6 +350,7 @@ const breadcrumbs = computed(() => [
 const creating = ref(false)
 const error = ref(null)
 const pantryItemsCounts = ref({})
+const currentUser = ref(null) // Usuario actual
 const searchQuery = ref(route.query.search || '')
 const createDialog = ref(false)
 const showFilters = ref(false)
@@ -463,31 +424,63 @@ watch(searchQuery, () => {
 
 // Computed properties
 const pantriesWithCounts = computed(() => {
-  return pantries.value.map(pantry => ({
-    ...pantry,
-    totalItems: pantryItemsCounts.value[pantry.id]?.total || 0
-  }))
+  const currentUserId = currentUser.value?.id
+  
+  return pantries.value.map(pantry => {
+    // Filter sharedWith to exclude current user
+    // SOLO si NO soy el owner
+    let sharedWithFiltered = pantry.sharedWith || []
+    const isOwner = pantry.owner?.id === currentUserId
+    
+    if (currentUserId && !isOwner) {
+      sharedWithFiltered = sharedWithFiltered.filter(user => user.id !== currentUserId)
+    }
+
+    return {
+      ...pantry,
+      totalItems: pantryItemsCounts.value[pantry.id]?.total || 0,
+      sharedWith: sharedWithFiltered
+    }
+  })
 })
 
 const summaryStats = computed(() => {
+  const currentUserId = currentUser.value?.id
   const totalPantries = pagination.value.totalItems
+  
+  // Calcular despensas compartidas conmigo (donde NO soy el owner)
+  const sharedPantries = pantries.value.filter(pantry => 
+    pantry.owner && pantry.owner.id !== currentUserId
+  ).length
+  
+  // Calcular categorías principales
+  const categoryCount = {}
   let totalItems = 0
-  let sharedPantries = 0
-
+  
   pantries.value.forEach(pantry => {
     const counts = pantryItemsCounts.value[pantry.id]
     if (counts) {
       totalItems += counts.total
-    }
-    if (pantry.shared_with && Array.isArray(pantry.shared_with) && pantry.shared_with.length > 0) {
-      sharedPantries++
+      // Si el objeto counts tiene información de categorías, usarla
+      if (counts.categories) {
+        Object.entries(counts.categories).forEach(([category, count]) => {
+          categoryCount[category] = (categoryCount[category] || 0) + count
+        })
+      }
     }
   })
+  
+  // Convertir a array y ordenar por cantidad
+  const topCategories = Object.entries(categoryCount)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3) // Top 3 categorías
 
   return {
     totalPantries,
+    sharedPantries,
     totalItems,
-    sharedPantries
+    topCategories
   }
 })
 
@@ -556,14 +549,22 @@ async function fetchItemCounts() {
       console.log(`📊 Pantry ${pantry.id} (${pantry.name}) - Items:`, itemsResponse.data)
 
       const items = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
+      
+      // Contar categorías
+      const categories = {}
+      items.forEach(item => {
+        const categoryName = item.product?.category?.name || 'Sin categoría'
+        categories[categoryName] = (categories[categoryName] || 0) + 1
+      })
 
       counts[pantry.id] = {
-        total: items.length
+        total: items.length,
+        categories
       }
-      console.log(`✅ Pantry ${pantry.id} (${pantry.name}) - Total items: ${items.length}`)
+      console.log(`✅ Pantry ${pantry.id} (${pantry.name}) - Total items: ${items.length}, Categorías:`, categories)
     } catch (err) {
       console.error(`❌ Error fetching items for pantry ${pantry.id}:`, err)
-      counts[pantry.id] = { total: 0 }
+      counts[pantry.id] = { total: 0, categories: {} }
     }
   }
 
@@ -608,6 +609,40 @@ function clearFilters() {
   }
   searchQuery.value = ''
   applyFilters()
+}
+
+// Funciones de filtrado desde el resumen
+function filterAllPantries() {
+  // Limpiar filtros para mostrar todas las despensas
+  filters.value = {
+    sort_by: 'updatedAt',
+    order: 'DESC',
+    owner: undefined
+  }
+  applyFilters()
+  showSnackbar('Mostrando todas las despensas', '#2a2a44')
+}
+
+function filterSharedPantries() {
+  const currentUserId = currentUser.value?.id
+  
+  // Filtrar solo despensas compartidas conmigo
+  filters.value = {
+    sort_by: 'updatedAt',
+    order: 'DESC',
+    owner: undefined
+  }
+  
+  applyFilters()
+  
+  // Filtrar en el frontend las que no son del usuario actual
+  setTimeout(() => {
+    pantries.value = pantries.value.filter(pantry => 
+      pantry.owner && pantry.owner.id !== currentUserId
+    )
+  }, 300)
+  
+  showSnackbar('Mostrando despensas compartidas contigo', '#2a2a44')
 }
 
 function onPageChange(page) {
@@ -753,7 +788,15 @@ function showSnackbar(message, color = 'success') {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  // Cargar perfil del usuario
+  try {
+    currentUser.value = await getProfile()
+    console.log('👤 Usuario actual cargado:', currentUser.value)
+  } catch (err) {
+    console.error('Error al cargar perfil:', err)
+  }
+  
   fetchPantries()
 })
 

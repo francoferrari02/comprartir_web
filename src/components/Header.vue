@@ -40,9 +40,7 @@
         <v-menu open-on-hover location="bottom end" offset="8" close-on-content-click>
           <template #activator="{ props }">
             <v-btn icon class="actions-btn" aria-label="Notificaciones" v-bind="props">
-              <v-badge :content="unreadCount" color="error" offset-x="6" offset-y="6">
-                <v-icon size="22">mdi-bell-outline</v-icon>
-              </v-badge>
+              <v-icon size="22">mdi-bell-outline</v-icon>
             </v-btn>
           </template>
 

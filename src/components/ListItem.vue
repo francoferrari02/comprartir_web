@@ -12,9 +12,9 @@
       <v-chip size="small" class="chip-rounded chip-counter">{{ bought }}/{{ total }}</v-chip>
     </div>
 
-    <!-- Mostrar usuarios compartidos si existen -->
-    <div v-if="showShared && sharedWith && sharedWith.length > 0" class="mb-2">
-      <v-chip-group>
+    <!-- Mostrar usuarios compartidos si existen, o espacio reservado si no -->
+    <div class="shared-section mb-2">
+      <v-chip-group v-if="showShared && sharedWith && sharedWith.length > 0">
         <v-chip
           v-for="user in sharedWith"
           :key="user.id || user.email"
@@ -95,6 +95,13 @@ function openList() {
 <style scoped>
 .list-title {
   color: var(--text);
+}
+
+/* Sección de usuarios compartidos con altura fija */
+.shared-section {
+  min-height: 32px; /* Altura mínima para mantener consistencia */
+  display: flex;
+  align-items: center;
 }
 
 /* Chips redondeados */

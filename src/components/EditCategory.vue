@@ -67,6 +67,7 @@
             v-if="category"
             type="info"
             variant="tonal"
+            color="#2a2a44"
             class="mt-4"
           >
             <div class="text-caption">

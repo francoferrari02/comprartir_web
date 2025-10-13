@@ -91,15 +91,29 @@ onMounted(async () => {
         try {
           const itemsResponse = await getListItems(list.id, { per_page: 1000 })
           const items = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
+          
+          // Filtrar usuarios compartidos para excluir al usuario actual
+          // SOLO si NO soy el owner (pero aquí ya filtramos que NO somos owner)
+          let sharedWithFiltered = list.sharedWith || []
+          const isOwner = list.owner?.id === currentUser.id
+          
+          if (currentUser.id && !isOwner) {
+            sharedWithFiltered = sharedWithFiltered.filter(user => 
+              user.id !== currentUser.id
+            )
+          }
+          
           return {
             ...list,
-            itemCount: items.length
+            itemCount: items.length,
+            sharedWith: sharedWithFiltered
           }
         } catch (error) {
           console.error(`Error loading items for list ${list.id}:`, error)
           return {
             ...list,
-            itemCount: 0
+            itemCount: 0,
+            sharedWith: []
           }
         }
       })

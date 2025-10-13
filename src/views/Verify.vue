@@ -44,6 +44,7 @@
           v-if="infoMsg"
           type="info"
           variant="tonal"
+          color="#2a2a44"
           border="start"
           class="mb-4"
           closable

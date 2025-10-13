@@ -435,7 +435,22 @@ async function fetchSharedUsers() {
 
   try {
     const response = await getSharedUsers(list.value.id)
-    sharedUsers.value = Array.isArray(response) ? response : (response?.data ?? [])
+    let users = Array.isArray(response) ? response : (response?.data ?? [])
+    
+    // Filter logic:
+    // - Si SOY el owner: mostrar todos los usuarios compartidos (sin filtrar)
+    // - Si NO soy el owner: filtrar mi usuario de la lista
+    const isOwner = list.value.owner?.id === currentUser.value?.id
+    
+    if (currentUser.value?.id && !isOwner) {
+      users = users.filter(u => {
+        // Check both userId and id fields, depending on API response structure
+        const userId = u.userId || u.id
+        return userId !== currentUser.value.id
+      })
+    }
+    
+    sharedUsers.value = users
   } catch (err) {
     console.error('Error fetching shared users:', err)
   }

@@ -10,40 +10,40 @@
         <v-progress-circular indeterminate size="32" />
       </div>
       <div v-else>
-        <!-- Sub-tarjeta de Listas (con botones clicables) -->
+        <!-- Sub-tarjeta de Despensas (con botones clicables) -->
         <div class="summary-sub-card mb-3">
           <div class="sub-card-header mb-3">
-            <v-icon size="small" class="mr-1" color="primary">mdi-clipboard-list-outline</v-icon>
-            <span class="text-subtitle-2 font-weight-bold">Listas</span>
+            <v-icon size="small" class="mr-1" color="primary">mdi-fridge-outline</v-icon>
+            <span class="text-subtitle-2 font-weight-bold">Despensas</span>
           </div>
           
-          <!-- Listas sin completar - Botón -->
+          <!-- Todas las despensas - Botón -->
           <v-btn
             variant="flat"
             color="white"
             block
             class="stat-button mb-2"
-            @click="$emit('filter-incomplete-lists')"
+            @click="$emit('filter-all-pantries')"
           >
             <div class="d-flex align-center justify-space-between w-100">
-              <span class="text-body-2 font-weight-bold">Sin completar</span>
+              <span class="text-body-2 font-weight-bold">Total</span>
               <v-chip
                 size="small"
                 color="primary"
                 variant="flat"
               >
-                {{ stats.incompleteLists }}
+                {{ stats.totalPantries }}
               </v-chip>
             </div>
           </v-btn>
 
-          <!-- Listas compartidas - Botón -->
+          <!-- Despensas compartidas - Botón -->
           <v-btn
             variant="flat"
             color="white"
             block
             class="stat-button"
-            @click="$emit('filter-shared-lists')"
+            @click="$emit('filter-shared-pantries')"
           >
             <div class="d-flex align-center justify-space-between w-100">
               <span class="text-body-2 font-weight-bold">Compartidas conmigo</span>
@@ -52,7 +52,7 @@
                 color="success"
                 variant="flat"
               >
-                {{ stats.sharedLists }}
+                {{ stats.sharedPantries }}
               </v-chip>
             </div>
           </v-btn>
@@ -60,39 +60,40 @@
 
         <v-divider class="my-3" />
 
-        <!-- Sub-tarjeta de Items (solo información, no clicable) -->
+        <!-- Sub-tarjeta de Categorías (info-only) -->
         <div class="summary-sub-card">
           <div class="sub-card-header mb-3">
-            <v-icon size="small" class="mr-1" color="primary">mdi-cart-outline</v-icon>
-            <span class="text-subtitle-2 font-weight-bold">Items</span>
+            <v-icon size="small" class="mr-1" color="primary">mdi-shape-outline</v-icon>
+            <span class="text-subtitle-2 font-weight-bold">Categorías principales</span>
           </div>
           
-          <!-- Items comprados -->
-          <div class="stat-info-item mb-2">
-            <div class="d-flex align-center justify-space-between w-100">
-              <span class="text-body-2 font-weight-bold">Comprados</span>
-              <v-chip
-                size="small"
-                color="success"
-                variant="tonal"
-              >
-                {{ stats.purchasedItems }}
-              </v-chip>
+          <div v-if="stats.topCategories && stats.topCategories.length > 0">
+            <!-- Top categorías -->
+            <div
+              v-for="(category, index) in stats.topCategories"
+              :key="category.name"
+              class="stat-info-item"
+              :class="{ 'mb-2': index < stats.topCategories.length - 1 }"
+            >
+              <div class="d-flex align-center justify-space-between w-100">
+                <span class="text-body-2 font-weight-bold">{{ category.name }}</span>
+                <v-chip
+                  size="small"
+                  color="grey"
+                  variant="tonal"
+                >
+                  {{ category.count }}
+                </v-chip>
+              </div>
             </div>
           </div>
-
-          <!-- Items pendientes -->
-          <div class="stat-info-item">
-            <div class="d-flex align-center justify-space-between w-100">
-              <span class="text-body-2 font-weight-bold">Pendientes</span>
-              <v-chip
-                size="small"
-                color="grey"
-                variant="tonal"
-              >
-                {{ stats.pendingItems }}
-              </v-chip>
-            </div>
+          
+          <!-- Empty state -->
+          <div v-else class="text-center py-3">
+            <v-icon size="32" color="grey-lighten-1">mdi-package-variant-closed</v-icon>
+            <p class="text-body-2 text-medium-emphasis mt-2">
+              No hay productos en las despensas
+            </p>
           </div>
         </div>
       </div>
@@ -105,11 +106,9 @@ defineProps({
   stats: {
     type: Object,
     default: () => ({
-      incompleteLists: 0,
-      sharedLists: 0,
-      recurringLists: 0,
-      purchasedItems: 0,
-      pendingItems: 0
+      totalPantries: 0,
+      sharedPantries: 0,
+      topCategories: []
     })
   },
   loading: {
@@ -118,7 +117,7 @@ defineProps({
   }
 })
 
-defineEmits(['filter-incomplete-lists', 'filter-shared-lists', 'filter-recurring-lists'])
+defineEmits(['filter-all-pantries', 'filter-shared-pantries'])
 </script>
 
 <style scoped>

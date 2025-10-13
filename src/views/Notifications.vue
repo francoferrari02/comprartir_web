@@ -89,7 +89,6 @@
         <v-list lines="three" class="pa-0">
           <template v-for="(notification, index) in filteredNotifications" :key="notification.id">
             <v-list-item
-              :class="{ 'bg-blue-lighten-5': !notification.read }"
               @click="handleNotificationClick(notification)"
             >
               <template #prepend>

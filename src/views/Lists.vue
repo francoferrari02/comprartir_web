@@ -181,6 +181,8 @@
             :stats="summaryStats"
             :loading="loading"
             class="card card--hover mb-4"
+            @filter-incomplete-lists="filterIncompleteLists"
+            @filter-shared-lists="filterSharedLists"
           />
         </v-col>
       </v-row>
@@ -354,6 +356,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useListsStore } from '@/stores/lists'
 import { getShoppingLists, createShoppingList, getListItems, updateShoppingList, deleteShoppingList } from '@/services/lists'
+import { getProfile } from '@/services/auth'
 import ListSearch from '@/components/ListSearch.vue'
 import ListCarousel from '@/components/ListCarousel.vue'
 import SummaryCard from '@/components/SummaryCard.vue'
@@ -376,6 +379,7 @@ const lists = ref([])
 const searchQuery = ref(route.query.search || '')
 const createDialog = ref(false)
 const showFilters = ref(false) // Controlar visibilidad de filtros
+const currentUser = ref(null) // Usuario actual
 const editDialog = ref({
   open: false,
   form: {
@@ -447,11 +451,25 @@ watch(searchQuery, () => {
 
 // Computed properties
 const listsWithProgress = computed(() => {
+  const currentUserId = currentUser.value?.id
+  
   // Calculate progress for each list using store cache
   return lists.value.map(list => {
     const items = listsStore.itemsByList.get(list.id) || []
     const total = items.length
     const bought = items.filter(i => i.purchased).length
+
+    // Filtrar usuarios compartidos para excluir al usuario actual
+    // SOLO si NO soy el owner (si soy owner, quiero ver con quién compartí)
+    let sharedWithFiltered = list.sharedWith || []
+    const isOwner = list.owner?.id === currentUserId
+    
+    if (currentUserId && !isOwner) {
+      // Si NO soy el owner, filtrar mi usuario de la lista de compartidos
+      sharedWithFiltered = sharedWithFiltered.filter(user => 
+        user.id !== currentUserId
+      )
+    }
 
     return {
       ...list,
@@ -459,19 +477,28 @@ const listsWithProgress = computed(() => {
       total,
       progress: total > 0 ? (bought / total) * 100 : 0,
       tags: list.metadata?.tags || [],
-      sharedWith: list.sharedWith || []
+      sharedWith: sharedWithFiltered
     }
   })
 })
 
 const summaryStats = computed(() => {
+  // Obtener usuario actual del state reactivo
+  const currentUserId = currentUser.value?.id
+  
+  // Calcular listas sin completar (todas las que no están compradas)
+  const incompleteLists = lists.value.filter(list => !list.purchased).length
+  
+  // Calcular listas compartidas conmigo (donde NO soy el owner)
+  const sharedWithMe = lists.value.filter(list => 
+    list.owner && list.owner.id !== currentUserId
+  ).length
+  
   return {
-    totalLists: listsStore.totalLists,
-    completedLists: listsStore.completedLists,
-    totalItems: listsStore.totalItems,
-    completedItems: listsStore.purchasedItems,
-    pendingItems: listsStore.pendingItems,
-    sharedLists: listsStore.sharedLists
+    incompleteLists,
+    sharedLists: sharedWithMe,
+    purchasedItems: listsStore.purchasedItems || 0,
+    pendingItems: listsStore.pendingItems || 0
   }
 })
 
@@ -491,8 +518,8 @@ const orderOptions = [
 
 const recurringOptions = [
   { title: 'Todas', value: null },
-  { title: 'Recurrentes', value: true },
-  { title: 'No recurrentes', value: false }
+  { title: 'Compartidas', value: true },
+  { title: 'No Compartidas', value: false }
 ]
 
 // Methods
@@ -614,6 +641,48 @@ function clearFilters() {
     owner: ''
   }
   applyFilters()
+}
+
+// Funciones de filtrado desde el resumen
+function filterIncompleteLists() {
+  // Limpiar filtros primero
+  filters.value = {
+    sort_by: 'updatedAt',
+    order: 'DESC',
+    recurring: null,
+    owner: ''
+  }
+  // Nota: El filtrado de "sin completar" se hace en el frontend
+  // porque la API no tiene un endpoint específico para esto
+  // Las listas compradas se eliminan, así que todas las que vemos son "sin completar"
+  applyFilters()
+  showSnackbar('Mostrando todas las listas activas', '#2a2a44')
+}
+
+function filterSharedLists() {
+  // Obtener usuario actual del state reactivo
+  const currentUserId = currentUser.value?.id
+  
+  // Filtrar solo listas compartidas conmigo
+  filters.value = {
+    sort_by: 'updatedAt',
+    order: 'DESC',
+    recurring: null,
+    owner: '' // No podemos filtrar por owner directo, lo haremos en el computed
+  }
+  
+  // Vamos a usar el filtro de búsqueda como hack temporal
+  // ya que la API no tiene un endpoint para "shared with me"
+  applyFilters()
+  
+  // Filtrar en el frontend las que no son del usuario actual
+  setTimeout(() => {
+    lists.value = lists.value.filter(list => 
+      list.owner && list.owner.id !== currentUserId
+    )
+  }, 300)
+  
+  showSnackbar('Mostrando listas compartidas contigo', '#2a2a44')
 }
 
 function onPageChange(page) {
@@ -828,7 +897,14 @@ function showSnackbar(message, color = 'success') {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  // Cargar perfil del usuario
+  try {
+    currentUser.value = await getProfile()
+  } catch (err) {
+    console.error('Error al cargar perfil:', err)
+  }
+  
   fetchLists()
 })
 </script>
