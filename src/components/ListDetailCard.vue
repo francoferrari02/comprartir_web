@@ -132,22 +132,32 @@
         </div>
       </div>
 
-      <!-- Action menu -->
-      <v-menu>
-        <template #activator="{ props: menuProps }">
-          <v-btn
-            icon="mdi-dots-vertical"
-            variant="text"
-            class="icon-btn-rounded"
-            v-bind="menuProps"
-          >
-            <v-tooltip activator="parent" location="top">
-              Más acciones
-            </v-tooltip>
-          </v-btn>
-        </template>
-        <v-card class="dropdown-menu" min-width="260">
+      <div class="d-flex align-center gap-2">
+        <!-- Action menu -->
+        <v-menu location="bottom end">
+          <template #activator="{ props: menuProps }">
+            <v-btn
+              icon
+              variant="flat"
+              color="#2a2a44"
+              class="icon-btn-rounded"
+              v-bind="menuProps"
+            >
+              <v-icon color="white">mdi-dots-vertical</v-icon>
+              <v-tooltip activator="parent" location="top">
+                Más opciones
+              </v-tooltip>
+            </v-btn>
+          </template>
+          <v-card class="dropdown-menu" min-width="260">
           <v-list>
+            <v-list-item @click="openEditDialog">
+              <template #prepend>
+                <v-icon color="#2a2a44">mdi-pencil</v-icon>
+              </template>
+              <v-list-item-title class="font-weight-medium">Editar lista</v-list-item-title>
+            </v-list-item>
+            <v-divider class="my-1" />
             <v-list-item @click="handlePurchase">
               <template #prepend>
                 <v-icon>mdi-cart-check</v-icon>
@@ -160,19 +170,9 @@
               </template>
               <v-list-item-title>Resetear lista</v-list-item-title>
             </v-list-item>
-            <v-list-item @click="handleMoveToPantry">
-              <template #prepend>
-                <v-icon>mdi-package-variant</v-icon>
-              </template>
-              <v-list-item-title>Mover a despensa</v-list-item-title>
-            </v-list-item>
+            
             <v-divider />
-            <v-list-item @click="handlePrint">
-              <template #prepend>
-                <v-icon>mdi-printer</v-icon>
-              </template>
-              <v-list-item-title>Imprimir</v-list-item-title>
-            </v-list-item>
+            
             <v-list-item @click="handleDelete" class="text-error">
               <template #prepend>
                 <v-icon color="error">mdi-delete</v-icon>
@@ -182,6 +182,21 @@
           </v-list>
         </v-card>
       </v-menu>
+
+      <!-- Back button -->
+      <v-btn
+        icon
+        variant="flat"
+        color="#2a2a44"
+        class="icon-btn-rounded"
+        @click="$emit('back-to-lists')"
+      >
+        <v-icon color="white">mdi-arrow-left</v-icon>
+        <v-tooltip activator="parent" location="top">
+          Volver a Listas
+        </v-tooltip>
+      </v-btn>
+    </div>
     </div>
 
     <!-- Progress bar -->
@@ -381,6 +396,68 @@
       @save="saveProductDetails"
       @delete="confirmDeleteFromDetails"
     />
+
+    <!-- Edit List Dialog -->
+    <v-dialog v-model="editListDialog.open" max-width="600">
+      <v-card class="dialog-card">
+        <v-card-title class="text-h6 pa-4 d-flex align-center justify-space-between">
+          <span>Editar Lista</span>
+          <v-btn
+            icon="mdi-close"
+            size="small"
+            variant="text"
+            @click="closeEditListDialog"
+          />
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4">
+          <!-- Nombre -->
+          <div class="mb-3">
+            <label class="app-input-label" for="edit-list-name-dialog">Nombre de la lista</label>
+            <v-text-field
+              id="edit-list-name-dialog"
+              v-model="editListDialog.form.name"
+              density="comfortable"
+              hide-details
+              class="app-input"
+              placeholder="Ej: Lista del Supermercado"
+            />
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-3">
+            <label class="app-input-label" for="edit-list-description-dialog">Descripción (opcional)</label>
+            <v-textarea
+              id="edit-list-description-dialog"
+              v-model="editListDialog.form.description"
+              density="comfortable"
+              hide-details
+              rows="3"
+              class="app-input"
+              placeholder="Descripción de la lista..."
+            />
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="pa-4 d-flex justify-space-between">
+          <v-btn
+            variant="text"
+            class="btn-pill text-body-2"
+            @click="closeEditListDialog"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="#2a2a44"
+            class="btn-pill text-body-2 font-weight-medium"
+            :loading="editListDialog.loading"
+            @click="saveEditList"
+          >
+            Guardar cambios
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -425,7 +502,8 @@ const emit = defineEmits([
   'delete-list',
   'search-update',
   'sort-update',
-  'category-filter-update'
+  'category-filter-update',
+  'back-to-lists'
 ])
 
 const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
@@ -435,6 +513,16 @@ const editingName = ref(false)
 const editName = ref(props.list.name)
 const editingDescription = ref(false)
 const editDescription = ref(props.list.description || '')
+
+// Edit list dialog
+const editListDialog = ref({
+  open: false,
+  form: {
+    name: '',
+    description: ''
+  },
+  loading: false
+})
 
 // Details dialog state - simplified for new component
 const detailsDialog = ref({
@@ -568,6 +656,36 @@ function saveDescription() {
 function cancelEditDescription() {
   editDescription.value = props.list.description || ''
   editingDescription.value = false
+}
+
+function openEditDialog() {
+  editListDialog.value.form.name = props.list.name || ''
+  editListDialog.value.form.description = props.list.description || ''
+  editListDialog.value.open = true
+}
+
+function closeEditListDialog() {
+  editListDialog.value.open = false
+  editListDialog.value.form = { name: '', description: '' }
+}
+
+function saveEditList() {
+  const newName = editListDialog.value.form.name.trim()
+  if (!newName) {
+    return // No guardar si el nombre está vacío
+  }
+
+  const newDescription = editListDialog.value.form.description.trim()
+  
+  // Emitir eventos solo si cambiaron
+  if (newName !== props.list.name) {
+    emit('update-list-name', newName)
+  }
+  if (newDescription !== props.list.description) {
+    emit('update-list-description', newDescription)
+  }
+
+  closeEditListDialog()
 }
 
 function handlePurchase() {

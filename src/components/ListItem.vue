@@ -42,19 +42,7 @@
       >
         Abrir
       </v-btn>
-      <v-btn
-        icon="mdi-pencil"
-        variant="text"
-        class="btn-icon btn-icon-dark"
-        @click.stop="emit('edit')"
-      />
-      <v-btn
-        icon="mdi-delete"
-        variant="text"
-        color="error"
-        class="btn-icon"
-        @click.stop="emit('delete')"
-      />
+      
     </div>
   </v-card>
 </template>

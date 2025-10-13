@@ -74,6 +74,7 @@
             @search-update="handleSearchUpdate"
             @sort-update="handleSortUpdate"
             @category-filter-update="handleCategoryFilterUpdate"
+            @back-to-lists="$router.push('/lists')"
           />
 
           <!-- Pagination for items -->
@@ -758,13 +759,39 @@ async function executePurchase() {
   confirmDialog.value.loading = true
 
   try {
+    console.log('🛒 executePurchase - Iniciando proceso de compra')
+    
+    // PASO 1: Marcar todos los items como comprados primero
+    console.log('🛒 executePurchase - Items actuales:', items.value.length)
+    const unpurchasedItems = items.value.filter(item => !item.purchased)
+    console.log('🛒 executePurchase - Items sin comprar:', unpurchasedItems.length)
+    
+    if (unpurchasedItems.length > 0) {
+      console.log('🛒 executePurchase - Marcando todos los items como comprados...')
+      // Marcar todos los items como comprados en paralelo
+      const updatePromises = unpurchasedItems.map(item => 
+        toggleItemPurchased(list.value.id, item.id)
+      )
+      await Promise.all(updatePromises)
+      console.log('✅ executePurchase - Todos los items marcados como comprados')
+    }
+    
+    // PASO 2: Ahora marcar la lista como comprada
+    console.log('🛒 executePurchase - Marcando lista como comprada...')
     await purchaseShoppingList(list.value.id)
-    await fetchList()
-    await fetchItems()
+    console.log('✅ executePurchase - Lista marcada como comprada')
+    
+    // PASO 3: La lista se eliminó, redirigir a la pantalla de listas
     confirmDialog.value.show = false
     showSnackbar('Lista marcada como comprada', 'success')
+    
+    // Redirigir a la vista de listas después de un breve delay para que el usuario vea el mensaje
+    setTimeout(() => {
+      router.push({ name: 'lists' })
+    }, 1500)
+    
   } catch (err) {
-    console.error('Error purchasing list:', err)
+    console.error('❌ executePurchase - Error:', err)
     error.value = err.message || 'Error al marcar como comprada'
   } finally {
     confirmDialog.value.loading = false

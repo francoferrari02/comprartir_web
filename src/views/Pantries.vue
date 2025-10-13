@@ -231,7 +231,7 @@
       <!-- Create Pantry Dialog -->
       <v-dialog v-model="createDialog" max-width="600">
         <v-card>
-          <v-card-title class="text-h5 pa-4">
+          <v-card-title class="text-h6 font-weight-bold">
             Nueva Despensa
           </v-card-title>
           <v-card-text class="pa-4">
@@ -273,7 +273,7 @@
       <!-- Edit Pantry Dialog -->
       <v-dialog v-model="editDialog.open" max-width="600">
         <v-card>
-          <v-card-title class="text-h5 pa-4">
+          <v-card-title class="text-h6 font-weight-bold">
             Editar Despensa
           </v-card-title>
           <v-card-text class="pa-4">

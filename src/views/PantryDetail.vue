@@ -73,6 +73,12 @@
                       </v-tooltip>
                     </v-btn>
                   </div>
+                  <!-- Descripción -->
+                  <div v-if="pantry.description" class="mt-1">
+                    <span class="text-body-2 text-medium-emphasis">
+                      {{ pantry.description }}
+                    </span>
+                  </div>
                 </div>
 
                 <!-- Edit name mode -->
@@ -110,17 +116,58 @@
                 </div>
               </div>
 
-              <!-- Back button -->
-              <v-btn
-                icon="mdi-arrow-left"
-                variant="text"
-                class="icon-btn-rounded"
-                @click="$router.push('/pantries')"
-              >
-                <v-tooltip activator="parent" location="top">
-                  Volver a Despensas
-                </v-tooltip>
-              </v-btn>
+              <div class="d-flex align-center gap-2">
+                <!-- Menú de acciones -->
+                <v-menu location="bottom end">
+                  <template #activator="{ props }">
+                    <v-btn
+                      icon
+                      variant="flat"
+                      color="#2a2a44"
+                      class="icon-btn-rounded"
+                      v-bind="props"
+                    >
+                      <v-icon color="white">mdi-dots-vertical</v-icon>
+                      <v-tooltip activator="parent" location="top">
+                        Más opciones
+                      </v-tooltip>
+                    </v-btn>
+                  </template>
+                  <v-list class="py-2" density="compact">
+                    <v-list-item @click="openEditDialog">
+                      <template #prepend>
+                        <v-icon color="#2a2a44">mdi-pencil</v-icon>
+                      </template>
+                      <v-list-item-title class="font-weight-medium">
+                        Editar despensa
+                      </v-list-item-title>
+                    </v-list-item>
+                    <v-divider class="my-1" />
+                    <v-list-item @click="confirmDeletePantry">
+                      <template #prepend>
+                        <v-icon color="error">mdi-delete</v-icon>
+                      </template>
+                      <v-list-item-title class="font-weight-medium text-error">
+                        Eliminar despensa
+                      </v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+
+                <!-- Back button -->
+                <v-btn
+                  icon
+                  variant="flat"
+                  color="#2a2a44"
+                  class="icon-btn-rounded"
+                  @click="$router.push('/pantries')"
+                >
+                  <v-icon color="white">mdi-arrow-left</v-icon>
+                  <v-tooltip activator="parent" location="top">
+                    Volver a Despensas
+                  </v-tooltip>
+                </v-btn>
+              </div>
             </div>
 
             <!-- Filtros integrados -->
@@ -270,120 +317,11 @@
 
         <!-- Columna derecha: Añadir items y compartir -->
         <v-col cols="12" md="4" class="right-col">
-          <!-- Add Item Card with ProductSelectOrCreate -->
-          <v-card class="card mb-4">
-            <v-card-title class="pa-4 d-flex align-center justify-space-between">
-              <div class="d-flex align-center">
-                <v-icon class="mr-2">mdi-plus-circle-outline</v-icon>
-                Añadir Producto
-              </div>
-            </v-card-title>
-            <v-divider />
-            <v-card-text class="pa-4">
-              <ProductSelectOrCreate
-                v-model="selectedProductId"
-                label="Producto"
-                placeholder="Escribe para buscar o crear…"
-                class="mb-3"
-                :disabled="addingItem"
-                :category-key="selectedCategoryKey"
-                :category-id="selectedCategoryId"
-                @product-selected="onProductSelected"
-                @created="onProductSelected"
-              />
-
-              <!-- Category selector -->
-              <div class="mb-3">
-                <label class="app-input-label" for="pantry-item-category">Categoría</label>
-                <v-autocomplete
-                  id="pantry-item-category"
-                  v-model="selectedCategoryValue"
-                  :items="categoryOptions"
-                  item-title="title"
-                  item-value="value"
-                  clearable
-                  density="comfortable"
-                  placeholder="Seleccioná una categoría"
-                  :loading="loadingCategories || creatingCategory"
-                  :disabled="loadingCategories"
-                  v-model:search="categorySearch"
-                  class="app-input"
-                >
-                  <template #selection="{ item }">
-                    <div class="d-flex align-center" style="gap: 8px;">
-                      <v-icon v-if="item?.raw?.icon" size="18" color="#2a2a44">{{ item.raw.icon }}</v-icon>
-                      <span>{{ item?.raw?.title }}</span>
-                    </div>
-                  </template>
-                  <template #item="{ props, item }">
-                    <v-list-item v-bind="props">
-                      <template #prepend>
-                        <v-icon v-if="item.raw.icon" color="#2a2a44">{{ item.raw.icon }}</v-icon>
-                      </template>
-                      <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
-                    </v-list-item>
-                  </template>
-                  <template #append-item>
-                    <v-divider v-if="canCreateCategory" class="my-2" />
-                    <v-list-item
-                      v-if="canCreateCategory"
-                      :disabled="creatingCategory"
-                      class="create-category-item"
-                      @click="createCategoryFromSearch"
-                    >
-                      <template #prepend>
-                        <v-icon color="primary">mdi-plus-circle</v-icon>
-                      </template>
-                      <v-list-item-title>
-                        Crear categoría "{{ categorySearch.trim() }}"
-                      </v-list-item-title>
-                    </v-list-item>
-                  </template>
-                </v-autocomplete>
-                <p class="text-caption text-medium-emphasis mt-1">Podés dejarla vacía o crear una nueva categoría.</p>
-              </div>
-
-              <!-- Quantity and unit -->
-              <v-row dense class="mb-3">
-                <v-col cols="6">
-                  <label class="app-input-label" for="pantry-item-quantity">Cantidad</label>
-                  <v-text-field
-                    id="pantry-item-quantity"
-                    v-model.number="newItem.quantity"
-                    type="number"
-                    density="comfortable"
-                    hide-details
-                    min="0.01"
-                    step="0.01"
-                    class="app-input"
-                  />
-                </v-col>
-                <v-col cols="6">
-                  <label class="app-input-label" for="pantry-item-unit">Unidad</label>
-                  <v-select
-                    id="pantry-item-unit"
-                    v-model="newItem.unit"
-                    :items="unitOptions"
-                    density="comfortable"
-                    hide-details
-                    class="app-input"
-                  />
-                </v-col>
-              </v-row>
-
-              <v-btn
-                color="primary"
-                block
-                class="btn-pill text-body-2 font-weight-medium"
-                prepend-icon="mdi-plus"
-                :loading="addingItem"
-                :disabled="!selectedProductId"
-                @click="addItem"
-              >
-                Añadir
-              </v-btn>
-            </v-card-text>
-          </v-card>
+          <!-- Add Item Card - Reutilizando componente consistente -->
+          <AddItemCard
+            :loading="addingItem"
+            @add-item="addItem"
+          />
 
           <!-- Share Card -->
           <v-card class="card mb-4">
@@ -443,29 +381,70 @@
               </div>
             </v-card-text>
           </v-card>
-
-          <!-- Actions Card -->
-          <v-card class="card">
-            <v-card-title class="pa-4">
-              <v-icon class="mr-2">mdi-cog-outline</v-icon>
-              Acciones
-            </v-card-title>
-            <v-divider />
-            <v-card-text class="pa-4">
-              <v-btn
-                color="error"
-                variant="outlined"
-                block
-                class="btn-pill text-body-2 font-weight-medium"
-                prepend-icon="mdi-delete"
-                @click="confirmDeletePantry"
-              >
-                Eliminar Despensa
-              </v-btn>
-            </v-card-text>
-          </v-card>
         </v-col>
       </v-row>
+
+      <!-- Edit Pantry Dialog -->
+      <v-dialog v-model="editPantryDialog.open" max-width="600">
+        <v-card class="dialog-card">
+          <v-card-title class="text-h6 font-weight-bold">
+            <span>Editar Despensa</span>
+            <v-btn
+              icon="mdi-close"
+              size="small"
+              variant="text"
+              @click="closeEditPantryDialog"
+            />
+          </v-card-title>
+          <v-divider />
+          <v-card-text class="pa-4">
+            <!-- Nombre -->
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-pantry-name">Nombre de la despensa</label>
+              <v-text-field
+                id="edit-pantry-name"
+                v-model="editPantryDialog.form.name"
+                density="comfortable"
+                hide-details
+                class="app-input"
+                placeholder="Ej: Despensa Principal"
+              />
+            </div>
+
+            <!-- Descripción -->
+            <div class="mb-3">
+              <label class="app-input-label" for="edit-pantry-description">Descripción (opcional)</label>
+              <v-textarea
+                id="edit-pantry-description"
+                v-model="editPantryDialog.form.description"
+                density="comfortable"
+                hide-details
+                rows="3"
+                class="app-input"
+                placeholder="Descripción de la despensa..."
+              />
+            </div>
+          </v-card-text>
+          <v-divider />
+          <v-card-actions class="pa-4 d-flex justify-space-between">
+            <v-btn
+              variant="text"
+              class="btn-pill text-body-2"
+              @click="closeEditPantryDialog"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="#2a2a44"
+              class="btn-pill text-body-2 font-weight-medium"
+              :loading="editPantryDialog.loading"
+              @click="saveEditPantry"
+            >
+              Guardar cambios
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <!-- Edit Item Dialog -->
       <v-dialog v-model="editItemDialog.open" max-width="600">
@@ -589,9 +568,7 @@
       <!-- Delete Pantry Confirmation Dialog -->
       <v-dialog v-model="deleteDialog.open" max-width="500">
         <v-card>
-          <v-card-title class="text-h6 pa-4">
-            Eliminar Despensa
-          </v-card-title>
+          
           <v-card-text class="pa-4">
             <p class="mb-3">
               ¿Estás seguro de que deseas eliminar esta despensa?
@@ -633,12 +610,15 @@ import { getPantryById, updatePantry, deletePantry, sharePantry as sharePantrySe
 import { getPantryItems, addPantryItem, updatePantryItem, deletePantryItem } from '@/services/pantryItems'
 import { getProfile } from '@/services/auth'
 import { getCategories, createCategory } from '@/services/categories'
+import { useCategoriesStore } from '@/stores/categories'
+import { getProduct, updateProduct } from '@/services/products.service'
 import PantryProductItem from '@/components/PantryProductItem.vue'
-import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
+import AddItemCard from '@/components/AddItemCard.vue'
 import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()
+const categoriesStore = useCategoriesStore()
 
 const breadcrumbs = computed(() => [
   { title: 'Inicio', to: { name: 'home' } },
@@ -664,19 +644,18 @@ const items = ref([])
 const sharedUsers = ref([])
 const searchQuery = ref('')
 const shareEmail = ref('')
-const selectedProductId = ref(null)
 const currentUser = ref(null) // ← Usuario actual
 const selectedCategoryFilter = ref(null) // ← Para el filtro de categoría en la vista
 const showFilters = ref(false) // ← Para mostrar/ocultar filtros
 
-// Category management
+// Category management (usado por filtros y edición de items)
 const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
-const selectedCategoryValue = ref(null)
-const categorySearch = ref('')
 const loadingCategories = ref(false)
 const creatingCategory = ref(false)
 const serverCategories = ref([])
 const extraCategories = ref([])
+const categorySearch = ref('')
+const selectedCategoryValue = ref(null)
 
 // Pagination for items
 const itemsPagination = ref({
@@ -694,13 +673,6 @@ const itemsFilters = ref({
   order: 'desc' // minúscula para pantry items
 })
 
-// New item form
-const newItem = ref({
-  name: '',
-  quantity: 1,
-  unit: 'un'
-})
-
 // Edit item dialog
 const editItemDialog = ref({
   open: false,
@@ -709,6 +681,16 @@ const editItemDialog = ref({
     productName: '',
     quantity: 1,
     unit: 'un'
+  },
+  loading: false
+})
+
+// Edit pantry dialog
+const editPantryDialog = ref({
+  open: false,
+  form: {
+    name: '',
+    description: ''
   },
   loading: false
 })
@@ -960,8 +942,10 @@ async function updatePantryName(newName) {
   }
 }
 
-async function addItem() {
-  const productId = typeof selectedProductId.value === 'object' ? selectedProductId.value?.id : selectedProductId.value
+async function addItem(itemData) {
+  console.log('🎯 PantryDetail - addItem - Datos recibidos:', itemData)
+  
+  const productId = typeof itemData.productId === 'object' ? itemData.productId?.id : itemData.productId
   if (!productId) {
     showSnackbar('Seleccioná o creá un producto', 'error')
     return
@@ -970,22 +954,53 @@ async function addItem() {
   addingItem.value = true
 
   try {
+    // PASO 1: Si hay categoría seleccionada y el producto NO fue recién creado, actualizar la categoría del producto
+    if (itemData.categoryId && !itemData.isNewlyCreated) {
+      console.log('📦 PantryDetail - addItem - Actualizando categoría del producto...')
+      console.log('   Product ID:', productId)
+      console.log('   Category ID:', itemData.categoryId)
+      console.log('   Is newly created:', itemData.isNewlyCreated)
+      
+      try {
+        // Obtener el producto actual para extraer el nombre (requerido por la API)
+        const currentProduct = await getProduct(productId)
+        const productName = currentProduct.name
+        console.log('   Product name:', productName)
+        
+        const categoryPayload = { id: Number(itemData.categoryId) }
+        
+        // Actualizar con nombre + categoría (API requiere el campo 'name')
+        const updatedProduct = await updateProduct(productId, { 
+          name: productName,
+          category: categoryPayload 
+        })
+        console.log('✅ PantryDetail - addItem - Categoría actualizada:', updatedProduct.category)
+      } catch (categoryErr) {
+        console.error('⚠️ PantryDetail - addItem - Error al actualizar categoría:', categoryErr)
+        // No bloqueamos el flujo, continuamos agregando el item
+      }
+    } else {
+      console.log('ℹ️ PantryDetail - addItem - Sin actualización de categoría')
+      console.log('   Razón: categoryId =', itemData.categoryId, ', isNewlyCreated =', itemData.isNewlyCreated)
+    }
+
+    // PASO 2: Crear el item en la despensa
     const payload = {
-      product: { id: Number(productId) },  // ← Backend espera product: { id: number }
-      quantity: Number(newItem.value.quantity || 1),
-      unit: String(newItem.value.unit || 'un'),
+      product: { id: Number(productId) },
+      quantity: Number(itemData.quantity || 1),
+      unit: String(itemData.unit || 'un'),
       metadata: {}
     }
 
-    console.log('🎯 PantryDetail - addItem - Payload:', payload)
+    console.log('🎯 PantryDetail - addItem - Payload para despensa:', payload)
     const addedItem = await addPantryItem(pantry.value.id, payload)
-    console.log('✅ PantryDetail - addItem - Item agregado:', addedItem)
+    console.log('✅ PantryDetail - addItem - Item agregado a despensa:', addedItem)
 
-    // Refresh items to get updated list
+    // PASO 3: Refrescar items
     console.log('🔄 PantryDetail - addItem - Refrescando lista de items...')
     await fetchItems()
 
-    // 🔔 Disparar notificación si la despensa está compartida
+    // PASO 4: Notificar si está compartida
     if (pantry.value.sharedWith && pantry.value.sharedWith.length > 0) {
       const productName = addedItem.product?.name || addedItem.productName || 'Producto'
       notifyItemAdded(
@@ -998,8 +1013,6 @@ async function addItem() {
       console.log('📬 Notificación enviada: Item agregado a despensa compartida')
     }
 
-    newItem.value = { name: '', quantity: 1, unit: 'un' }
-    selectedProductId.value = null
     showSnackbar('Producto añadido a la despensa', 'success')
   } catch (err) {
     console.error('❌ PantryDetail - addItem - Error:', err)
@@ -1213,6 +1226,49 @@ async function revokeAccess(userId) {
     error.value = err.message || 'Error al revocar el acceso'
   } finally {
     sharingLoading.value = false
+  }
+}
+
+function openEditDialog() {
+  editPantryDialog.value.form.name = pantry.value.name || ''
+  editPantryDialog.value.form.description = pantry.value.description || ''
+  editPantryDialog.value.open = true
+}
+
+function closeEditPantryDialog() {
+  editPantryDialog.value.open = false
+  editPantryDialog.value.form = { name: '', description: '' }
+}
+
+async function saveEditPantry() {
+  if (!editPantryDialog.value.form.name.trim()) {
+    showSnackbar('El nombre no puede estar vacío', 'error')
+    return
+  }
+
+  editPantryDialog.value.loading = true
+
+  try {
+    const payload = {
+      name: editPantryDialog.value.form.name.trim(),
+      description: editPantryDialog.value.form.description.trim() || undefined
+    }
+
+    await updatePantry(pantry.value.id, payload)
+    
+    // Actualizar datos locales
+    pantry.value.name = payload.name
+    if (payload.description) {
+      pantry.value.description = payload.description
+    }
+
+    showSnackbar('Despensa actualizada exitosamente', 'success')
+    closeEditPantryDialog()
+  } catch (err) {
+    console.error('Error updating pantry:', err)
+    showSnackbar(err.message || 'Error al actualizar la despensa', 'error')
+  } finally {
+    editPantryDialog.value.loading = false
   }
 }
 
@@ -1442,6 +1498,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.gap-2 {
+  gap: 8px;
+}
+
 .left-col {
   min-width: 0;
   padding-right: 24px;
