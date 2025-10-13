@@ -358,6 +358,28 @@ async function fetchItems() {
     // Guardar en el store
     listsStore.setCurrentItems(fetchedItems)
 
+    // 🔥 Extraer categorías de los items y agregarlas al store si no existen
+    const categoriesStore = useCategoriesStore()
+    const extractedCategories = new Set()
+    
+    fetchedItems.forEach(item => {
+      const category = item.product?.category
+      if (category && category.id && category.name) {
+        // Verificar si la categoría ya existe en el store
+        const existsInStore = categoriesStore.items.some(c => c.id === category.id)
+        if (!existsInStore) {
+          extractedCategories.add(JSON.stringify(category))
+        }
+      }
+    })
+
+    // Agregar las categorías extraídas al store
+    if (extractedCategories.size > 0) {
+      const categoriesToAdd = Array.from(extractedCategories).map(str => JSON.parse(str))
+      console.log('📦 fetchItems - Categorías extraídas de items:', categoriesToAdd)
+      categoriesStore.addCategories(categoriesToAdd)
+    }
+
     if (pagination) {
       itemsPagination.value = {
         ...itemsPagination.value,
@@ -390,30 +412,17 @@ function handleSortUpdate(sortData) {
   fetchItems()
 }
 
-function handleCategoryFilterUpdate(categoryName) {
-  console.log('🔍 handleCategoryFilterUpdate - categoryName:', categoryName)
+function handleCategoryFilterUpdate(categoryId) {
+  console.log('🔍 handleCategoryFilterUpdate - categoryId:', categoryId)
 
-  if (categoryName) {
-    // Buscar el ID de la categoría en el store
-    const categoriesStore = useCategoriesStore()
-    const category = categoriesStore.items.find(cat =>
-      cat.name.toLowerCase() === categoryName.toLowerCase()
-    )
-
-    if (category?.id) {
-      console.log('✅ Categoría encontrada:', category)
-      itemsFilters.value.category_id = category.id
-      delete itemsFilters.value.category_name
-    } else {
-      console.warn('⚠️ No se encontró la categoría:', categoryName)
-      // Si no se encuentra, intentar filtrar por nombre
-      itemsFilters.value.category_name = categoryName
-      delete itemsFilters.value.category_id
-    }
+  if (categoryId) {
+    // categoryId ya es el ID numérico de la categoría
+    itemsFilters.value.category_id = categoryId
+    console.log('✅ Filtro aplicado con category_id:', categoryId)
   } else {
-    // Limpiar ambos filtros
-    delete itemsFilters.value.category_name
+    // Limpiar el filtro
     delete itemsFilters.value.category_id
+    console.log('🧹 Filtro de categoría limpiado')
   }
 
   itemsPagination.value.currentPage = 1
@@ -571,40 +580,76 @@ async function addItem(itemData) {
     return
   }
 
+  console.log('🔑 addItem - productId extraído:', productId)
+  console.log('🏷️ addItem - categoryId recibido:', itemData.categoryId)
+  console.log('🏷️ addItem - categoryKey recibido:', itemData.categoryKey)
+
   addingItem.value = true
 
   try {
     // 🔥 PASO 1: Si hay categoría, actualizar el producto primero
-    if (itemData.categoryId || itemData.categoryKey) {
-      console.log('📦 addItem - Actualizando producto con categoría:', {
+    // PERO solo si el producto fue seleccionado de la lista (no recién creado)
+    // Cuando se crea desde ProductSelectOrCreate, ya tiene la categoría asignada
+    if ((itemData.categoryId || itemData.categoryKey) && !itemData.isNewlyCreated) {
+      console.log('📦 addItem - ⚡ ENTRANDO A ACTUALIZAR CATEGORÍA DEL PRODUCTO')
+      console.log('📦 addItem - Datos de categoría:', {
         categoryId: itemData.categoryId,
         categoryKey: itemData.categoryKey
       })
 
       try {
-        const { updateProduct } = await import('@/services/products.service')
+        const { updateProduct, getProduct } = await import('@/services/products.service')
         const { ensureCategoryByKey } = await import('@/services/categories')
+
+        // Primero, obtener el producto para tener su nombre
+        console.log('🔍 addItem - Obteniendo producto completo para extraer nombre...')
+        const currentProduct = await getProduct(productId)
+        console.log('✅ addItem - Producto obtenido:', currentProduct)
+        const productName = currentProduct.name
+
+        if (!productName) {
+          console.error('❌ addItem - No se pudo obtener el nombre del producto')
+          throw new Error('Product name not found')
+        }
 
         let categoryPayload = null
 
         if (itemData.categoryId) {
           categoryPayload = { id: Number(itemData.categoryId) }
+          console.log('✅ addItem - Usando categoryId:', categoryPayload)
         } else if (itemData.categoryKey) {
           // Resolver la categoría por su key
+          console.log('🔍 addItem - Resolviendo categoryKey:', itemData.categoryKey)
           const category = await ensureCategoryByKey(itemData.categoryKey)
           if (category?.id) {
             categoryPayload = { id: Number(category.id) }
+            console.log('✅ addItem - CategoryKey resuelto a ID:', categoryPayload)
           }
         }
 
         if (categoryPayload) {
-          await updateProduct(productId, { category: categoryPayload })
-          console.log('✅ addItem - Producto actualizado con categoría')
+          console.log('🔄 addItem - Llamando updateProduct con:', {
+            productId,
+            payload: { name: productName, category: categoryPayload }
+          })
+          const updatedProduct = await updateProduct(productId, { 
+            name: productName,  // ✅ INCLUIR EL NOMBRE (requerido por la API)
+            category: categoryPayload 
+          })
+          console.log('✅ addItem - Producto actualizado exitosamente:', updatedProduct)
+          console.log('✅ addItem - Categoría del producto actualizado:', updatedProduct.category)
+        } else {
+          console.warn('⚠️ addItem - No se pudo construir categoryPayload')
         }
       } catch (catError) {
-        console.warn('⚠️ addItem - Error al actualizar categoría del producto:', catError)
+        console.error('❌ addItem - Error al actualizar categoría del producto:', catError)
+        console.error('❌ addItem - Error stack:', catError.stack)
         // Continuar de todas formas
       }
+    } else if (itemData.isNewlyCreated) {
+      console.log('✅ addItem - Producto recién creado, categoría ya asignada en ensureProduct')
+    } else {
+      console.log('⚠️ addItem - No se recibió categoryId ni categoryKey')
     }
 
     // 🔥 PASO 2: Agregar el item a la lista
@@ -850,6 +895,12 @@ onMounted(async () => {
     console.error('Error loading user profile:', err)
     // Fallback: intentar obtener del localStorage
     currentUser.value = JSON.parse(localStorage.getItem('user') || '{}')
+  }
+
+  // Cargar categorías del usuario para filtros y selección
+  const categoriesStore = useCategoriesStore()
+  if (!categoriesStore.items || categoriesStore.items.length === 0) {
+    await categoriesStore.fetchCategories()
   }
 
   // Cargar lista y sus items

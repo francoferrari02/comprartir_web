@@ -296,6 +296,8 @@
                   id="list-filter-category"
                   v-model="selectedCategory"
                   :items="categoryFilterOptions"
+                  item-title="name"
+                  item-value="id"
                   prepend-inner-icon="mdi-tag"
                   density="compact"
                   hide-details
@@ -371,131 +373,21 @@
       </v-btn>
     </div>
 
-    <!-- Product Details Dialog -->
-    <v-dialog v-model="detailsDialog.open" max-width="600">
-      <v-card class="dialog-card">
-        <v-card-title class="text-h6 pa-4 d-flex align-center justify-space-between">
-          <span>Detalles del producto</span>
-          <v-btn
-            icon="mdi-close"
-            size="small"
-            variant="text"
-            @click="closeDetailsDialog"
-          />
-        </v-card-title>
-        <v-divider />
-        <v-card-text class="pa-4">
-          <!-- Nombre del producto -->
-          <div class="mb-3">
-            <label class="app-input-label" for="details-product-name">Producto</label>
-            <v-text-field
-              id="details-product-name"
-              v-model="detailsDialog.form.productName"
-              density="comfortable"
-              prepend-inner-icon="mdi-package-variant"
-              placeholder="Nombre del producto"
-              class="app-input"
-            />
-          </div>
-
-          <!-- Categoría del producto -->
-          <div class="mb-3">
-            <label class="app-input-label" for="details-product-category">Categoría</label>
-            <v-text-field
-              id="details-product-category"
-              v-model="detailsCategoryName"
-              density="comfortable"
-              prepend-inner-icon="mdi-tag-outline"
-              placeholder="Categoría del producto"
-              class="app-input"
-            />
-            <p class="text-caption text-medium-emphasis mt-1">Dejar vacío para quitar la categoría.</p>
-          </div>
-
-          <!-- Cantidad -->
-          <div class="mb-3">
-            <label class="app-input-label" for="details-quantity">Cantidad</label>
-            <v-text-field
-              id="details-quantity"
-              v-model.number="detailsDialog.form.quantity"
-              type="number"
-              density="comfortable"
-              prepend-inner-icon="mdi-counter"
-              min="0.01"
-              step="0.01"
-              class="app-input"
-            />
-          </div>
-
-          <!-- Unidad -->
-          <div class="mb-3">
-            <label class="app-input-label" for="details-unit">Unidad</label>
-            <v-select
-              id="details-unit"
-              v-model="detailsDialog.form.unit"
-              :items="unitOptions"
-              density="comfortable"
-              prepend-inner-icon="mdi-scale-balance"
-              class="app-input"
-            />
-          </div>
-
-          <!-- Descripción/Notas (metadata) -->
-          <div class="mb-3">
-            <label class="app-input-label" for="details-description">Notas o descripción (opcional)</label>
-            <v-textarea
-              id="details-description"
-              v-model="detailsDialog.form.description"
-              density="comfortable"
-              rows="3"
-              prepend-inner-icon="mdi-text"
-              placeholder="Ej: Marca específica, variedad, recordatorios..."
-              class="app-input"
-            />
-          </div>
-
-        </v-card-text>
-        <v-divider />
-        <v-card-actions class="pa-4 d-flex justify-space-between">
-          <!-- Botón eliminar a la izquierda -->
-          <v-btn
-            color="error"
-            variant="outlined"
-            prepend-icon="mdi-delete"
-            class="btn-rounded"
-            @click="confirmDeleteFromDetails"
-          >
-            Eliminar
-          </v-btn>
-
-          <!-- Botones de acción a la derecha -->
-          <div class="d-flex gap-2">
-            <v-btn
-              variant="text"
-              class="btn-rounded"
-              @click="closeDetailsDialog"
-            >
-              Cancelar
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="flat"
-              class="btn-rounded"
-              :loading="detailsDialog.loading"
-              @click="saveProductDetails"
-            >
-              Guardar cambios
-            </v-btn>
-          </div>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Product Details Dialog - New Component -->
+    <ProductDetailCard
+      v-model="detailsDialog.open"
+      :product="currentProductForDetails"
+      :loading="detailsDialog.loading"
+      @save="saveProductDetails"
+      @delete="confirmDeleteFromDetails"
+    />
   </v-card>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import ProductItem from './ProductItem.vue'
+import ProductDetailCard from './ProductDetailCard.vue'
 import { useCategoriesStore } from '@/stores/categories'
 import { updateProduct as updateProductService } from '@/services/products.service'
 
@@ -539,56 +431,22 @@ const emit = defineEmits([
 const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
 const categoriesStore = useCategoriesStore()
 
-const detailsCategoryName = ref('')
-const creatingCategoryInDialog = ref(false)
-const extraCategories = ref([])
-const detailsCategoriesLoading = computed(() => categoriesStore.loading)
-
 const editingName = ref(false)
 const editName = ref(props.list.name)
 const editingDescription = ref(false)
 const editDescription = ref(props.list.description || '')
 
-// Details dialog state
+// Details dialog state - simplified for new component
 const detailsDialog = ref({
   open: false,
   loading: false,
-  productId: null,
-  productEntityId: null,
-  originalProductName: '',
-  originalCategoryId: null,
-  originalCategoryKey: null,
-  form: {
-    productName: '',
-    quantity: 1,
-    unit: 'un',
-    description: ''
-  }
+  productId: null
 })
 
-// Unit options
-const unitOptions = [
-  'un',
-  'kg',
-  'g',
-  'l',
-  'ml',
-  'paquete',
-  'caja',
-  'bolsa',
-  'docena',
-  'lata',
-  'botella',
-  'sobre',
-  'frasco'
-]
-
-const categoryNamesList = computed(() => {
-  const storeCategories = categoriesStore.items || []
-  const names = storeCategories.map(cat => cat.name)
-  const extraNames = extraCategories.value.map(cat => cat.name)
-  const allNames = [...new Set([...names, ...extraNames])]
-  return allNames.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+// Current product being edited in details dialog
+const currentProductForDetails = computed(() => {
+  if (!detailsDialog.value.productId) return null
+  return props.products.find(p => p.id === detailsDialog.value.productId)
 })
 
 // Computed
@@ -618,14 +476,35 @@ watch([sortBy, sortOrder], ([newSortBy, newSortOrder]) => {
 })
 
 watch(selectedCategory, (newValue) => {
+  // Ahora newValue es el ID de la categoría (o null)
   emit('category-filter-update', newValue)
 })
 
 const categoryFilterOptions = computed(() => {
   const storeCategories = categoriesStore.items || []
-  const allCategories = [...storeCategories, ...extraCategories.value]
-  const uniqueCategories = Array.from(new Set(allCategories.map(cat => cat.name)))
-  return uniqueCategories.sort()
+  
+  // Extract categories from loaded products (in case they come from backend but aren't in store yet)
+  const productCategories = []
+  props.products.forEach(product => {
+    const category = product.product?.category || product.category
+    if (category && category.id && category.name) {
+      productCategories.push(category)
+    }
+  })
+  
+  const allCategories = [...storeCategories, ...productCategories]
+  
+  // Deduplicate by ID
+  const uniqueMap = new Map()
+  allCategories.forEach(cat => {
+    if (cat && cat.id && cat.name) {
+      uniqueMap.set(cat.id, cat)
+    }
+  })
+  
+  return Array.from(uniqueMap.values()).sort((a, b) => 
+    a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+  )
 })
 
 const sortOptions = [
@@ -731,183 +610,76 @@ onMounted(() => {
 // Product details methods
 function openProductDetails(itemId) {
   const item = props.products.find(p => p.id === itemId)
-  if (!item) return
+  if (!item) {
+    console.warn('⚠️ Product not found:', itemId)
+    return
+  }
 
-  const productEntity = item.product || {}
-  const productName = productEntity.name || item.productName || item.name || `Producto #${item.id}`
-  const normalizedCategory = normalizeProductCategory(productEntity.category || item.category)
-
+  console.log('🔍 Opening product details:', item)
   detailsDialog.value.open = true
   detailsDialog.value.loading = false
   detailsDialog.value.productId = item.id
-  detailsDialog.value.productEntityId = productEntity.id ?? item.productId ?? null
-  detailsDialog.value.originalProductName = productName
-  detailsDialog.value.originalCategoryId = normalizedCategory?.id ?? null
-  detailsDialog.value.originalCategoryKey = normalizedCategory?.key ?? null
-  detailsDialog.value.form = {
-    productName,
-    quantity: item.quantity || 1,
-    unit: item.unit || 'un',
-    description: item.metadata?.description || item.metadata?.notes || ''
-  }
-
-  // Establecer el nombre de la categoría actual
-  detailsCategoryName.value = normalizedCategory?.name || ''
-
-  if (normalizedCategory) {
-    addExtraCategory(normalizedCategory)
-  }
 }
 
-function closeDetailsDialog() {
-  detailsDialog.value.open = false
-  detailsCategoryName.value = ''
-  creatingCategoryInDialog.value = false
-}
-
-async function saveProductDetails() {
+async function saveProductDetails(updates) {
   detailsDialog.value.loading = true
 
   try {
+    const item = props.products.find(p => p.id === detailsDialog.value.productId)
+    if (!item) {
+      throw new Error('Producto no encontrado')
+    }
+
+    console.log('💾 Saving product with updates:', updates)
+
+    // Prepare item updates (these go to the list item)
     const itemUpdates = {
-      quantity: Number(detailsDialog.value.form.quantity),
-      unit: String(detailsDialog.value.form.unit),
+      quantity: Number(updates.quantity),
+      unit: String(updates.unit),
       metadata: {
-        description: detailsDialog.value.form.description || null
+        description: updates.description || null
       }
     }
 
+    // Prepare product updates (these go to the product entity)
     let updatedProductEntity = null
-    const productPayload = {}
-    const newName = (detailsDialog.value.form.productName || '').trim()
+    const productEntity = item.product || {}
+    const productEntityId = productEntity.id || item.productId
 
-    // El backend siempre requiere el nombre, así que lo incluimos siempre
-    if (!newName) {
-      alert('El nombre del producto es requerido')
-      return
-    }
+    if (productEntityId) {
+      const productPayload = {
+        name: updates.productName
+      }
 
-    productPayload.name = newName
-
-    // Manejar la categoría
-    const categoryNameInput = typeof detailsCategoryName.value === 'string'
-      ? detailsCategoryName.value.trim()
-      : (detailsCategoryName.value?.name || detailsCategoryName.value || '').trim()
-
-    const originalCategoryId = detailsDialog.value.originalCategoryId ?? null
-
-    let categoryToAssociate = null
-
-    if (categoryNameInput) {
-      // Buscar si la categoría existe
-      const storeCategories = categoriesStore.items || []
-      let existingCategory = storeCategories.find(cat =>
-        cat.name.toLowerCase() === categoryNameInput.toLowerCase()
-      )
-
-      // Si no existe en el store, buscar en extraCategories
-      if (!existingCategory) {
-        const extraCat = extraCategories.value.find(cat =>
-          cat.name.toLowerCase() === categoryNameInput.toLowerCase()
-        )
-        if (extraCat?.id) {
-          existingCategory = extraCat
+      // Handle category update
+      if (updates.categoryId !== undefined) {
+        if (updates.categoryId) {
+          // Associate with category
+          productPayload.category = { id: Number(updates.categoryId) }
+        } else {
+          // Remove category
+          productPayload.category = null
         }
       }
 
-      // Si la categoría no existe, crearla
-      if (!existingCategory) {
-        console.log('🆕 Creando nueva categoría:', categoryNameInput)
-        creatingCategoryInDialog.value = true
-        try {
-          const { createCategory } = await import('@/services/categories')
-          const newCategory = await createCategory({
-            name: categoryNameInput,
-            metadata: {
-              icon: DEFAULT_CATEGORY_ICON,
-            },
-          })
-
-          existingCategory = newCategory
-
-          // Agregar a extraCategories
-          addExtraCategory({
-            id: newCategory.id,
-            name: newCategory.name,
-            icon: newCategory.metadata?.icon || DEFAULT_CATEGORY_ICON,
-            key: null
-          })
-
-          // Refrescar el store
-          await categoriesStore.fetch()
-
-          console.log('✅ Categoría creada:', newCategory)
-        } catch (error) {
-          console.error('❌ Error creando categoría:', error)
-          alert('Error al crear la categoría: ' + (error.message || 'Error desconocido'))
-          creatingCategoryInDialog.value = false
-          return
-        } finally {
-          creatingCategoryInDialog.value = false
-        }
-      }
-
-      categoryToAssociate = existingCategory
-    }
-
-    // Asociar la categoría al producto solo si hay cambios
-    if (categoryToAssociate?.id) {
-      const categoryId = categoryToAssociate.id
-      // Solo actualizar si cambió
-      if (categoryId !== originalCategoryId) {
-        productPayload.category = { id: Number(categoryId) }
-      } else {
-        // Incluir la categoría actual aunque no haya cambiado
-        productPayload.category = { id: Number(categoryId) }
-      }
-    } else if (!categoryNameInput && originalCategoryId) {
-      // Si se borró la categoría
-      productPayload.category = null
-    }
-
-    // Intentar actualizar el producto solo si tenemos un ID válido
-    const hasProductChanges = Object.keys(productPayload).length > 0
-
-    if (hasProductChanges && detailsDialog.value.productEntityId) {
-      console.log('🔄 Intentando actualizar producto ID:', detailsDialog.value.productEntityId)
-      console.log('🔄 Payload:', productPayload)
+      console.log('🔄 Updating product entity:', productEntityId, productPayload)
 
       try {
-        updatedProductEntity = await updateProductService(detailsDialog.value.productEntityId, productPayload)
-        console.log('✅ Producto actualizado:', updatedProductEntity)
+        updatedProductEntity = await updateProductService(productEntityId, productPayload)
+        console.log('✅ Product entity updated:', updatedProductEntity)
       } catch (error) {
-        console.warn('⚠️ No se pudo actualizar el producto:', error)
-
-        // Si el producto no existe (404), crear un mock con los datos actualizados
-        if (error.message?.includes('not found') || error.message?.includes('404')) {
-          console.log('💡 Producto no encontrado, usando datos locales')
-          updatedProductEntity = {
-            id: detailsDialog.value.productEntityId,
-            name: productPayload.name,
-            category: categoryToAssociate ? {
-              id: categoryToAssociate.id,
-              name: categoryToAssociate.name,
-              metadata: {
-                icon: categoryToAssociate.icon || DEFAULT_CATEGORY_ICON
-              }
-            } : null
-          }
-        } else {
-          // Si es otro error, lanzarlo
-          throw error
-        }
+        console.error('❌ Error updating product entity:', error)
+        // Continue with item updates even if product update fails
       }
     }
 
+    // Emit update to parent
     emit('update-product', detailsDialog.value.productId, itemUpdates, updatedProductEntity)
-    closeDetailsDialog()
+    
+    // Close dialog
+    detailsDialog.value.open = false
   } catch (error) {
-    console.error('❌ Error updating product details:', error)
+    console.error('❌ Error in saveProductDetails:', error)
     alert('Error al guardar los cambios: ' + (error.message || 'Error desconocido'))
   } finally {
     detailsDialog.value.loading = false
@@ -915,51 +687,8 @@ async function saveProductDetails() {
 }
 
 function confirmDeleteFromDetails() {
-  if (confirm('¿Estás seguro de que deseas eliminar este producto de la lista?')) {
-    emit('delete-product', detailsDialog.value.productId)
-    closeDetailsDialog()
-  }
-}
-
-function normalizeProductCategory(category) {
-  if (!category) return null
-
-  const name = category.name?.trim()
-  if (!name) return null
-
-  const metadataKey = category.metadata?.key ?? null
-  const icon = category.metadata?.icon || DEFAULT_CATEGORY_ICON
-  const id = category.id ?? null
-
-  return { name, icon, key: metadataKey, id }
-}
-
-function addExtraCategory(category) {
-  if (!category?.name) return
-  const lower = category.name.toLowerCase()
-  const existing = extraCategories.value.find(cat => cat.name.toLowerCase() === lower)
-  if (existing) {
-    existing.icon = category.icon || existing.icon
-    existing.id = category.id ?? existing.id
-    existing.key = category.key ?? existing.key
-    return
-  }
-
-  extraCategories.value.push({
-    name: category.name,
-    icon: category.icon || DEFAULT_CATEGORY_ICON,
-    id: category.id ?? null,
-    key: category.key ?? null,
-  })
-}
-
-function slugifyName(name) {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
+  emit('delete-product', detailsDialog.value.productId)
+  detailsDialog.value.open = false
 }
 
 // Exponer el método para que ProductItem pueda llamarlo

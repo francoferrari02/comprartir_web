@@ -79,20 +79,30 @@ export const ensureProduct = async (name, options = {}) => {
   }
 
   const { categoryKey, categoryId } = options
+  console.log('🔍 ensureProduct - Name:', trimmedName, 'Options:', options)
 
   // First, try to find existing product
   const existing = await getProductByName(trimmedName)
   if (existing && existing.id) {
     console.log('✅ ensureProduct - Found existing:', existing)
+    console.log('🏷️ ensureProduct - Existing category:', existing.category)
+    console.log('🏷️ ensureProduct - Requested categoryId:', categoryId)
+    
     // If the existing product has no category and we received one, try to update it
     if (!existing.category && (categoryId || categoryKey)) {
+      console.log('⚡ ensureProduct - Producto sin categoría, intentando actualizar...')
       const categoryPayload = await resolveCategoryPayload({ categoryId, categoryKey })
+      console.log('🏷️ ensureProduct - Category payload:', categoryPayload)
+      
       if (categoryPayload) {
         try {
+          console.log('🔄 ensureProduct - Llamando updateProduct...')
           const updated = await updateProduct(existing.id, { category: categoryPayload })
+          console.log('✅ ensureProduct - Producto actualizado con categoría:', updated)
           return updated
         } catch (error) {
-          console.warn('⚠️ ensureProduct - Unable to update product category', error)
+          console.error('❌ ensureProduct - Error al actualizar categoría:', error)
+          console.error('❌ ensureProduct - Error stack:', error.stack)
         }
       }
     }
@@ -102,12 +112,17 @@ export const ensureProduct = async (name, options = {}) => {
   // Not found, create new product
   console.log('🆕 ensureProduct - Creating new product:', trimmedName)
   const categoryPayload = await resolveCategoryPayload({ categoryId, categoryKey })
+  console.log('🏷️ ensureProduct - Category payload for new product:', categoryPayload)
+  
   const payload = {
     name: trimmedName,
     ...(categoryPayload ? { category: categoryPayload } : {}),
   }
+  console.log('📦 ensureProduct - Payload completo:', payload)
+  
   const newProduct = await createProduct(payload)
   console.log('✅ ensureProduct - Created:', newProduct)
+  console.log('✅ ensureProduct - Created product category:', newProduct.category)
   return newProduct
 }
 
@@ -120,15 +135,21 @@ export const ensureProduct = async (name, options = {}) => {
  * Hacemos un GET adicional para obtenerlo completo.
  */
 export const createProduct = async (data) => {
+  console.log('🔨 createProduct - Enviando al backend:', data)
   const response = await api.post('/products', data)
   const created = unwrapEntityResponse(response.data)
+  console.log('📥 createProduct - Respuesta del backend:', created)
   
   // Si el producto fue creado con categoría, recargar para obtenerla poblada
   if (created && created.id && data.category) {
+    console.log('🔄 createProduct - Recargando producto para obtener categoría poblada...')
     try {
-      return await getProduct(created.id)
+      const reloaded = await getProduct(created.id)
+      console.log('✅ createProduct - Producto recargado:', reloaded)
+      console.log('✅ createProduct - Categoría del producto recargado:', reloaded.category)
+      return reloaded
     } catch (error) {
-      console.warn('⚠️ createProduct - Unable to reload product with category', error)
+      console.error('❌ createProduct - Error al recargar producto:', error)
       return created
     }
   }
@@ -137,15 +158,26 @@ export const createProduct = async (data) => {
 }
 
 export async function updateProduct(id, data) {
+  console.log('🔧 updateProduct - ID:', id, 'tipo:', typeof id)
+  console.log('🔧 updateProduct - Data:', data)
+  console.log('🔧 updateProduct - Data.category:', data.category)
+  console.log('🔧 updateProduct - Data.category.id:', data.category?.id, 'tipo:', typeof data.category?.id)
+  console.log('🔧 updateProduct - Data.name:', data.name, 'tipo:', typeof data.name)
+  
   const response = await api.put(`/products/${id}`, data)
   const updated = unwrapEntityResponse(response.data)
+  console.log('📥 updateProduct - Respuesta del backend:', updated)
   
   // Si se actualizó la categoría, recargar para obtenerla poblada
   if (updated && updated.id && data.category) {
+    console.log('🔄 updateProduct - Recargando producto para obtener categoría poblada...')
     try {
-      return await getProduct(updated.id)
+      const reloaded = await getProduct(updated.id)
+      console.log('✅ updateProduct - Producto recargado:', reloaded)
+      console.log('✅ updateProduct - Categoría del producto recargado:', reloaded.category)
+      return reloaded
     } catch (error) {
-      console.warn('⚠️ updateProduct - Unable to reload product with category', error)
+      console.error('❌ updateProduct - Error al recargar producto:', error)
       return updated
     }
   }

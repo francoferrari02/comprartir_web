@@ -285,5 +285,30 @@ export const useCategoriesStore = defineStore('categories', {
     clearError() {
       this.error = null
     },
+
+    /**
+     * Add multiple categories to the store (útil para categorías extraídas de items)
+     * Solo agrega las que no existen ya (por ID)
+     */
+    addCategories(categories) {
+      if (!Array.isArray(categories) || categories.length === 0) return
+
+      const existingIds = new Set(this.items.map(c => c.id))
+      const newCategories = categories.filter(c => c && c.id && !existingIds.has(c.id))
+
+      if (newCategories.length > 0) {
+        this.items = dedupeCategories([...this.items, ...newCategories])
+        this.categories = this.items
+        
+        // Actualizar contadores de paginación
+        const perPage = this.pagination.perPage || this.pagination.per_page || 10
+        const totalItems = this.items.length
+        this.pagination.totalItems = totalItems
+        this.pagination.total = totalItems
+        this.pagination.total_pages = Math.max(1, Math.ceil(totalItems / perPage))
+
+        console.log(`✅ Store - Agregadas ${newCategories.length} categorías nuevas`)
+      }
+    },
   },
 })
