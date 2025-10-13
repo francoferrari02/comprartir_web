@@ -1,15 +1,10 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <div class="view-shell">
-      <!-- Header -->
-      <div class="d-flex align-center justify-space-between mb-6">
-        <div>
-          <h1 class="text-h4 font-weight-bold mb-2">Historial de Compras</h1>
-          <p class="text-body-2 text-medium-emphasis">
-            Revisa tus compras anteriores y restaura listas
-          </p>
+      <v-card class="card card--hover history-card mb-6">
+        <div class="history-header pa-6">
+          <h2 class="text-h5 font-weight-bold mb-0">Historial</h2>
         </div>
-      </div>
 
       <!-- Error Alert -->
       <v-alert
@@ -39,76 +34,99 @@
         </template>
       </v-snackbar>
 
-      <!-- Filters -->
-      <v-card class="card mb-4">
-        <v-card-text class="pa-4">
-          <v-row>
-            <v-col cols="12" md="4">
-              <label class="app-input-label" for="history-sort">Ordenar por</label>
-              <v-select
-                id="history-sort"
-                v-model="filters.sort_by"
-                :items="sortOptions"
-                density="comfortable"
-                hide-details
-                class="app-input"
-                @update:model-value="fetchPurchases"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <label class="app-input-label" for="history-order">Orden</label>
-              <v-select
-                id="history-order"
-                v-model="filters.order"
-                :items="orderOptions"
-                density="comfortable"
-                hide-details
-                class="app-input"
-                @update:model-value="fetchPurchases"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <label class="app-input-label" for="history-per-page">Resultados por página</label>
-              <v-select
-                id="history-per-page"
-                v-model="filters.per_page"
-                :items="perPageOptions"
-                density="comfortable"
-                hide-details
-                class="app-input"
-                @update:model-value="onPerPageChange"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
+        <div class="filters-section pa-4">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <h4 class="text-subtitle-1 font-weight-bold text-white mb-0">
+              <v-icon size="small" class="mr-1">mdi-filter-outline</v-icon>
+              Filtros y orden
+            </h4>
+            <v-btn
+              variant="tonal"
+              size="small"
+              class="btn-pill text-body-2 font-weight-medium"
+              @click="showFilters = !showFilters"
+            >
+              <v-icon size="small" class="mr-1">
+                {{ showFilters ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+              </v-icon>
+              {{ showFilters ? 'Ocultar' : 'Mostrar' }}
+            </v-btn>
+          </div>
+          <v-expand-transition>
+            <div v-show="showFilters">
+              <v-row dense>
+                <v-col cols="12" md="4">
+                  <label class="app-input-label filter-label" for="history-sort">Ordenar por</label>
+                  <v-select
+                    id="history-sort"
+                    v-model="filters.sort_by"
+                    :items="sortOptions"
+                    density="comfortable"
+                    hide-details
+                    class="app-input"
+                    @update:model-value="fetchPurchases"
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <label class="app-input-label filter-label" for="history-order">Orden</label>
+                  <v-select
+                    id="history-order"
+                    v-model="filters.order"
+                    :items="orderOptions"
+                    density="comfortable"
+                    hide-details
+                    class="app-input"
+                    @update:model-value="fetchPurchases"
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <label class="app-input-label filter-label" for="history-per-page">Resultados por página</label>
+                  <v-select
+                    id="history-per-page"
+                    v-model="filters.per_page"
+                    :items="perPageOptions"
+                    density="comfortable"
+                    hide-details
+                    class="app-input"
+                    @update:model-value="onPerPageChange"
+                  />
+                </v-col>
+              </v-row>
+            </div>
+          </v-expand-transition>
+        </div>
+
+        <div v-if="loading || purchases.length === 0" class="history-body pa-6">
+          <div v-if="loading" class="text-center py-12">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+              size="64"
+            />
+            <p class="text-body-1 mt-4">Cargando historial...</p>
+          </div>
+          <div v-else class="text-center py-12">
+            <v-icon size="80" color="grey-lighten-2" class="mb-4">
+              mdi-cart-outline
+            </v-icon>
+            <h2 class="text-h6 font-weight-bold mb-2">No hay compras registradas</h2>
+            <p class="text-body-2 text-medium-emphasis mb-5">
+              Las compras que realices aparecerán aquí
+            </p>
+            <v-btn
+              color="primary"
+              prepend-icon="mdi-view-list"
+              to="/lists"
+              class="btn-pill text-body-2 font-weight-medium"
+            >
+              Ir a mis listas
+            </v-btn>
+          </div>
+        </div>
       </v-card>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="text-center py-16">
-        <v-progress-circular
-          indeterminate
-          color="primary"
-          size="64"
-        />
-        <p class="text-body-1 mt-4">Cargando historial...</p>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="purchases.length === 0" class="text-center py-16">
-        <v-icon size="80" color="grey-lighten-1" class="mb-4">
-          mdi-cart-outline
-        </v-icon>
-        <h2 class="text-h5 mb-2">No hay compras registradas</h2>
-        <p class="text-body-2 text-medium-emphasis mb-4">
-          Las compras que realices aparecerán aquí
-        </p>
-  <v-btn color="primary" to="/lists" class="btn-pill text-body-2 font-weight-medium">
-          Ir a mis listas
-        </v-btn>
-      </div>
-
       <!-- Purchases List -->
-      <div v-else>
+      <div v-if="!loading && purchases.length > 0">
         <v-row>
           <v-col
             v-for="purchase in purchases"
@@ -332,6 +350,8 @@ const filters = ref({
   per_page: 10
 })
 
+const showFilters = ref(false)
+
 // Dialogs
 const detailsDialog = ref({
   open: false,
@@ -514,6 +534,39 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.history-card {
+  overflow: hidden;
+}
+
+.history-header,
+.history-body {
+  background-color: #ffffff;
+}
+
+.history-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.filters-section {
+  background-color: #2A2A44;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-bottom: none;
+  color: #ffffff;
+  box-shadow: 0 12px 32px -18px rgba(17, 19, 40, 0.32);
+}
+
+.filters-section .app-input-label,
+.filters-section .filter-label,
+.filters-section h4,
+.filters-section p,
+.filters-section span {
+  color: #ffffff !important;
+}
+
+.filters-section .v-icon {
+  color: #ffffff !important;
+}
+
 .card {
   border-radius: 12px;
 }

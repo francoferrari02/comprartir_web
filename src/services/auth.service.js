@@ -29,7 +29,7 @@ export async function login(credentials) {
 
 // POST /users/send-verification?email=<email>
 export async function sendVerification(email) {
-    const response = await api.post('/users/send-verification', null, {
+    const response = await api.post('/users/send-verification', {}, {
         params: { email }
     })
     return response.data

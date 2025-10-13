@@ -1,19 +1,20 @@
 <template>
-  <v-container class="py-12 d-flex justify-center">
-    <v-card class="pa-6 card" max-width="420">
-      <div class="text-center mb-6">
-        <img
-          src="@/assets/Logo_Comprartir-removebg.png"
-          alt="Comprartir Logo"
-          class="logo mb-3"
-        />
-        <div class="text-h5 font-weight-bold mb-1">Verificar cuenta</div>
-        <div class="text-body-2 text-medium-emphasis">
-          Ingresá el código que recibiste por email
+  <v-container fluid class="py-12 bg-surface">
+    <div class="view-shell d-flex justify-center">
+      <v-card class="verify-card card card--hover pa-8">
+        <div class="text-center mb-6">
+          <img
+            src="@/assets/Logo_Comprartir_Title.png"
+            alt="Comprartir Logo"
+            class="logo mb-4"
+          />
+          <div class="text-h5 font-weight-bold mb-0">Verificar cuenta</div>
+          <div class="text-body-2 text-medium-emphasis mt-2">
+            Ingresá el código que recibiste por email
+          </div>
         </div>
-      </div>
 
-      <v-alert
+        <v-alert
           v-if="errorMsg"
           type="error"
           variant="tonal"
@@ -25,7 +26,7 @@
           aria-live="assertive"
       >{{ errorMsg }}</v-alert>
 
-      <v-alert
+        <v-alert
           v-if="successMsg"
           type="success"
           variant="tonal"
@@ -37,7 +38,7 @@
           aria-live="polite"
       >{{ successMsg }}</v-alert>
 
-      <v-alert
+        <v-alert
           v-if="infoMsg"
           type="info"
           variant="tonal"
@@ -49,7 +50,7 @@
           aria-live="polite"
       >{{ infoMsg }}</v-alert>
 
-      <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
+        <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
         <div class="mb-3">
           <label class="app-input-label" for="verify-email">Email</label>
           <v-text-field
@@ -80,7 +81,7 @@
           />
         </div>
 
-        <v-btn
+          <v-btn
             type="submit"
             color="primary"
             variant="elevated"
@@ -91,28 +92,29 @@
         >
           Verificar cuenta
         </v-btn>
-      </v-form>
+        </v-form>
 
-      <div class="text-center">
-        <div class="text-caption text-medium-emphasis mb-2">
-          ¿No recibiste el código?
-          <a
-            href="#"
-            @click.prevent="resendCode"
-            class="text-primary"
-            :class="{ 'text-disabled': resendDisabled }"
-          >
-            {{ resendButtonText }}
-          </a>
+        <div class="text-center">
+          <div class="text-caption text-medium-emphasis mb-2">
+            ¿No recibiste el código?
+            <a
+              href="#"
+              @click.prevent="resendCode"
+              class="text-primary"
+              :class="{ 'text-disabled': resendDisabled }"
+            >
+              {{ resendButtonText }}
+            </a>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <div class="text-caption text-medium-emphasis">
+            <router-link to="/login" class="text-primary">Volver al inicio de sesión</router-link>
+          </div>
         </div>
-
-        <v-divider class="my-4"></v-divider>
-
-        <div class="text-caption text-medium-emphasis">
-          <router-link to="/login" class="text-primary">Volver al inicio de sesión</router-link>
-        </div>
-      </div>
-    </v-card>
+      </v-card>
+    </div>
   </v-container>
 </template>
 
@@ -274,14 +276,16 @@ async function resendCode() {
 </script>
 
 <style scoped>
-.card {
-  border-radius: var(--radius-md, 16px);
+.verify-card {
+  width: 100%;
+  max-width: 880px;
+  border-radius: var(--radius-lg, 24px);
   border: 1px solid var(--border, #E5E7EB);
   background: #fff;
 }
 
 .logo {
-  height: 60px;
+  height: clamp(90px, 18vw, 140px);
   width: auto;
   object-fit: contain;
 }

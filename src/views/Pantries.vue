@@ -392,7 +392,7 @@ const error = ref(null)
 const pantryItemsCounts = ref({})
 const searchQuery = ref(route.query.search || '')
 const createDialog = ref(false)
-const showFilters = ref(true)
+const showFilters = ref(false)
 const editDialog = ref({
   open: false,
   form: {
@@ -788,9 +788,10 @@ onActivated(() => {
 
 .filters-section {
   background-color: #2A2A44;
-  border-radius: var(--radius-md);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   border-bottom: none;
   color: #ffffff;
+  box-shadow: 0 12px 32px -18px rgba(17, 19, 40, 0.32);
 }
 
 .filters-section .app-input-label,

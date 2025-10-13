@@ -1,23 +1,17 @@
 <template>
-  <v-container class="py-10 profile-view">
-    <v-row>
-      <v-col cols="12" md="11" lg="10" class="mx-auto">
-        <h1 class="text-h4 text-md-h4 font-weight-bold mb-6">Mi Perfil</h1>
+  <v-container fluid class="py-8 bg-surface profile-view">
+    <div class="view-shell">
+      <v-card v-if="loading" class="profile-card card card--hover mb-6">
+        <div class="profile-card__body">
+          <v-skeleton-loader type="image, article"></v-skeleton-loader>
+        </div>
+      </v-card>
 
-        <v-card v-if="loading" class="profile-card">
-          <div class="profile-card__body">
-            <v-skeleton-loader type="image, article"></v-skeleton-loader>
-          </div>
-        </v-card>
-
-        <v-card v-else-if="profile" class="profile-card">
-          <div class="profile-card__body">
-            <div class="profile-card__header">
-              <div class="profile-card__meta">
-                <span class="overline text-medium-emphasis">Información personal</span>
-                <h2 class="text-h5 font-weight-bold mb-0">Detalles de tu cuenta</h2>
-              </div>
-              <div class="profile-card__actions">
+      <v-card v-else-if="profile" class="profile-card card card--hover mb-6">
+        <div class="profile-card__body">
+          <div class="profile-card__header">
+            <h2 class="text-h5 font-weight-bold mb-0">Perfil</h2>
+            <div class="profile-card__actions">
                 <v-btn
                   v-if="!isEditing"
                   color="primary"
@@ -50,14 +44,14 @@
                   </v-btn>
                 </div>
               </div>
-            </div>
+          </div>
 
-            <div class="profile-layout">
+          <div class="profile-layout">
             <div class="profile-avatar">
               <div class="avatar-wrapper">
                 <v-avatar size="132" class="avatar-image" color="primary" variant="tonal">
                   <img v-if="avatarPreview" :src="avatarPreview" alt="Foto de perfil" class="avatar-img" />
-                  <v-icon v-else size="64" color="primary-darken-1">mdi-account-circle</v-icon>
+                  <v-icon v-else size="64" :style="{ color: '#2A2A44' }">mdi-account-circle</v-icon>
                 </v-avatar>
 
                 <v-btn
@@ -86,7 +80,7 @@
                 :disabled="!isEditing || !avatarPreview"
                 @click="handleRemovePhoto"
               >
-                Quitar foto
+                Quitar fondo
               </button>
             </div>
 
@@ -211,16 +205,15 @@
                 </div>
               </v-form>
             </div>
-            </div>
           </div>
-        </v-card>
+        </div>
+      </v-card>
 
-        <v-alert v-else type="error" variant="tonal" border="start">
-          Error al cargar el perfil.
-          <v-btn variant="text" color="primary" @click="loadProfile">Reintentar</v-btn>
-        </v-alert>
-      </v-col>
-    </v-row>
+      <v-alert v-else type="error" variant="tonal" border="start">
+        Error al cargar el perfil.
+        <v-btn variant="text" color="primary" @click="loadProfile">Reintentar</v-btn>
+      </v-alert>
+    </div>
   </v-container>
 </template>
 
@@ -480,8 +473,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(145deg, #ffffff 0%, #fbfbfe 100%);
   box-shadow: 0 32px 72px -36px rgba(42, 42, 68, 0.28);
   overflow: hidden;
-  max-width: 1100px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .profile-card__body {
@@ -495,12 +487,6 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: clamp(24px, 4vw, 40px);
-}
-
-.profile-card__meta .overline {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-weight: 600;
 }
 
 .profile-card__actions {
@@ -577,6 +563,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   text-decoration: underline;
   transition: color 0.2s ease;
+  margin-top: 24px;
 }
 
 .avatar-remove:disabled {

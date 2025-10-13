@@ -1,139 +1,138 @@
 <template>
-  <v-container class="py-12 d-flex justify-center">
-    <v-card class="pa-6 card" max-width="420">
-      <div class="text-center mb-6">
-        <img 
-          src="@/assets/Logo_Comprartir-removebg.png" 
-          alt="Comprartir Logo" 
-          class="logo mb-3"
-        />
-        <div class="text-h5 font-weight-bold mb-1">Crear cuenta</div>
-        <div class="text-body-2 text-medium-emphasis">
-          Registrate para comenzar a usar Comprartir
-        </div>
-      </div>
-
-      <v-alert
-          v-if="errorMsg"
-          type="error"
-          variant="tonal"
-          border="start"
-          class="mb-4"
-          closable
-          @click:close="errorMsg = ''"
-      >{{ errorMsg }}</v-alert>
-
-      <v-alert
-          v-if="successMsg"
-          type="success"
-          variant="tonal"
-          border="start"
-          class="mb-4"
-          closable
-          @click:close="successMsg = ''"
-      >{{ successMsg }}</v-alert>
-
-      <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
-        <div class="mb-3">
-          <label class="app-input-label" for="register-first-name">Nombre</label>
-          <v-text-field
-              id="register-first-name"
-              v-model="firstName"
-              density="comfortable"
-              :rules="[rules.required, rules.maxLength(50)]"
-              hide-details="auto"
-              class="app-input"
-              :disabled="loading"
-              prepend-inner-icon="mdi-account-outline"
+  <v-container fluid class="py-12 bg-surface">
+    <div class="view-shell d-flex justify-center">
+      <v-card class="register-card card card--hover pa-8">
+        <div class="text-center mb-6">
+          <img 
+            src="@/assets/Logo_Comprartir_Title.png" 
+            alt="Comprartir Logo" 
+            class="logo mb-4"
           />
+          <div class="text-h5 font-weight-bold mb-0">Crear cuenta</div>
         </div>
 
-        <div class="mb-3">
-          <label class="app-input-label" for="register-last-name">Apellido</label>
-          <v-text-field
-              id="register-last-name"
-              v-model="lastName"
-              density="comfortable"
-              :rules="[rules.required, rules.maxLength(50)]"
-              hide-details="auto"
-              class="app-input"
-              :disabled="loading"
-              prepend-inner-icon="mdi-account-outline"
-          />
-        </div>
+        <v-alert
+            v-if="errorMsg"
+            type="error"
+            variant="tonal"
+            border="start"
+            class="mb-4"
+            closable
+            @click:close="errorMsg = ''"
+        >{{ errorMsg }}</v-alert>
 
-        <div class="mb-3">
-          <label class="app-input-label" for="register-email">Email</label>
-          <v-text-field
-              id="register-email"
-              v-model="email"
-              type="email"
-              density="comfortable"
-              :rules="[rules.required, rules.email]"
-              autocomplete="email"
-              hide-details="auto"
-              class="app-input"
-              :disabled="loading"
-              prepend-inner-icon="mdi-email-outline"
-          />
-        </div>
+        <v-alert
+            v-if="successMsg"
+            type="success"
+            variant="tonal"
+            border="start"
+            class="mb-4"
+            closable
+            @click:close="successMsg = ''"
+        >{{ successMsg }}</v-alert>
 
-        <div class="mb-3">
-          <label class="app-input-label" for="register-password">Contraseña</label>
-          <v-text-field
-              id="register-password"
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              density="comfortable"
-              :rules="[rules.required, rules.password]"
-              autocomplete="new-password"
-              hide-details="auto"
-              class="app-input"
-              :disabled="loading"
-              prepend-inner-icon="mdi-lock-outline"
-              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              @click:append-inner="showPassword = !showPassword"
-          />
-        </div>
+        <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
+          <div class="mb-4">
+            <label class="app-input-label" for="register-first-name">Nombre</label>
+            <v-text-field
+                id="register-first-name"
+                v-model="firstName"
+                density="comfortable"
+                :rules="[rules.required, rules.maxLength(50)]"
+                hide-details="auto"
+                class="app-input"
+                :disabled="loading"
+                prepend-inner-icon="mdi-account-outline"
+            />
+          </div>
 
-        <div class="mb-5">
-          <label class="app-input-label" for="register-confirm-password">Confirmar contraseña</label>
-          <v-text-field
-              id="register-confirm-password"
-              v-model="confirmPassword"
-              :type="showConfirmPassword ? 'text' : 'password'"
-              density="comfortable"
-              :rules="[rules.required, rules.passwordMatch]"
-              autocomplete="new-password"
-              hide-details="auto"
-              class="app-input"
-              :disabled="loading"
-              prepend-inner-icon="mdi-lock-outline"
-              :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              @click:append-inner="showConfirmPassword = !showConfirmPassword"
-          />
-        </div>
+          <div class="mb-4">
+            <label class="app-input-label" for="register-last-name">Apellido</label>
+            <v-text-field
+                id="register-last-name"
+                v-model="lastName"
+                density="comfortable"
+                :rules="[rules.required, rules.maxLength(50)]"
+                hide-details="auto"
+                class="app-input"
+                :disabled="loading"
+                prepend-inner-icon="mdi-account-outline"
+            />
+          </div>
 
-        <v-btn
-            type="submit"
-            color="primary"
-            variant="elevated"
-            class="btn-rounded btn-solid-primary mb-3"
-            :loading="loading"
-            :disabled="!valid"
-            block
-        >
-          Crear cuenta
-        </v-btn>
-      </v-form>
+          <div class="mb-4">
+            <label class="app-input-label" for="register-email">Email</label>
+            <v-text-field
+                id="register-email"
+                v-model="email"
+                type="email"
+                density="comfortable"
+                :rules="[rules.required, rules.email]"
+                autocomplete="email"
+                hide-details="auto"
+                class="app-input"
+                :disabled="loading"
+                prepend-inner-icon="mdi-email-outline"
+            />
+          </div>
 
-      <div class="text-center">
-        <div class="text-caption text-medium-emphasis">
-          ¿Ya tenés cuenta? 
-          <router-link to="/login" class="text-primary">Iniciar sesión</router-link>
+          <div class="mb-4">
+            <label class="app-input-label" for="register-password">Contraseña</label>
+            <v-text-field
+                id="register-password"
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                density="comfortable"
+                :rules="[rules.required, rules.password]"
+                autocomplete="new-password"
+                hide-details="auto"
+                class="app-input"
+                :disabled="loading"
+                prepend-inner-icon="mdi-lock-outline"
+                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPassword = !showPassword"
+            />
+          </div>
+
+          <div class="mb-6">
+            <label class="app-input-label" for="register-confirm-password">Confirmar contraseña</label>
+            <v-text-field
+                id="register-confirm-password"
+                v-model="confirmPassword"
+                :type="showConfirmPassword ? 'text' : 'password'"
+                density="comfortable"
+                :rules="[rules.required, rules.passwordMatch]"
+                autocomplete="new-password"
+                hide-details="auto"
+                class="app-input"
+                :disabled="loading"
+                prepend-inner-icon="mdi-lock-outline"
+                :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showConfirmPassword = !showConfirmPassword"
+            />
+          </div>
+
+          <v-btn
+              type="submit"
+              color="primary"
+              variant="elevated"
+              class="btn-rounded btn-solid-primary mb-4"
+              :loading="loading"
+              :disabled="!valid"
+              block
+          >
+            Crear cuenta
+          </v-btn>
+        </v-form>
+
+        <div class="text-center">
+          <div class="text-caption text-medium-emphasis">
+            ¿Ya tenés cuenta? 
+            <router-link to="/login" class="text-primary">Iniciar sesión</router-link>
+          </div>
         </div>
-      </div>
-    </v-card>
+      </v-card>
+    </div>
   </v-container>
 </template>
 
@@ -256,14 +255,16 @@ async function onSubmit() {
 </script>
 
 <style scoped>
-.card {
-  border-radius: var(--radius-md, 16px);
+.register-card {
+  width: 100%;
+  max-width: 880px;
+  border-radius: var(--radius-lg, 24px);
   border: 1px solid var(--border, #E5E7EB);
   background: #fff;
 }
 
 .logo {
-  height: 60px;
+  height: clamp(90px, 18vw, 140px);
   width: auto;
   object-fit: contain;
 }

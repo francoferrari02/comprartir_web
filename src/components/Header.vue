@@ -136,11 +136,10 @@ const notificationsStore = useNotificationsStore()
 const userEmail = ref('')
 
 const navLinks = [
+  { to: '/', label: 'Inicio', icon: 'mdi-home-outline' },
   { to: '/lists', label: 'Listas', icon: 'mdi-view-list' },
   { to: '/pantries', label: 'Despensas', icon: 'mdi-fridge' },
-  { to: '/historial', label: 'Historial', icon: 'mdi-history' },
-  { to: '/preferences', label: 'Preferencias', icon: 'mdi-cog' },
-  { to: '/help', label: 'Ayuda', icon: 'mdi-help-circle' }
+  { to: '/historial', label: 'Historial', icon: 'mdi-history' }
 ]
 
 // Computed
