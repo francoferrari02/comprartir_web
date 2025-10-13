@@ -123,65 +123,92 @@
               </v-btn>
             </div>
 
-            <!-- Buscador y filtros -->
-            <div class="mb-4">
-              <div class="mb-3">
-                <label class="app-input-label" for="pantry-search-products">Buscar productos</label>
-                <v-text-field
-                  id="pantry-search-products"
-                  v-model="searchQuery"
-                  prepend-inner-icon="mdi-magnify"
-                  density="comfortable"
-                  clearable
-                  hide-details
-                  class="app-input"
-                  placeholder="Buscar productos..."
-                  @update:model-value="debouncedSearch"
-                />
+            <!-- Filtros integrados -->
+            <div class="filters-section pa-4 mb-4">
+              <div class="d-flex align-center justify-space-between mb-3">
+                <h4 class="text-subtitle-1 font-weight-bold text-white">
+                  <v-icon size="small" class="mr-1">mdi-filter-outline</v-icon>
+                  Filtros y orden
+                </h4>
+                <v-btn
+                  variant="tonal"
+                  size="small"
+                  class="btn-pill text-body-2 font-weight-medium"
+                  @click="showFilters = !showFilters"
+                >
+                  <v-icon size="small" class="mr-1">
+                    {{ showFilters ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                  </v-icon>
+                  {{ showFilters ? 'Ocultar' : 'Mostrar' }}
+                </v-btn>
               </div>
 
-              <div class="d-flex gap-2 mb-3">
-                <div style="flex: 1;">
-                  <label class="app-input-label" for="pantry-sort-by">Ordenar por</label>
-                  <v-select
-                    id="pantry-sort-by"
-                    v-model="itemsFilters.sort_by"
-                    :items="sortOptions"
-                    density="compact"
-                    hide-details
-                    class="app-input"
-                    @update:model-value="fetchItems"
-                  />
-                </div>
-                <div style="flex: 1;">
-                  <label class="app-input-label" for="pantry-order">Dirección</label>
-                  <v-select
-                    id="pantry-order"
-                    v-model="itemsFilters.order"
-                    :items="orderOptions"
-                    density="compact"
-                    hide-details
-                    class="app-input"
-                    @update:model-value="fetchItems"
-                  />
-                </div>
-              </div>
+              <v-expand-transition>
+                <div v-show="showFilters">
+                  <v-row dense>
+                    <!-- Buscar productos -->
+                    <v-col cols="12">
+                      <label class="app-input-label filter-label" for="pantry-search-products">Buscar productos</label>
+                      <v-text-field
+                        id="pantry-search-products"
+                        v-model="searchQuery"
+                        prepend-inner-icon="mdi-magnify"
+                        density="compact"
+                        clearable
+                        hide-details
+                        class="app-input"
+                        placeholder="Buscar productos..."
+                        @update:model-value="debouncedSearch"
+                      />
+                    </v-col>
 
-              <div>
-                <label class="app-input-label" for="pantry-filter-category">Filtrar por categoría</label>
-                <v-select
-                  id="pantry-filter-category"
-                  v-model="selectedCategoryFilter"
-                  :items="categoryFilterOptions"
-                  prepend-inner-icon="mdi-tag"
-                  density="compact"
-                  hide-details
-                  clearable
-                  class="app-input"
-                  placeholder="Todas las categorías"
-                  @update:model-value="handleCategoryFilterChange"
-                />
-              </div>
+                    <!-- Ordenar por -->
+                    <v-col cols="12" sm="6" md="4">
+                      <label class="app-input-label filter-label" for="pantry-sort-by">Ordenar por</label>
+                      <v-select
+                        id="pantry-sort-by"
+                        v-model="itemsFilters.sort_by"
+                        :items="sortOptions"
+                        density="compact"
+                        hide-details
+                        class="app-input"
+                        @update:model-value="fetchItems"
+                      />
+                    </v-col>
+
+                    <!-- Dirección -->
+                    <v-col cols="12" sm="6" md="4">
+                      <label class="app-input-label filter-label" for="pantry-order">Dirección</label>
+                      <v-select
+                        id="pantry-order"
+                        v-model="itemsFilters.order"
+                        :items="orderOptions"
+                        density="compact"
+                        hide-details
+                        class="app-input"
+                        @update:model-value="fetchItems"
+                      />
+                    </v-col>
+
+                    <!-- Filtrar por categoría -->
+                    <v-col cols="12" md="4">
+                      <label class="app-input-label filter-label" for="pantry-filter-category">Filtrar por categoría</label>
+                      <v-select
+                        id="pantry-filter-category"
+                        v-model="selectedCategoryFilter"
+                        :items="categoryFilterOptions"
+                        prepend-inner-icon="mdi-tag"
+                        density="compact"
+                        hide-details
+                        clearable
+                        class="app-input"
+                        placeholder="Todas las categorías"
+                        @update:model-value="handleCategoryFilterChange"
+                      />
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-expand-transition>
             </div>
 
             <v-divider class="mb-4" />
@@ -640,6 +667,7 @@ const shareEmail = ref('')
 const selectedProductId = ref(null)
 const currentUser = ref(null) // ← Usuario actual
 const selectedCategoryFilter = ref(null) // ← Para el filtro de categoría en la vista
+const showFilters = ref(false) // ← Para mostrar/ocultar filtros
 
 // Category management
 const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
@@ -1432,6 +1460,26 @@ onMounted(async () => {
 
 .icon-btn-rounded {
   border-radius: 50%;
+}
+
+/* Filters section */
+.filters-section {
+  background-color: #2a2a44;
+  border-radius: 8px;
+}
+
+.filters-section h4,
+.filters-section .v-btn {
+  color: #ffffff !important;
+}
+
+.filters-section .v-icon {
+  color: #ffffff !important;
+}
+
+.filter-label {
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin-bottom: 6px;
 }
 
 /* Products list styling handled by component */

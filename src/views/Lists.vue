@@ -254,9 +254,9 @@
       <!-- Edit List Dialog -->
       <v-dialog v-model="editDialog.open" max-width="600">
         <v-card>
-          <v-card-title class="text-h5 pa-4">
-            Editar Lista
-          </v-card-title>
+            <v-card-title class="text-h6 font-weight-bold">
+              Editar Lista
+            </v-card-title>
           <v-card-text class="pa-4">
             <div class="mb-3">
               <label class="app-input-label" for="edit-list-name">Nombre de la lista</label>
@@ -280,12 +280,7 @@
                 class="app-input"
               />
             </div>
-            <v-checkbox
-              v-model="editDialog.form.recurring"
-              label="Lista recurrente"
-              hint="Las listas recurrentes se pueden reutilizar después de comprarlas"
-              persistent-hint
-            />
+            
             <v-alert
               v-if="editDialog.error"
               type="error"
@@ -320,9 +315,6 @@
       <!-- Delete Confirmation Dialog -->
       <v-dialog v-model="deleteDialog.open" max-width="500">
         <v-card>
-          <v-card-title class="text-h6 pa-4">
-            Eliminar Lista
-          </v-card-title>
           <v-card-text class="pa-4">
             <p class="mb-3">
               ¿Estás seguro de que deseas eliminar la lista
@@ -660,17 +652,15 @@ async function createList() {
   error.value = null // Clear any previous errors
 
   try {
-    console.log('🔄 Creating list with data:', {
+    const payload = {
       name: newList.value.name.trim(),
-      description: newList.value.description.trim(),
+      description: newList.value.description.trim() || ' ',
       recurring: newList.value.recurring
-    })
+    }
 
-    const created = await createShoppingList({
-      name: newList.value.name.trim(),
-      description: newList.value.description.trim(),
-      recurring: newList.value.recurring
-    })
+    console.log('🔄 Creating list with data:', payload)
+
+    const created = await createShoppingList(payload)
 
     console.log('✅ List created successfully:', created)
 
@@ -744,11 +734,12 @@ async function submitEdit() {
   editDialog.value.error = null // Clear any previous errors
 
   try {
-    await updateShoppingList(editDialog.value.form.id, {
+    const payload = {
       name: editDialog.value.form.name.trim(),
-      description: editDialog.value.form.description.trim(),
+      description: editDialog.value.form.description.trim() || ' ',
       recurring: editDialog.value.form.recurring
-    })
+    }
+    await updateShoppingList(editDialog.value.form.id, payload)
 
     showSnackbar('Lista actualizada exitosamente', 'success')
 

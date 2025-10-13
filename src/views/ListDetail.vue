@@ -116,10 +116,10 @@
       <!-- Confirmation Dialogs -->
       <v-dialog v-model="confirmDialog.show" max-width="500">
         <v-card class="dialog-card">
-          <v-card-title class="dialog-title text-subtitle-1 font-weight-bold pa-4">
+          <v-card-title class="dialog-title pa-4">
             {{ confirmDialog.title }}
           </v-card-title>
-          <v-card-text class="dialog-text text-body-2 text-medium-emphasis pa-4">
+          <v-card-text class="dialog-text pa-4">
             {{ confirmDialog.message }}
           </v-card-text>
           <v-card-actions class="pa-4 dialog-actions">
@@ -143,6 +143,35 @@
             </v-btn>
           </v-card-actions>
         </v-card>
+      </v-dialog>
+
+      <!-- Delete List Dialog -->
+      <v-dialog v-model="deleteDialog.show" max-width="500">
+        <div class="custom-dialog-card">
+          <div class="custom-dialog-title">
+            {{ deleteDialog.title }}
+          </div>
+          <div class="custom-dialog-text">
+            {{ deleteDialog.message }}
+          </div>
+          <div class="custom-dialog-actions">
+            <button 
+              class="custom-dialog-btn custom-dialog-btn--cancel"
+              @click="deleteDialog.show = false"
+              :disabled="deleteDialog.loading"
+            >
+              Cancelar
+            </button>
+            <button 
+              class="custom-dialog-btn custom-dialog-btn--delete"
+              @click="deleteDialog.action"
+              :disabled="deleteDialog.loading"
+            >
+              <span v-if="!deleteDialog.loading">{{ deleteDialog.confirmText }}</span>
+              <span v-else>Eliminando...</span>
+            </button>
+          </div>
+        </div>
       </v-dialog>
     </div>
   </v-container>
@@ -244,6 +273,16 @@ const confirmDialog = ref({
   color: 'primary',
   variant: 'flat',
   buttonClass: '',
+  loading: false,
+  action: null
+})
+
+// Delete dialog (separate for custom styling)
+const deleteDialog = ref({
+  show: false,
+  title: '',
+  message: '',
+  confirmText: 'Eliminar',
   loading: false,
   action: null
 })
@@ -407,10 +446,11 @@ async function updateListName(newName) {
 }
 
 async function updateListDescription(newDescription) {
-  if (!list.value || !newDescription.trim()) return
+  if (!list.value) return
 
   try {
-    const updated = await updateShoppingList(list.value.id, { description: newDescription.trim() })
+    const trimmed = newDescription?.trim() || ' '
+    const updated = await updateShoppingList(list.value.id, { description: trimmed })
     list.value = { ...list.value, ...updated }
     listsStore.setCurrentList(list.value)
     showSnackbar('Descripción de lista actualizada', 'success')
@@ -747,32 +787,29 @@ async function executeMoveToPantry() {
 }
 
 function confirmDeleteList() {
-  confirmDialog.value = {
+  deleteDialog.value = {
     show: true,
-    title: 'Eliminar lista',
-    message: `¿Estás seguro de que deseas eliminar la lista "${list.value.name}"? Esta acción no se puede deshacer.`,
+    title: '',
+    message: `¿Estás sfjnaonvoafnvoaguro de que deseas eliminar la lista "${list.value.name}"? Esta acción no se puede deshacer.`,
     confirmText: 'Eliminar',
-    color: 'error',
-    variant: 'flat',
-    buttonClass: '',
     loading: false,
     action: executeDeleteList
   }
 }
 
 async function executeDeleteList() {
-  confirmDialog.value.loading = true
+  deleteDialog.value.loading = true
 
   try {
     await deleteShoppingList(list.value.id)
-    confirmDialog.value.show = false
+    deleteDialog.value.show = false
     showSnackbar('Lista eliminada', 'success')
     router.push('/lists')
   } catch (err) {
     console.error('Error deleting list:', err)
     error.value = err.message || 'Error al eliminar la lista'
   } finally {
-    confirmDialog.value.loading = false
+    deleteDialog.value.loading = false
   }
 }
 
@@ -851,31 +888,133 @@ onMounted(async () => {
   border-radius: 16px;
 }
 
-.dialog-title {
+.dialog-card .dialog-title {
   letter-spacing: 0.2px;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  line-height: 1.5 !important;
+  color: rgba(0, 0, 0, 0.87) !important;
 }
 
-.dialog-text {
-  line-height: 1.5;
+.dialog-card .dialog-text {
+  line-height: 1.5 !important;
+  font-size: 0.875rem !important;
+  color: rgba(0, 0, 0, 0.6) !important;
 }
 
 .dialog-actions {
   gap: 12px;
 }
 
-.dialog-confirm-btn {
-  font-weight: 600;
+.btn-rounded.dialog-confirm-btn {
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
 }
 
-.dialog-confirm-btn--reset {
+.btn-rounded.dialog-confirm-btn.dialog-confirm-btn--reset {
   background-color: #ffffff !important;
   color: #2a2a44 !important;
   border: 1px solid #2a2a44 !important;
   box-shadow: none !important;
 }
 
-.dialog-confirm-btn--reset:hover,
-.dialog-confirm-btn--reset:focus-visible {
+.btn-rounded.dialog-confirm-btn.dialog-confirm-btn--reset:hover,
+.btn-rounded.dialog-confirm-btn.dialog-confirm-btn--reset:focus-visible {
   background-color: rgba(42, 42, 68, 0.08) !important;
+}
+
+.btn-rounded.dialog-confirm-btn.dialog-confirm-btn--delete {
+  background-color: #ffffff !important;
+  color: #FF5252 !important;
+  border: 1px solid #FF5252 !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.btn-rounded.dialog-confirm-btn.dialog-confirm-btn--delete:hover,
+.btn-rounded.dialog-confirm-btn.dialog-confirm-btn--delete:focus-visible {
+  background-color: rgba(255, 82, 82, 0.08) !important;
+}
+
+/* Custom Delete Dialog - Sin clases de Vuetify */
+.custom-dialog-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 11px 15px -7px rgba(0, 0, 0, 0.2),
+              0 24px 38px 3px rgba(0, 0, 0, 0.14),
+              0 9px 46px 8px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.custom-dialog-title {
+  padding: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.custom-dialog-text {
+  padding: 16px;
+  padding-top: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.custom-dialog-actions {
+  padding: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.custom-dialog-btn {
+  padding: 8px 24px;
+  border-radius: 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: inherit;
+}
+
+.custom-dialog-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.custom-dialog-btn--cancel {
+  background: transparent;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.custom-dialog-btn--cancel:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.custom-dialog-btn--delete {
+  background-color: #ffffff;
+  color: #FF5252;
+  border: 1px solid #FF5252;
+  box-shadow: none;
+}
+
+.custom-dialog-btn--delete:hover:not(:disabled) {
+  background-color: rgba(255, 82, 82, 0.08);
+}
+
+.custom-dialog-btn--delete:focus-visible {
+  background-color: rgba(255, 82, 82, 0.08);
+  outline: 2px solid #FF5252;
+  outline-offset: 2px;
 }
 </style>

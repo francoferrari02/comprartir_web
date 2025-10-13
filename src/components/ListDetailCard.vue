@@ -225,61 +225,88 @@
 
     <!-- Products list -->
     <div v-else>
-      <!-- Buscador y filtros -->
-      <div class="mb-4">
-        <div class="mb-3">
-          <label class="app-input-label" for="list-search-products">Buscar productos</label>
-          <v-text-field
-            id="list-search-products"
-            v-model="searchQuery"
-            prepend-inner-icon="mdi-magnify"
-            density="comfortable"
-            clearable
-            hide-details
-            class="app-input"
-            placeholder="Buscar productos..."
-          />
+      <!-- Filtros integrados -->
+      <div class="filters-section pa-4 mb-4">
+        <div class="d-flex align-center justify-space-between mb-3">
+          <h4 class="text-subtitle-1 font-weight-bold text-white">
+            <v-icon size="small" class="mr-1">mdi-filter-outline</v-icon>
+            Filtros y orden
+          </h4>
+          <v-btn
+            variant="tonal"
+            size="small"
+            class="btn-pill text-body-2 font-weight-medium"
+            @click="showFilters = !showFilters"
+          >
+            <v-icon size="small" class="mr-1">
+              {{ showFilters ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+            </v-icon>
+            {{ showFilters ? 'Ocultar' : 'Mostrar' }}
+          </v-btn>
         </div>
 
-        <div class="d-flex gap-2 mb-3">
-          <div style="flex: 1;">
-            <label class="app-input-label" for="list-sort-by">Ordenar por</label>
-            <v-select
-              id="list-sort-by"
-              v-model="sortBy"
-              :items="sortOptions"
-              density="compact"
-              hide-details
-              class="app-input"
-            />
-          </div>
-          <div style="flex: 1;">
-            <label class="app-input-label" for="list-order">Dirección</label>
-            <v-select
-              id="list-order"
-              v-model="sortOrder"
-              :items="orderOptions"
-              density="compact"
-              hide-details
-              class="app-input"
-            />
-          </div>
-        </div>
+        <v-expand-transition>
+          <div v-show="showFilters">
+            <v-row dense>
+              <!-- Buscar productos -->
+              <v-col cols="12">
+                <label class="app-input-label filter-label" for="list-search-products">Buscar productos</label>
+                <v-text-field
+                  id="list-search-products"
+                  v-model="searchQuery"
+                  prepend-inner-icon="mdi-magnify"
+                  density="compact"
+                  clearable
+                  hide-details
+                  class="app-input"
+                  placeholder="Buscar productos..."
+                />
+              </v-col>
 
-        <div>
-          <label class="app-input-label" for="list-filter-category">Filtrar por categoría</label>
-          <v-select
-            id="list-filter-category"
-            v-model="selectedCategory"
-            :items="categoryFilterOptions"
-            prepend-inner-icon="mdi-tag"
-            density="compact"
-            hide-details
-            clearable
-            class="app-input"
-            placeholder="Todas las categorías"
-          />
-        </div>
+              <!-- Ordenar por -->
+              <v-col cols="12" sm="6" md="4">
+                <label class="app-input-label filter-label" for="list-sort-by">Ordenar por</label>
+                <v-select
+                  id="list-sort-by"
+                  v-model="sortBy"
+                  :items="sortOptions"
+                  density="compact"
+                  hide-details
+                  class="app-input"
+                />
+              </v-col>
+
+              <!-- Dirección -->
+              <v-col cols="12" sm="6" md="4">
+                <label class="app-input-label filter-label" for="list-order">Dirección</label>
+                <v-select
+                  id="list-order"
+                  v-model="sortOrder"
+                  :items="orderOptions"
+                  density="compact"
+                  hide-details
+                  class="app-input"
+                />
+              </v-col>
+
+              <!-- Filtrar por categoría -->
+              <v-col cols="12" md="4">
+                <label class="app-input-label filter-label" for="list-filter-category">Filtrar por categoría</label>
+                <v-select
+                  id="list-filter-category"
+                  v-model="selectedCategory"
+                  :items="categoryFilterOptions"
+                  prepend-inner-icon="mdi-tag"
+                  density="compact"
+                  hide-details
+                  clearable
+                  class="app-input"
+                  placeholder="Todas las categorías"
+                />
+              </v-col>
+            </v-row>
+          </div>
+        </v-expand-transition>
       </div>
 
       <v-divider class="mb-4" />
@@ -579,6 +606,7 @@ const searchQuery = ref('')
 const selectedCategory = ref(null)
 const sortBy = ref('name')
 const sortOrder = ref('asc')
+const showFilters = ref(false) // Controlar visibilidad de filtros
 
 // Watch para emitir cambios de filtros al padre
 watch(searchQuery, (newValue) => {
@@ -985,8 +1013,22 @@ defineExpose({
 
 /* Estilos para la sección de filtros */
 .filters-section {
-  background-color: var(--v-background-base);
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #2a2a44;
+  border-radius: var(--radius-md);
+  border-bottom: none;
+  color: #ffffff;
+  box-shadow: 0 12px 32px -18px rgba(17, 19, 40, 0.32);
+}
+
+.filters-section .app-input-label,
+.filters-section .filter-label,
+.filters-section h4,
+.filters-section p,
+.filters-section span {
+  color: #ffffff !important;
+}
+
+.filters-section .v-icon {
+  color: #ffffff !important;
 }
 </style>

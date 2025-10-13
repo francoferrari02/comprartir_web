@@ -76,7 +76,7 @@
       <!-- Create List Dialog -->
       <v-dialog v-model="createDialog" max-width="600">
         <v-card>
-          <v-card-title class="text-h5 pa-4">
+          <v-card-title class="text-h6 font-weight-bold">
             Nueva Lista de Compras
           </v-card-title>
           <v-card-text class="pa-4">
@@ -102,12 +102,7 @@
                   class="app-input"
               />
             </div>
-            <v-checkbox
-                v-model="newList.recurring"
-                label="Lista recurrente"
-                hint="Las listas recurrentes se pueden reutilizar después de comprarlas"
-                persistent-hint
-            />
+            
           </v-card-text>
           <v-card-actions class="pa-4">
             <v-spacer />
