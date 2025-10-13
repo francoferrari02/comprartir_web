@@ -46,7 +46,7 @@
             </v-btn>
           </template>
 
-          <v-card min-width="320" elevation="2">
+          <v-card class="dropdown-menu" min-width="320">
             <v-list density="comfortable">
               <v-list-subheader>Notificaciones</v-list-subheader>
 
@@ -60,7 +60,7 @@
                     lines="two"
                 >
                   <template #prepend>
-                    <v-avatar size="28" class="mr-2" variant="tonal" color="primary">
+                    <v-avatar size="32" class="mr-3">
                       <v-icon v-if="n.icon">{{ n.icon }}</v-icon>
                     </v-avatar>
                   </template>
@@ -90,7 +90,7 @@
             </v-btn>
           </template>
 
-          <v-card min-width="200" elevation="2">
+          <v-card class="dropdown-menu" min-width="280">
             <v-list density="comfortable">
               <v-list-item 
                   :title="userEmail || 'Usuario'"
@@ -120,7 +120,7 @@
 <script setup>
 import { ref, computed, inject, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { logout, getProfile } from '@/services/auth.service'
+import { logout, getProfile, forgotPassword } from '@/services/auth.service'
 import { useNotificationsStore } from '@/stores/notifications'
 import logoSrc from '@/assets/Logo_Comprartir.png'
 
@@ -145,6 +145,8 @@ const navLinks = [
 // Computed
 const unreadCount = computed(() => notificationsStore.unreadCount)
 const notifications = computed(() => notificationsStore.recentNotifications)
+
+const changePasswordLoading = ref(false)
 
 const isNavActive = target => {
   const path = route?.path ?? ''
@@ -180,10 +182,45 @@ async function loadUserEmail() {
   }
 }
 
-function handleChangePassword() {
-  const normalizedEmail = userEmail.value ? userEmail.value.trim().toLowerCase() : ''
-  const emailQuery = normalizedEmail ? { email: normalizedEmail } : {}
-  router.push({ path: '/forgot-password', query: emailQuery })
+async function handleChangePassword() {
+  if (changePasswordLoading.value) return
+
+  let normalizedEmail = userEmail.value ? userEmail.value.trim().toLowerCase() : ''
+
+  if (!normalizedEmail) {
+    try {
+      const profile = await getProfile()
+      normalizedEmail = typeof profile?.email === 'string' ? profile.email.trim().toLowerCase() : ''
+    } catch (error) {
+      console.error('Error fetching profile before change password:', error)
+    }
+  }
+
+  if (!normalizedEmail) {
+    router.push({ path: '/forgot-password' })
+    return
+  }
+
+  changePasswordLoading.value = true
+
+  try {
+    await forgotPassword(normalizedEmail)
+    router.push({
+      path: '/reset-password',
+      query: {
+        email: normalizedEmail,
+        autoSent: '1'
+      }
+    })
+  } catch (error) {
+    console.error('Error sending verification code for password change:', error)
+    router.push({
+      path: '/forgot-password',
+      query: { email: normalizedEmail }
+    })
+  } finally {
+    changePasswordLoading.value = false
+  }
 }
 
 onMounted(() => {

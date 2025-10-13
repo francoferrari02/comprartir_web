@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <Header v-if="isAuthenticated" @new-list="onNewList" />
+    <Header v-if="showHeader" @new-list="onNewList" />
     <v-main>
       <router-view />
     </v-main>
@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted, watch } from 'vue'
+import { ref, provide, onMounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from './components/Header.vue'
 import { isLoggedIn } from './services/auth.service'
@@ -23,6 +23,13 @@ provide('isAuthenticated', isAuthenticated)
 
 // Notifications store
 const notificationsStore = useNotificationsStore()
+
+const showHeader = computed(() => {
+  if (!isAuthenticated.value) {
+    return false
+  }
+  return route.meta?.hideHeader !== true
+})
 
 // Función para actualizar estado de autenticación
 function updateAuthState() {

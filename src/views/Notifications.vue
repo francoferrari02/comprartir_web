@@ -2,54 +2,50 @@
   <v-container fluid class="py-8 bg-surface">
     <div class="view-shell">
       <AppBreadcrumbs :items="breadcrumbs" />
+      <!-- Filters & Header -->
+      <v-card class="card card--hover mb-6">
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 pa-4 pb-0">
+          <h2 class="text-h5 font-weight-bold mb-0">Notificaciones</h2>
 
-      <!-- Header -->
-      <div class="d-flex align-center justify-space-between mb-6">
-        <div>
-          <h1 class="text-h4 font-weight-bold mb-2">Notificaciones</h1>
-          <p class="text-body-2 text-medium-emphasis">
-            Mantente al día con las actualizaciones de tus listas y despensas
-          </p>
+          <div class="d-flex gap-2">
+            <v-btn
+              v-if="unreadCount > 0"
+              variant="tonal"
+              color="primary"
+              prepend-icon="mdi-check-all"
+              @click="markAllAsRead"
+            >
+              Marcar todas como leídas
+            </v-btn>
+            <v-menu>
+              <template #activator="{ props }">
+                <v-btn
+                  icon="mdi-dots-vertical"
+                  variant="text"
+                  class="menu-trigger"
+                  v-bind="props"
+                />
+              </template>
+              <v-card class="dropdown-menu" min-width="240">
+                <v-list density="comfortable">
+                  <v-list-item
+                    prepend-icon="mdi-broom"
+                    title="Limpiar leídas"
+                    @click="clearRead"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-delete-outline"
+                    title="Eliminar todas"
+                    @click="confirmClearAll"
+                  />
+                </v-list>
+              </v-card>
+            </v-menu>
+          </div>
         </div>
+        <v-divider class="mx-4 my-3" />
 
-        <!-- Actions -->
-        <div class="d-flex gap-2">
-          <v-btn
-            v-if="unreadCount > 0"
-            variant="tonal"
-            color="primary"
-            prepend-icon="mdi-check-all"
-            @click="markAllAsRead"
-          >
-            Marcar todas como leídas
-          </v-btn>
-          <v-menu>
-            <template #activator="{ props }">
-              <v-btn
-                icon="mdi-dots-vertical"
-                variant="text"
-                v-bind="props"
-              />
-            </template>
-            <v-list density="compact">
-              <v-list-item
-                prepend-icon="mdi-broom"
-                title="Limpiar leídas"
-                @click="clearRead"
-              />
-              <v-list-item
-                prepend-icon="mdi-delete-outline"
-                title="Eliminar todas"
-                @click="confirmClearAll"
-              />
-            </v-list>
-          </v-menu>
-        </div>
-      </div>
-
-      <!-- Filters -->
-      <v-card class="card mb-4">
-        <v-card-text class="pa-4">
+        <v-card-text class="pa-4 pt-1">
           <v-chip-group
             v-model="selectedFilter"
             mandatory

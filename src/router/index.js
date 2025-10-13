@@ -22,8 +22,8 @@ const routes = [
     { path: '/login',          name: 'login',          component: Login,          meta: { title: 'Ingresar', public: true } },
     { path: '/register',       name: 'register',       component: Register,       meta: { title: 'Registrarse', public: true } },
     { path: '/verify',         name: 'verify',         component: Verify,         meta: { title: 'Verificar cuenta', public: true } },
-    { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword, meta: { title: 'Recuperar contraseña', public: true } },
-    { path: '/reset-password', name: 'reset-password', component: ResetPassword,  meta: { title: 'Restablecer contraseña', public: true } },
+    { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword, meta: { title: 'Recuperar contraseña', public: true, allowWhenAuthenticated: true } },
+    { path: '/reset-password', name: 'reset-password', component: ResetPassword,  meta: { title: 'Restablecer contraseña', public: true, allowWhenAuthenticated: true, hideHeader: true } },
 
     // Protected routes (require authentication)
     { path: '/',              name: 'home',          component: Home,          meta: { title: 'Inicio', requiresAuth: true } },
@@ -57,6 +57,7 @@ router.beforeEach((to, from, next) => {
     const isAuthenticated = !!token
     const requiresAuth = to.meta?.requiresAuth
     const isPublicRoute = to.meta?.public
+    const allowWhenAuthenticated = to.meta?.allowWhenAuthenticated
 
     // If route requires auth and user is not authenticated
     if (requiresAuth && !isAuthenticated) {
@@ -68,7 +69,7 @@ router.beforeEach((to, from, next) => {
 
     // If user is authenticated and trying to access public routes (login, register, etc.)
     // Redirect to home
-    if (isAuthenticated && isPublicRoute) {
+    if (isAuthenticated && isPublicRoute && !allowWhenAuthenticated) {
         return next({ path: '/' })
     }
 

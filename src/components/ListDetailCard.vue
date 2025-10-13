@@ -146,39 +146,41 @@
             </v-tooltip>
           </v-btn>
         </template>
-        <v-list class="menu-rounded">
-          <v-list-item @click="handlePurchase">
-            <template #prepend>
-              <v-icon>mdi-cart-check</v-icon>
-            </template>
-            <v-list-item-title>Marcar como comprada</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="handleReset">
-            <template #prepend>
-              <v-icon>mdi-refresh</v-icon>
-            </template>
-            <v-list-item-title>Resetear lista</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="handleMoveToPantry">
-            <template #prepend>
-              <v-icon>mdi-package-variant</v-icon>
-            </template>
-            <v-list-item-title>Mover a despensa</v-list-item-title>
-          </v-list-item>
-          <v-divider />
-          <v-list-item @click="handlePrint">
-            <template #prepend>
-              <v-icon>mdi-printer</v-icon>
-            </template>
-            <v-list-item-title>Imprimir</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="handleDelete" class="text-error">
-            <template #prepend>
-              <v-icon color="error">mdi-delete</v-icon>
-            </template>
-            <v-list-item-title>Eliminar lista</v-list-item-title>
-          </v-list-item>
-        </v-list>
+        <v-card class="dropdown-menu" min-width="260">
+          <v-list>
+            <v-list-item @click="handlePurchase">
+              <template #prepend>
+                <v-icon>mdi-cart-check</v-icon>
+              </template>
+              <v-list-item-title>Marcar como comprada</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="handleReset">
+              <template #prepend>
+                <v-icon>mdi-refresh</v-icon>
+              </template>
+              <v-list-item-title>Resetear lista</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="handleMoveToPantry">
+              <template #prepend>
+                <v-icon>mdi-package-variant</v-icon>
+              </template>
+              <v-list-item-title>Mover a despensa</v-list-item-title>
+            </v-list-item>
+            <v-divider />
+            <v-list-item @click="handlePrint">
+              <template #prepend>
+                <v-icon>mdi-printer</v-icon>
+              </template>
+              <v-list-item-title>Imprimir</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="handleDelete" class="text-error">
+              <template #prepend>
+                <v-icon color="error">mdi-delete</v-icon>
+              </template>
+              <v-list-item-title>Eliminar lista</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-card>
       </v-menu>
     </div>
 
@@ -852,10 +854,6 @@ defineExpose({
 }
 
 /* Menú con bordes redondeados */
-:deep(.menu-rounded) {
-  border-radius: 12px !important;
-}
-
 /* Asegurar que los botones de texto también se vean bien */
 :deep(.v-btn--variant-text) {
   border-radius: 999px !important;
