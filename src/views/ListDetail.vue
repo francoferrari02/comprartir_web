@@ -1,6 +1,8 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <div class="view-shell">
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <!-- Error Alert -->
       <v-alert
         v-if="error"
@@ -111,13 +113,13 @@
       <!-- Confirmation Dialogs -->
       <v-dialog v-model="confirmDialog.show" max-width="500">
         <v-card class="dialog-card">
-          <v-card-title class="text-h6 pa-4">
+          <v-card-title class="dialog-title text-subtitle-1 font-weight-bold pa-4">
             {{ confirmDialog.title }}
           </v-card-title>
-          <v-card-text class="pa-4">
+          <v-card-text class="dialog-text text-body-2 text-medium-emphasis pa-4">
             {{ confirmDialog.message }}
           </v-card-text>
-          <v-card-actions class="pa-4">
+          <v-card-actions class="pa-4 dialog-actions">
             <v-spacer />
             <v-btn
               variant="text"
@@ -127,9 +129,10 @@
               Cancelar
             </v-btn>
             <v-btn
-              :color="confirmDialog.color"
-              variant="flat"
-              class="btn-rounded"
+                :color="confirmDialog.color"
+                :variant="confirmDialog.variant || 'flat'"
+                class="btn-rounded dialog-confirm-btn"
+                :class="confirmDialog.buttonClass"
               :loading="confirmDialog.loading"
               @click="confirmDialog.action"
             >
@@ -167,10 +170,17 @@ import { getProfile } from '@/services/auth'
 import ListDetailCard from '@/components/ListDetailCard.vue'
 import AddItemCard from '@/components/AddItemCard.vue'
 import ShareListCard from '@/components/ShareListCard.vue'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()
 const listsStore = useListsStore()
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Listas', to: { name: 'lists' } },
+  { title: list.value?.name || 'Detalle' }
+])
 
 // Composables
 const {
@@ -225,6 +235,8 @@ const confirmDialog = ref({
   message: '',
   confirmText: 'Confirmar',
   color: 'primary',
+  variant: 'flat',
+  buttonClass: '',
   loading: false,
   action: null
 })
@@ -381,7 +393,23 @@ async function updateProduct(itemId, updates) {
     // Update local state
     const index = items.value.findIndex(i => i.id === itemId)
     if (index !== -1) {
-      items.value[index] = { ...items.value[index], ...updated }
+      const current = items.value[index]
+      const mergedProduct = updated?.product
+        ? { ...current.product, ...updated.product }
+        : current.product
+
+      const mergedItem = {
+        ...current,
+        ...updated,
+        product: mergedProduct ?? current.product
+      }
+
+      if (!mergedItem.productName) {
+        mergedItem.productName = mergedItem.product?.name ?? current.productName ?? null
+      }
+
+      items.value[index] = mergedItem
+      listsStore.updateItem(itemId, mergedItem)
     }
 
     // Actualizar el store global si cambia el estado purchased
@@ -523,6 +551,8 @@ function confirmPurchase() {
     message: '¿Estás seguro de que deseas marcar toda la lista como comprada? Esto marcará todos los ítems como comprados.',
     confirmText: 'Marcar como comprada',
     color: 'primary',
+    variant: 'flat',
+    buttonClass: '',
     loading: false,
     action: executePurchase
   }
@@ -551,7 +581,9 @@ function confirmReset() {
     title: 'Resetear lista',
     message: '¿Estás seguro de que deseas resetear la lista? Esto marcará todos los ítems como no comprados.',
     confirmText: 'Resetear',
-    color: 'warning',
+    color: '#2a2a44',
+    variant: 'flat',
+    buttonClass: 'dialog-confirm-btn--reset',
     loading: false,
     action: executeReset
   }
@@ -580,6 +612,8 @@ function confirmMoveToPantry() {
     message: '¿Estás seguro de que deseas mover los ítems comprados a la despensa?',
     confirmText: 'Mover a despensa',
     color: 'primary',
+    variant: 'flat',
+    buttonClass: '',
     loading: false,
     action: executeMoveToPantry
   }
@@ -608,6 +642,8 @@ function confirmDeleteList() {
     message: `¿Estás seguro de que deseas eliminar la lista "${list.value.name}"? Esta acción no se puede deshacer.`,
     confirmText: 'Eliminar',
     color: 'error',
+    variant: 'flat',
+    buttonClass: '',
     loading: false,
     action: executeDeleteList
   }
@@ -702,5 +738,33 @@ onMounted(async () => {
 /* Estilos para el card de los diálogos de confirmación */
 .dialog-card {
   border-radius: 16px;
+}
+
+.dialog-title {
+  letter-spacing: 0.2px;
+}
+
+.dialog-text {
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  gap: 12px;
+}
+
+.dialog-confirm-btn {
+  font-weight: 600;
+}
+
+.dialog-confirm-btn--reset {
+  background-color: #ffffff !important;
+  color: #2a2a44 !important;
+  border: 1px solid #2a2a44 !important;
+  box-shadow: none !important;
+}
+
+.dialog-confirm-btn--reset:hover,
+.dialog-confirm-btn--reset:focus-visible {
+  background-color: rgba(42, 42, 68, 0.08) !important;
 }
 </style>

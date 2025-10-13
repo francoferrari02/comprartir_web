@@ -1,7 +1,7 @@
 <template>
   <section class="pa-4">
-    <div class="d-flex align-center justify-space-between mb-2">
-      <div class="text-subtitle-1 font-weight-medium">Actividad reciente</div>
+    <div class="section-head">
+      <div class="section-title text-subtitle-1 font-weight-bold">Actividad reciente</div>
       <v-btn
         v-if="recentNotifications.length > 0"
         icon="mdi-bell"
@@ -124,6 +124,18 @@ function formatTime(dateString) {
 </script>
 
 <style scoped>
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  letter-spacing: 0.2px;
+}
+
 .notification-item {
   cursor: pointer;
   padding: 8px;

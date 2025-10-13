@@ -29,6 +29,8 @@
         </template>
       </v-snackbar>
 
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <v-row>
         <!-- COLUMNA IZQUIERDA (principal) -->
         <v-col cols="12" md="8" class="left-col">
@@ -370,10 +372,16 @@ import { getShoppingLists, createShoppingList, getListItems, updateShoppingList,
 import ListSearch from '@/components/ListSearch.vue'
 import ListCarousel from '@/components/ListCarousel.vue'
 import SummaryCard from '@/components/SummaryCard.vue'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const router = useRouter()
 const route = useRoute()
 const listsStore = useListsStore()
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Listas' }
+])
 
 // Estado reactivo
 const loading = ref(false)

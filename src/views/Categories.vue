@@ -1,6 +1,8 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <div class="view-shell">
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <!-- Header -->
       <div class="d-flex justify-space-between align-center mb-6">
         <div>
@@ -276,9 +278,15 @@ import { useRouter } from 'vue-router'
 import { useCategoriesStore } from '@/stores/categories'
 import CreateCategory from '@/components/CreateCategory.vue'
 import EditCategory from '@/components/EditCategory.vue'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const router = useRouter()
 const store = useCategoriesStore()
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Categorías' }
+])
 
 // Dialog states
 const createDialog = ref(false)

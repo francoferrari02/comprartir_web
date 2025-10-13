@@ -20,6 +20,15 @@
       </span>
     </div>
 
+    <!-- Icono de categoría -->
+    <v-icon
+      v-if="categoryIcon"
+      size="20"
+      class="category-icon"
+    >
+      {{ categoryIcon }}
+    </v-icon>
+
     <!-- Botón detalles -->
     <v-btn icon size="small" variant="text" @click="$emit('details')">
       <v-icon>mdi-information-outline</v-icon>
@@ -34,6 +43,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { CATEGORY_ICON_BY_KEY, CATEGORY_ICON_BY_NAME } from '@/constants/categories'
 
 const props = defineProps({
   product: {
@@ -53,6 +63,23 @@ const productDisplayName = computed(() => {
     props.product.name ||                // Campo directo name
     `Producto #${props.product.id}`     // Fallback si no hay nombre
   )
+})
+
+const categoryIcon = computed(() => {
+  const category = props.product?.category
+  if (!category) return null
+
+  const metadataKey = category.metadata?.key
+  if (metadataKey && CATEGORY_ICON_BY_KEY[metadataKey]) {
+    return CATEGORY_ICON_BY_KEY[metadataKey]
+  }
+
+  const name = category.name?.toLowerCase()
+  if (name && CATEGORY_ICON_BY_NAME[name]) {
+    return CATEGORY_ICON_BY_NAME[name]
+  }
+
+  return null
 })
 </script>
 
@@ -74,5 +101,10 @@ const productDisplayName = computed(() => {
 .product-name {
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
+}
+
+.category-icon {
+  color: #2a2a44;
+  margin-right: 4px;
 }
 </style>

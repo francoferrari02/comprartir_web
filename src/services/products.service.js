@@ -1,6 +1,7 @@
 // src/services/products.service.js
 import api from '@/services/http'
 import { normalizePaginatedResponse, unwrapEntityResponse } from '@/services/pagination'
+import { ensureCategoryByKey } from '@/services/categories'
 
 // Search or list products
 // params: { name?: string, page?: number, per_page?: number }
@@ -33,6 +34,25 @@ export const getProduct = async (id) => {
   return unwrapEntityResponse(data)
 }
 
+async function resolveCategoryPayload({ categoryId, categoryKey }) {
+  if (categoryId) {
+    return { id: Number(categoryId) }
+  }
+
+  if (categoryKey) {
+    try {
+      const category = await ensureCategoryByKey(categoryKey)
+      if (category?.id) {
+        return { id: Number(category.id) }
+      }
+    } catch (error) {
+      console.error('ensureProduct - resolveCategoryPayload error', error)
+    }
+  }
+
+  return null
+}
+
 /**
  * Search for a product by exact name
  * @param {string} name
@@ -54,24 +74,46 @@ export const getProductByName = async (name) => {
 /**
  * Ensure a product exists: search by name, create if not found
  * @param {string} name - Product name
+ * @param {Object} options - Additional options
+ * @param {string} [options.categoryKey] - Category key to ensure when creating
+ * @param {number} [options.categoryId] - Existing category id to associate
  * @returns {Promise<Product>} - Product with valid id
  */
-export const ensureProduct = async (name) => {
+export const ensureProduct = async (name, options = {}) => {
   const trimmedName = (name || '').trim()
   if (!trimmedName) {
     throw new Error('Product name is required')
   }
 
+  const { categoryKey, categoryId } = options
+
   // First, try to find existing product
   const existing = await getProductByName(trimmedName)
   if (existing && existing.id) {
     console.log('✅ ensureProduct - Found existing:', existing)
+    // If the existing product has no category and we received one, try to update it
+    if (!existing.category && (categoryId || categoryKey)) {
+      const categoryPayload = await resolveCategoryPayload({ categoryId, categoryKey })
+      if (categoryPayload) {
+        try {
+          const updated = await updateProduct(existing.id, { category: categoryPayload })
+          return updated
+        } catch (error) {
+          console.warn('⚠️ ensureProduct - Unable to update product category', error)
+        }
+      }
+    }
     return existing
   }
 
   // Not found, create new product
   console.log('🆕 ensureProduct - Creating new product:', trimmedName)
-  const newProduct = await createProduct({ name: trimmedName })
+  const categoryPayload = await resolveCategoryPayload({ categoryId, categoryKey })
+  const payload = {
+    name: trimmedName,
+    ...(categoryPayload ? { category: categoryPayload } : {}),
+  }
+  const newProduct = await createProduct(payload)
   console.log('✅ ensureProduct - Created:', newProduct)
   return newProduct
 }
@@ -86,12 +128,7 @@ export const createProduct = async (data) => {
   return unwrapEntityResponse(response.data)
 }
 
-/**
- * Update a product
- * @param {string|number} id
- * @param {Object} data - { name?, categoryId?, metadata? }
- */
-export const updateProduct = async (id, data) => {
+export async function updateProduct(id, data) {
   const response = await api.put(`/products/${id}`, data)
   return unwrapEntityResponse(response.data)
 }

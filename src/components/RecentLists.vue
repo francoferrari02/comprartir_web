@@ -30,28 +30,17 @@
             @mouseleave="onUp"
             @wheel.passive="onWheel"
         >
-          <article v-for="it in items" :key="it.id" class="card-item" @click="goToList(it.id)">
-            <v-card class="pa-4 card" style="cursor: pointer;">
-              <div class="d-flex justify-space-between align-start mb-1">
-                <div class="text-subtitle-1 font-weight-medium">{{ it.name }}</div>
-                <v-chip size="small" variant="tonal" color="primary" class="status-chip">
-                  {{ it.bought }}/{{ it.total }}
-                </v-chip>
-              </div>
-
-              <div class="text-caption text-medium-emphasis mb-2">
-                {{ it.bought }}/{{ it.total }} comprados
-              </div>
-
-              <v-progress-linear
-                  :model-value="pct(it)"
-                  height="6"
-                  color="primary"
-                  :track-color="primaryBg"
-                  rounded
-                  class="mb-3"
-              />
-            </v-card>
+          <article v-for="it in items" :key="it.id" class="card-item">
+            <ListItem
+                :id="it.id"
+                :name="it.name"
+                :bought="it.bought"
+                :total="it.total"
+                :shared-with="it.sharedWith || []"
+                :show-actions="false"
+                :show-shared="false"
+                :card-clickable="true"
+            />
             <div class="section-footer"></div>
           </article>
         </div>
@@ -62,19 +51,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useTheme } from 'vuetify'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import { getShoppingLists, getListItems } from '@/services/lists'
-
-const theme = useTheme()
-const router = useRouter()
-const primaryBg = computed(() => theme.current.value.colors?.primaryBg || '#E9F7F0')
+import ListItem from '@/components/ListItem.vue'
 
 const items = ref([])
 const loading = ref(false)
-
-const pct = (it) => it.total > 0 ? Math.round((it.bought / it.total) * 100) : 0
 
 // Fetch recent lists (updated in last day, or created in last 2 days as fallback)
 async function fetchRecentLists() {
@@ -186,11 +168,6 @@ async function fetchRecentLists() {
     loading.value = false
   }
 }
-
-function goToList(id) {
-  router.push(`/lists/${id}`)
-}
-
 /* Drag to scroll */
 const strip = ref(null)
 let isDown = false, startX = 0, startLeft = 0
@@ -239,7 +216,7 @@ onMounted(() => {
   position: absolute;
   top: 0;
   height: 100%;
-  width: 28px;            /* ancho del fade; ajustá 24–40 a gusto */
+  width: 32px;            /* ancho del fade; ajustá 24–40 a gusto */
   z-index: 2;
   pointer-events: none;
 }
@@ -256,12 +233,12 @@ onMounted(() => {
 .hs{
   display: flex;
   align-items: flex-start;
-  gap: 16px;              /* compacto */
+  gap: 20px;              /* espaciado consistente con el carrusel */
   overflow-x: auto;
   overflow-y: visible;
-  padding: 8px 28px;        /* separación REAL con los bordes; queda OCULTA por el fade */
+  padding: 8px 32px;        /* separación REAL con los bordes; queda OCULTA por el fade */
   scroll-snap-type: x mandatory;
-  scroll-padding-left:28px;  /* el snap respeta el padding inicial */
+  scroll-padding-left:32px;  /* el snap respeta el padding inicial */
   cursor: grab;
   scrollbar-gutter: stable both-edges;
 }
@@ -269,7 +246,7 @@ onMounted(() => {
 
 /* Tarjetas más angostas: deja el 3er ítem “cortado” */
 .card-item{
-  flex: 0 0 300px;
+  flex: 0 0 320px;
   scroll-snap-align: start;
 }
 

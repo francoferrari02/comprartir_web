@@ -1,6 +1,8 @@
 <template>
   <section class="pa-4">
-    <div class="text-subtitle-1 font-weight-medium mb-2">Compartidos conmigo</div>
+    <div class="section-head">
+      <div class="section-title text-subtitle-1 font-weight-bold">Compartidos conmigo</div>
+    </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="text-center py-4">
@@ -85,6 +87,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  letter-spacing: 0.2px;
+}
+
 .list-item-hover {
   cursor: pointer;
   transition: background-color 0.2s;

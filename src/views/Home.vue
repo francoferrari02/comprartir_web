@@ -2,7 +2,8 @@
   <v-container fluid class="py-8 bg-surface">
     <!-- Pantalla de bienvenida para usuarios no autenticados -->
   <div v-if="!isAuthenticated" class="view-shell">
-      <v-row justify="center">
+    <AppBreadcrumbs :items="breadcrumbs" />
+    <v-row justify="center">
         <v-col cols="12" md="8" lg="6">
           <v-card class="card pa-8 text-center">
             <v-img :src="logo" class="mx-auto mb-6" max-width="200" />
@@ -37,7 +38,8 @@
 
     <!-- Dashboard para usuarios autenticados -->
   <div v-if="isAuthenticated" class="view-shell">
-      <v-row>
+    <AppBreadcrumbs :items="breadcrumbs" />
+    <v-row>
         <!-- COLUMNA IZQUIERDA (principal) -->
         <v-col cols="12" md="8" class="left-col">
           <!-- Hero -->
@@ -161,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted } from 'vue'
+import { ref, inject, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { isLoggedIn } from '@/services/auth.service'
 import { createShoppingList } from '@/services/lists'
@@ -169,6 +171,7 @@ import RecentLists from '@/components/RecentLists.vue'
 import SharedWithMe from '@/components/SharedWithMe.vue'
 import ActivityFeed from '@/components/ActivityFeed.vue'
 import logo from '@/assets/Logo_Comprartir.png'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const router = useRouter()
 // Usar el estado global de autenticación desde App.vue
@@ -176,6 +179,10 @@ const isAuthenticated = inject('isAuthenticated', ref(false))
 const createDialog = ref(false)
 const creating = ref(false)
 const error = ref(null)
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio' }
+])
 
 // New list form
 const newList = ref({

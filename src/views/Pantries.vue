@@ -13,6 +13,8 @@
         {{ error }}
       </v-alert>
 
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <!-- Success Snackbar -->
       <v-snackbar
         v-model="snackbar.show"
@@ -146,15 +148,7 @@
               <p class="text-body-2 text-medium-emphasis mb-4">
                 {{ searchQuery ? 'No se encontraron despensas con ese criterio' : 'Comienza creando tu primera despensa para organizar tus productos' }}
               </p>
-              <v-btn
-                v-if="!searchQuery"
-                color="primary"
-                prepend-icon="mdi-plus"
-                class="text-body-2 font-weight-medium"
-                @click="openCreateDialog"
-              >
-                Nueva Despensa
-              </v-btn>
+              
             </div>
 
             <!-- Carrousel de despensas -->
@@ -381,10 +375,16 @@ import { usePantriesStore } from '@/stores/pantries'
 import { getPantryItems } from '@/services/pantryItems'
 import PantrySearch from '@/components/PantrySearch.vue'
 import PantryCarousel from '@/components/PantryCarousel.vue'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const router = useRouter()
 const route = useRoute()
 const pantriesStore = usePantriesStore()
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Despensas' }
+])
 
 // Estado reactivo
 const creating = ref(false)

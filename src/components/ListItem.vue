@@ -1,13 +1,19 @@
 <template>
   <!-- Tarjeta compacta para representar una lista reciente -->
-  <v-card class="pa-4 card card--hover" elevation="1" min-width="240" style="flex:1 1 auto;">
+  <v-card
+    :class="['pa-4 card card--hover', { 'card-clickable': cardClickable }]"
+    elevation="1"
+    min-width="240"
+    style="flex:1 1 auto;"
+    @click="handleCardClick"
+  >
     <div class="d-flex align-center justify-space-between mb-3">
       <div class="text-h6 font-weight-bold list-title">{{ name }}</div>
       <v-chip size="small" class="chip-rounded chip-counter">{{ bought }}/{{ total }}</v-chip>
     </div>
 
     <!-- Mostrar usuarios compartidos si existen -->
-    <div v-if="sharedWith && sharedWith.length > 0" class="mb-2">
+    <div v-if="showShared && sharedWith && sharedWith.length > 0" class="mb-2">
       <v-chip-group>
         <v-chip
           v-for="user in sharedWith"
@@ -25,7 +31,7 @@
     <v-progress-linear :model-value="progress" color="primary" height="6" rounded />
 
     <!-- Botonera: tres botones del mismo tamaño en una línea horizontal -->
-    <div class="d-flex align-center ga-2 mt-4">
+    <div v-if="showActions" class="d-flex align-center ga-2 mt-4">
       <v-btn
         color="primary"
         variant="flat"
@@ -65,6 +71,9 @@ const props = defineProps({
   bought: { type: Number, required: true },
   total: { type: Number, required: true },
   sharedWith: { type: Array, default: () => [] },
+  showActions: { type: Boolean, default: true },
+  showShared: { type: Boolean, default: true },
+  cardClickable: { type: Boolean, default: false },
 })
 
 const progress = computed(() =>
@@ -72,6 +81,13 @@ const progress = computed(() =>
 )
 
 const emit = defineEmits(['delete', 'edit'])
+
+function handleCardClick() {
+  if (!props.cardClickable) {
+    return
+  }
+  openList()
+}
 
 function openList() {
   // Navegación directa sin depender de eventos
@@ -126,5 +142,9 @@ function openList() {
 
 .btn-icon-dark {
   color: #2A2A44 !important;
+}
+
+.card-clickable {
+  cursor: pointer;
 }
 </style>

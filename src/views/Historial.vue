@@ -1,6 +1,8 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <div class="view-shell">
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <v-card class="card card--hover history-card mb-6">
         <div class="history-header pa-6">
           <h2 class="text-h5 font-weight-bold mb-0">Historial</h2>
@@ -324,9 +326,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 import { getPurchases, restorePurchase } from '@/services/purchases'
 
 const router = useRouter()
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Historial' }
+])
 
 // State
 const loading = ref(true)

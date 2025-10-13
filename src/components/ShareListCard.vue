@@ -36,10 +36,9 @@
       <!-- Copy link -->
       <v-btn
         block
-        color="secondary"
-        variant="tonal"
+        variant="flat"
         prepend-icon="mdi-link-variant"
-        class="mb-4 btn-rounded"
+        class="mb-4 btn-rounded btn-dark-outline"
         @click="copyLink"
       >
         Copiar enlace

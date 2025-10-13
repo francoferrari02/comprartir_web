@@ -1,6 +1,8 @@
 <template>
   <v-container fluid class="py-8 bg-surface profile-view">
     <div class="view-shell">
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <v-card v-if="loading" class="profile-card card card--hover mb-6">
         <div class="profile-card__body">
           <v-skeleton-loader type="image, article"></v-skeleton-loader>
@@ -167,41 +169,53 @@
                   />
                 </div>
 
-                <div class="form-section">
-                  <span class="form-section__label text-medium-emphasis">Tema</span>
-                  <v-btn-toggle
+                <div class="field-group">
+                  <label class="field-label app-input-label" for="profile-theme">Tema</label>
+                  <v-select
+                    id="profile-theme"
                     v-model="editProfile.theme"
-                    class="theme-toggle"
-                    mandatory
-                    divided
-                    :disabled="!isEditing"
-                  >
-                    <v-btn
-                      v-for="option in themeOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </v-btn>
-                  </v-btn-toggle>
+                    :items="themeOptions"
+                    item-title="label"
+                    item-value="value"
+                    density="comfortable"
+                    hide-details="auto"
+                    :disabled="!isEditing || saving"
+                    class="field-input app-input"
+                    prepend-inner-icon="mdi-palette"
+                  />
                 </div>
 
-                <div class="form-section form-section--stack">
-                  <span class="form-section__label text-medium-emphasis">Notificaciones</span>
-                  <v-checkbox
-                    v-model="editProfile.notificationsEmail"
-                    label="Notificaciones por email"
-                    color="primary"
-                    density="comfortable"
-                    :disabled="!isEditing"
-                  />
-                  <v-checkbox
-                    v-model="editProfile.notificationsWeb"
-                    label="Notificaciones web"
-                    color="primary"
-                    density="comfortable"
-                    :disabled="!isEditing"
-                  />
+                <div class="notifications-grid">
+                  <div class="field-group">
+                    <label class="field-label app-input-label" for="profile-notifications-email">Notificaciones por email</label>
+                    <v-select
+                      id="profile-notifications-email"
+                      v-model="editProfile.notificationsEmail"
+                      :items="notificationOptions"
+                      item-title="title"
+                      item-value="value"
+                      density="comfortable"
+                      hide-details="auto"
+                      :disabled="!isEditing || saving"
+                      class="field-input app-input"
+                      prepend-inner-icon="mdi-email-outline"
+                    />
+                  </div>
+                  <div class="field-group">
+                    <label class="field-label app-input-label" for="profile-notifications-web">Notificaciones web</label>
+                    <v-select
+                      id="profile-notifications-web"
+                      v-model="editProfile.notificationsWeb"
+                      :items="notificationOptions"
+                      item-title="title"
+                      item-value="value"
+                      density="comfortable"
+                      hide-details="auto"
+                      :disabled="!isEditing || saving"
+                      class="field-input app-input"
+                      prepend-inner-icon="mdi-bell-outline"
+                    />
+                  </div>
                 </div>
               </v-form>
             </div>
@@ -220,6 +234,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { getProfile, updateProfile } from '@/services/auth.service'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const profile = ref(null)
 const editProfile = ref({
@@ -243,6 +258,11 @@ const successMsg = ref('')
 const form = ref(null)
 const isEditing = ref(false)
 
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Perfil' }
+])
+
 const avatarInput = ref(null)
 const avatarPreview = ref('')
 let avatarObjectUrl = null
@@ -257,6 +277,11 @@ const themeOptions = [
   { label: 'Claro', value: 'light' },
   { label: 'Oscuro', value: 'dark' },
   { label: 'Sistema', value: 'system' }
+]
+
+const notificationOptions = [
+  { title: 'Activadas', value: true },
+  { title: 'Desactivadas', value: false }
 ]
 
 const rules = {

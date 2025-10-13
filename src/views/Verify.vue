@@ -1,6 +1,8 @@
 <template>
   <v-container fluid class="py-12 bg-surface">
     <div class="view-shell d-flex justify-center">
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <v-card class="verify-card card card--hover pa-8">
         <div class="text-center mb-6">
           <img
@@ -122,6 +124,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { verifyAccount, sendVerification } from '@/services/auth.service'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -135,6 +138,11 @@ const errorMsg = ref('')
 const successMsg = ref('')
 const infoMsg = ref('')
 const form = ref(null)
+
+const breadcrumbs = [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Verificar cuenta' }
+]
 
 // Resend cooldown state
 const resendCooldown = ref(0)

@@ -1,6 +1,8 @@
 <template>
   <v-container fluid class="py-8 bg-surface">
     <div class="view-shell">
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <!-- Header -->
       <div class="d-flex align-center justify-space-between mb-6">
         <div>
@@ -215,6 +217,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationsStore } from '@/stores/notifications'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const router = useRouter()
 const notificationsStore = useNotificationsStore()
@@ -227,6 +230,11 @@ const snackbar = ref({
   message: '',
   color: 'success'
 })
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Notificaciones' }
+])
 
 // Computed
 const allNotifications = computed(() => notificationsStore.allNotifications)

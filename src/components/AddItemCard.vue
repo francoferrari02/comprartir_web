@@ -11,7 +11,42 @@
         placeholder="Escribe para buscar o crear…"
         class="mb-3"
         :disabled="loading"
+        :category-key="selectedCategoryKey"
+        @product-selected="onProductSelected"
+        @created="onProductSelected"
+        @category-required="onCategoryRequired"
       />
+
+      <div class="mb-3">
+        <label class="app-input-label" for="add-item-category">Categoría</label>
+        <v-select
+          id="add-item-category"
+          v-model="selectedCategoryKey"
+          :items="categoryOptions"
+          item-title="title"
+          item-value="value"
+          density="comfortable"
+          placeholder="Seleccioná una categoría"
+          :error="Boolean(categoryError)"
+          :error-messages="categoryError ? [categoryError] : []"
+          class="app-input"
+        >
+          <template #selection="{ item }">
+            <div class="d-flex align-center" style="gap: 8px;">
+              <v-icon size="18" color="#2a2a44">{{ item?.raw?.icon }}</v-icon>
+              <span>{{ item?.raw?.title }}</span>
+            </div>
+          </template>
+          <template #item="{ props, item }">
+            <v-list-item v-bind="props">
+              <template #prepend>
+                <v-icon color="#2a2a44">{{ item.raw.icon }}</v-icon>
+              </template>
+              <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
+            </v-list-item>
+          </template>
+        </v-select>
+      </div>
 
       <!-- Quantity and unit -->
       <div class="d-flex gap-2 mb-3">
@@ -75,8 +110,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
+import { CATEGORY_DEFINITIONS, CATEGORY_BY_KEY, CATEGORY_KEY_BY_NAME } from '@/constants/categories'
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -86,8 +122,16 @@ const props = defineProps({
 const emit = defineEmits(['add-item'])
 
 const selectedProductId = ref(null)
+const selectedCategoryKey = ref(null)
+const categoryError = ref('')
 const quantity = ref(1)
 const unit = ref('un')
+
+const categoryOptions = CATEGORY_DEFINITIONS.map(category => ({
+  title: category.name,
+  value: category.key,
+  icon: category.icon,
+}))
 
 const units = [
   'un',
@@ -117,6 +161,8 @@ async function addProduct() {
 
   // Reset form
   selectedProductId.value = null
+  selectedCategoryKey.value = null
+  categoryError.value = ''
   quantity.value = 1
   unit.value = 'un'
 }
@@ -127,6 +173,40 @@ function quickAdd(product) {
   selectedProductId.value = id
   addProduct()
 }
+
+function onProductSelected(product) {
+  if (!product) {
+    return
+  }
+  const key = deriveCategoryKey(product)
+  if (key) {
+    selectedCategoryKey.value = key
+  }
+}
+
+function onCategoryRequired() {
+  categoryError.value = 'Seleccioná una categoría para crear este producto'
+}
+
+function deriveCategoryKey(product) {
+  const metadataKey = product?.category?.metadata?.key
+  if (metadataKey && CATEGORY_BY_KEY[metadataKey]) {
+    return metadataKey
+  }
+
+  const name = product?.category?.name?.toLowerCase()
+  if (name && CATEGORY_KEY_BY_NAME[name]) {
+    return CATEGORY_KEY_BY_NAME[name]
+  }
+
+  return null
+}
+
+watch(selectedCategoryKey, (value) => {
+  if (value) {
+    categoryError.value = ''
+  }
+})
 </script>
 
 <style scoped>

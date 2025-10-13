@@ -255,7 +255,7 @@
     </div>
 
     <!-- Action buttons -->
-    <div v-if="products.length > 0" class="d-flex gap-2 mt-4 flex-wrap">
+    <div v-if="products.length > 0" class="list-actions mt-4">
       <v-btn
         color="primary"
         variant="flat"
@@ -263,13 +263,12 @@
         class="btn-rounded"
         @click="handlePurchase"
       >
-        Marcar como comprada
+        Marcar como completa
       </v-btn>
       <v-btn
-        color="secondary"
-        variant="tonal"
+        variant="flat"
         prepend-icon="mdi-refresh"
-        class="btn-rounded"
+        class="btn-rounded btn-dark-outline"
         @click="handleReset"
       >
         Resetear
@@ -633,6 +632,13 @@ defineExpose({
 
 .gap-2 {
   gap: 8px;
+}
+
+.list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
 
 /* Botones de icono redondeados */

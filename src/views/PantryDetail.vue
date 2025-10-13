@@ -13,6 +13,8 @@
         {{ error }}
       </v-alert>
 
+      <AppBreadcrumbs :items="breadcrumbs" />
+
       <!-- Success Snackbar -->
       <v-snackbar
         v-model="snackbar.show"
@@ -480,9 +482,16 @@ import { getPantryItems, addPantryItem, updatePantryItem, deletePantryItem } fro
 import { getProfile } from '@/services/auth'
 import PantryProductItem from '@/components/PantryProductItem.vue'
 import ProductSelectOrCreate from '@/components/products/ProductSelectOrCreate.vue'
+import AppBreadcrumbs from '@/components/AppBreadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+const breadcrumbs = computed(() => [
+  { title: 'Inicio', to: { name: 'home' } },
+  { title: 'Despensas', to: { name: 'pantries' } },
+  { title: pantry.value?.name || 'Detalle' }
+])
 
 // Composables
 const {
