@@ -1,207 +1,267 @@
-Comprartir — Guía de uso (DEV)
+# Comprartir — Guía de Desarrollo
 
-Aplicación web Comprartir (frontend Vue + backend Node/TS) conectada a la API real con autenticación JWT y verificación de cuenta por código enviado por email (modo desarrollo con Ethereal).
+Aplicación web para gestión de listas de compras y despensas compartidas. Frontend Vue 3 + Backend Node.js/TypeScript con autenticación JWT y verificación de cuenta por email.
 
-Requisitos
+## 📋 Requisitos
 
-Node.js 22.x (recomendado con nvm)
+- **Node.js** 20.19.x o 22.12.x+ (recomendado con nvm)
+- **npm** 10.x
+- **Sistema Operativo:** macOS/Linux/Windows
 
-npm 10.x
+### Comandos útiles con nvm:
 
-macOS/Linux/Windows
-
-Comandos útiles con nvm:
-
-nvm install 22.20.0
-nvm use 22.20.0
-node -v   # v22.20.0
+```bash
+nvm install 22.12.0
+nvm use 22.12.0
+node -v   # v22.12.0
 npm -v    # 10.x
+```
 
-Estructura (resumen)
+## 📁 Estructura del Proyecto
+
+```
 .
-├─ api/                 # Backend (Node + TS)
-│  ├─ .env              # Variables del backend (JWT + SMTP de prueba)
-│  └─ src/...
-├─ src/                 # Frontend (Vue + Vite)
-├─ .env.local           # Variables del frontend
-└─ vite.config.js
+├── api/                 # Backend (Node + TypeScript + Express)
+│   ├── .env            # Variables del backend
+│   ├── src/            # Código fuente del API
+│   │   ├── controllers/
+│   │   ├── entities/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   └── services/
+│   └── docs/           # Documentación Swagger
+├── src/                # Frontend (Vue 3 + Vuetify)
+│   ├── components/     # Componentes Vue
+│   ├── views/          # Vistas/Páginas
+│   ├── stores/         # Pinia stores
+│   ├── services/       # Servicios API
+│   └── router/         # Configuración de rutas
+├── .env                # Variables del frontend
+└── vite.config.js      # Configuración de Vite
 
-1) Levantar el Backend (API)
+```
 
-Ir a la carpeta api e instalar dependencias:
+## 🚀 Instalación y Configuración
 
+### 1. Configurar el Backend (API)
+
+**a) Instalar dependencias:**
+
+```bash
 cd api
 npm install
+```
 
+**b) Verificar el archivo `api/.env`:**
 
-Verificar api/.env (ya debería existir). Debe tener al menos:
+El archivo ya está configurado con las siguientes variables esenciales:
 
-JWT_TOKEN=...cualquier_clave_larga...
+```env
+JWT_TOKEN=NVxsegCfdWTXEUjvw5eFv3PjIkxVVWVT
+FRONT_ORIGIN=http://localhost:5173,http://localhost:5174
+
+# Mailer (Ethereal - para desarrollo)
 SMTP_HOST=smtp.ethereal.email
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=...@ethereal.email
-SMTP_PASS=...
-PORT=8080
+SMTP_USER=berry.kuphal@ethereal.email
+SMTP_PASS=cwufHpuQweX2TbDm6C
 
+REGISTRATION_SUBJECT="Welcome to Grocery Manager!"
+RESET_PASSWORD_SUBJECT="Reset Your Password"
+PANTRY_SHARED_SUBJECT="Someone shared a pantry with you"
+LIST_SHARED_SUBJECT="Someone shared a shopping list with you"
+```
 
-Correr la API:
+**c) Iniciar el servidor:**
 
+```bash
 npm run api
+```
 
+Deberías ver:
 
-Verás algo como:
-
+```
 Server running on port: 8080
 Docs served on: http://localhost:8080/docs
 Database connection established!
 Mailer service up and running!
+```
 
+**URLs importantes:**
+- API Base: `http://localhost:8080/api`
+- Documentación: `http://localhost:8080/docs`
 
-Docs: http://localhost:8080/docs
+### 2. Configurar el Frontend
 
-Base URL real (front): http://localhost:8080/api
+**a) Instalar dependencias (desde la raíz del proyecto):**
 
-2) Levantar el Frontend
-
-En la raíz del proyecto (no dentro de api/), configurar .env.local:
-
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_USE_MOCKS=false
-
-
-Instalar y ejecutar:
-
+```bash
+cd ..  # Volver a la raíz
 npm install
-npm run dev
+```
 
+**b) Verificar el archivo `.env`:**
 
-Abrí el navegador en la URL que te indique Vite (p.ej. http://localhost:5173).
-
-3) Usuario de prueba (listo para usar)
-
-Email: demo@example.com
-
-Contraseña: 123456
-
-Esta cuenta ya está creada y verificada, por lo que podés iniciar sesión directamente desde la página de Login.
-
-4) Crear una cuenta nueva y verificarla
-
-La API, en modo desarrollo, envía el código de verificación a un buzón Ethereal (correo de testing). Además, por conveniencia, el endpoint que dispara el envío devuelve el código en el JSON de respuesta.
-
-Opción A — Todo desde la UI
-
-Ir a Registro y crear una cuenta (Nombre/Apellido/Email/Contraseña).
-
-Al registrarte, te redirige a /verify?email=tu@correo.com
-.
-
-En tu mail de desarrollo (Ethereal) llega un email con:
-
-Asunto: Verifica tu cuenta de Comprartir
-
-Cuerpo: Copia y pega el siguiente token 'TOKEN_ENVIADO' en la pagina de verificacion...
-
-Copiá el token y pegalo en la página /verify, luego presioná Verificar.
-
-Después podés iniciar sesión normalmente.
-
-Si intentás loguear sin verificar, el login te enviará a /verify para que pegues el código.
-
-Opción B — Usando la consola (rápido para dev)
-
-Pedí que te envíen el código:
-
-curl -s -X POST "http://localhost:8080/api/users/send-verification?email=tu@correo.com"
-
-
-Respuesta típica:
-
-{"code":"e85c5eed504cdeea"}
-
-
-Verificá la cuenta:
-
-curl -i -X POST 'http://localhost:8080/api/users/verify-account' \
--H 'Content-Type: application/json' \
---data '{"code":"e85c5eed504cdeea"}'
-
-
-Listo: ya podés iniciar sesión desde la UI.
-
-También podés entrar a https://ethereal.email
-y abrir la casilla con SMTP_USER/SMTP_PASS de api/.env para ver el mail “real” de prueba.
-
-5) Smoke test rápido por consola (opcional)
-# Registro (si querés otro usuario)
-curl -i -X POST 'http://localhost:8080/api/users/register' \
--H 'Content-Type: application/json' \
---data '{"name":"Kalani","surname":"Dubovitsky","email":"tu@correo.com","password":"12345678"}'
-
-# Enviar verificación (dev devuelve el code)
-curl -s -X POST "http://localhost:8080/api/users/send-verification?email=tu@correo.com"
-
-# Verificar
-curl -i -X POST 'http://localhost:8080/api/users/verify-account' \
--H 'Content-Type: application/json' \
---data '{"code":"PEGAR_CODE"}'
-
-# Login
-curl -s -X POST 'http://localhost:8080/api/users/login' \
--H 'Content-Type: application/json' \
---data '{"email":"tu@correo.com","password":"12345678"}'
-
-6) Persistencia de datos (¿se borra al reiniciar?)
-
-La API levanta una base local (embebida o de archivo). En la práctica, los usuarios y datos deberían persistir entre reinicios mientras no borres los archivos de datos del backend ni cambies su modo de ejecución.
-
-Si al reiniciar la API notás que tu usuario desaparece, probablemente esa ejecución está en modo no persistente (in-memory) o se regeneró el archivo de datos. En ese caso:
-
-Volvé a registrar y verificar el usuario (2 minutos), o
-
-Revisá la configuración de persistencia/documentación del backend para forzar modo persistente en tu entorno.
-7) Problemas comunes
-
-No llega el mail a Gmail: en dev se usa Ethereal (correo de testing). Usá la Opción B (consola) para obtener el código, o iniciá sesión en Ethereal con SMTP_USER/SMTP_PASS del api/.env.
-
-401 “Account not verified”: verificá tu cuenta con el token en /verify.
-
-401 “Token missing”: el frontend no está mandando el Authorization: Bearer <token>. Asegurate de iniciar sesión en la UI (o setear localStorage['accessToken']).
-
-CORS en el navegador: el backend ya expone Access-Control-Allow-Origin: *. Si persiste, revisá que el front apunte a VITE_API_BASE_URL=http://localhost:8080/api y que no estén activos mocks (VITE_USE_MOCKS=false).
-
-8) Variables importantes
-
-Frontend (.env.local)
-
+```env
 VITE_API_BASE_URL=http://localhost:8080/api
 VITE_USE_MOCKS=false
+```
+
+**c) Iniciar el servidor de desarrollo:**
+
+```bash
+npm run dev
+```
+
+Abre tu navegador en la URL que indique Vite (normalmente `http://localhost:5173`).
+
+## 👤 Credenciales de Prueba
+
+### Usuario de prueba (ya verificado):
+
+- **Email:** `demo@example.com`
+- **Contraseña:** `123456`
+
+Este usuario ya está creado y verificado, puedes iniciar sesión directamente.
+
+## ✉️ Sistema de Verificación de Email
+
+El backend usa **Ethereal Email** (servicio de testing) para enviar códigos de verificación en desarrollo.
+
+### Crear y verificar una cuenta nueva:
+
+#### Opción A — Desde la interfaz web:
+
+1. **Registro:** Ve a `/register` y crea una cuenta
+2. **Verificación:** Serás redirigido a `/verify?email=tu@correo.com`
+3. **Obtener código:** 
+   - Opción 1: Revisa la consola del backend (el código se imprime)
+   - Opción 2: Accede a [Ethereal Email](https://ethereal.email/login) con:
+     - Usuario: `berry.kuphal@ethereal.email`
+     - Contraseña: `cwufHpuQweX2TbDm6C`
+4. **Verificar:** Copia el código y pégalo en la página de verificación
+
+#### Opción B — Desde la terminal (más rápido):
+
+```bash
+# 1. Registrar usuario
+curl -X POST 'http://localhost:8080/api/users/register' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Tu Nombre",
+    "surname": "Tu Apellido",
+    "email": "tu@correo.com",
+    "password": "12345678"
+  }'
+
+# 2. Solicitar código de verificación (la respuesta incluye el código en dev)
+curl -X POST "http://localhost:8080/api/users/send-verification?email=tu@correo.com"
+
+# Respuesta: {"code":"abc123def456"}
+
+# 3. Verificar la cuenta
+curl -X POST 'http://localhost:8080/api/users/verify-account' \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"abc123def456"}'
+
+# 4. Iniciar sesión
+curl -X POST 'http://localhost:8080/api/users/login' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "tu@correo.com",
+    "password": "12345678"
+  }'
+```
+
+## 🔧 Scripts Disponibles
+
+### Frontend (raíz del proyecto):
+
+```bash
+npm run dev       # Iniciar servidor de desarrollo
+npm run build     # Construir para producción
+npm run preview   # Vista previa de la build de producción
+```
+
+### Backend (carpeta api/):
+
+```bash
+npm run api       # Iniciar servidor API en modo desarrollo
+```
+
+## 🎯 Funcionalidades Principales
+
+### ✅ Implementadas:
+
+- **Autenticación completa:** Registro, login, verificación por email, recuperación de contraseña
+- **Listas de compras:** Crear, editar, eliminar, compartir con otros usuarios
+- **Listas recurrentes:** Marcar listas como recurrentes (con ícono de loop)
+- **Despensas:** Gestión de productos almacenados
+- **Productos:** Búsqueda y gestión de productos
+- **Historial:** Registro de compras realizadas
+- **Notificaciones:** Sistema de notificaciones en tiempo real
+- **Compartir:** Compartir listas y despensas con otros usuarios
+- **Filtros avanzados:** Filtrar listas por tipo (recurrentes/no recurrentes), ordenamiento, búsqueda
+- **Responsive:** Menú hamburguesa en pantallas pequeñas
+
+## 🐛 Problemas Comunes y Soluciones
+
+### ❌ No llega el email:
+**Solución:** En desarrollo usamos Ethereal (no Gmail). Obtén el código desde:
+- La consola del backend
+- O accede a https://ethereal.email/login con las credenciales del `.env`
+
+### ❌ Error 401 "Account not verified":
+**Solución:** Verifica tu cuenta usando el código en `/verify`
+
+### ❌ Error 401 "Token missing":
+**Solución:** Asegúrate de iniciar sesión. El token se guarda en `localStorage['accessToken']`
+
+### ❌ Error CORS:
+**Solución:** 
+- Verifica que el backend esté corriendo en el puerto 8080
+- Confirma que `VITE_API_BASE_URL=http://localhost:8080/api`
+- Asegúrate de que `VITE_USE_MOCKS=false`
+
+### ❌ Los datos se borran al reiniciar:
+**Solución:** La base de datos usa SQLite y es persistente. Los datos se mantienen entre reinicios en el archivo de base de datos del backend.
+
+## 📚 Tecnologías Utilizadas
+
+### Frontend:
+- **Vue 3** - Framework progresivo
+- **Vuetify 3** - Framework de componentes Material Design
+- **Pinia** - State management
+- **Vue Router** - Enrutamiento
+- **Axios** - Cliente HTTP
+- **Vite** - Build tool
+
+### Backend:
+- **Node.js** - Runtime
+- **TypeScript** - Tipado estático
+- **Express** - Framework web
+- **SQLite** - Base de datos
+- **JWT** - Autenticación
+- **Nodemailer** - Envío de emails
+- **Swagger** - Documentación API
+
+## 📖 Enlaces Útiles
+
+- **Documentación API:** http://localhost:8080/docs
+- **Ethereal Email (testing):** https://ethereal.email/login
+- **Vue 3:** https://vuejs.org/
+- **Vuetify 3:** https://vuetifyjs.com/
+
+## 🤝 Desarrollo
+
+Para trabajar en el proyecto:
+
+1. Asegúrate de tener ambos servidores corriendo (API y Frontend)
+2. Los cambios en el frontend se recargan automáticamente (HMR)
+3. Los cambios en el backend requieren reiniciar el servidor
+4. Revisa la consola del navegador y del backend para debugging
+
+---
 
 
-Backend (api/.env)
-
-JWT_TOKEN=...
-SMTP_HOST=smtp.ethereal.email
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=...@ethereal.email
-SMTP_PASS=...
-PORT=8080
-
-9) Atajos útiles
-
-Correr API y Front juntos (opcional):
-
-// package.json (raíz)
-{
-"scripts": {
-"dev:all": "concurrently -n api,web -c green,blue \"npm --prefix api run api\" \"npm run dev\""
-},
-"devDependencies": {
-"concurrently": "^9.0.0"
-}
-}
-
-npm i -D concurrently
-npm run dev:all
