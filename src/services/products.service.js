@@ -1,7 +1,6 @@
 // src/services/products.service.js
 import api from '@/services/http'
 import { normalizePaginatedResponse, unwrapEntityResponse } from '@/services/pagination'
-import { ensureCategoryByKey } from '@/services/categories'
 
 // Search or list products
 // params: { name?: string, page?: number, per_page?: number }
@@ -39,15 +38,9 @@ async function resolveCategoryPayload({ categoryId, categoryKey }) {
     return { id: Number(categoryId) }
   }
 
+  // categoryKey ya no es soportado - todas las categorías deben tener ID
   if (categoryKey) {
-    try {
-      const category = await ensureCategoryByKey(categoryKey)
-      if (category?.id) {
-        return { id: Number(category.id) }
-      }
-    } catch (error) {
-      console.error('ensureProduct - resolveCategoryPayload error', error)
-    }
+    console.warn('⚠️ categoryKey is deprecated, use categoryId instead')
   }
 
   return null

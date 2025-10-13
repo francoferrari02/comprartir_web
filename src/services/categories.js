@@ -1,7 +1,6 @@
 // src/services/categories.js
 import { api } from './http'
 import { normalizePaginatedResponse, unwrapEntityResponse } from './pagination'
-import { CATEGORY_BY_KEY } from '@/constants/categories'
 
 // GET /categories?name=&page=&per_page=&order=&sort_by=
 export async function getCategories(params = {}) {
@@ -34,26 +33,4 @@ export async function updateCategory(id, body) {
 export async function deleteCategory(id) {
     const { data } = await api.delete(`/categories/${id}`)
     return unwrapEntityResponse(data)
-}
-
-export async function ensureCategoryByKey(key) {
-    const definition = CATEGORY_BY_KEY[key]
-    if (!definition) {
-        throw new Error(`Categoría desconocida: ${key}`)
-    }
-
-    const response = await getCategories({ name: definition.name, page: 1, per_page: 1 })
-    const list = Array.isArray(response) ? response : response?.data ?? []
-    const existing = list.find(cat => cat.name.toLowerCase() === definition.name.toLowerCase())
-    if (existing) {
-        return existing
-    }
-
-    return await createCategory({
-        name: definition.name,
-        metadata: {
-            key: definition.key,
-            icon: definition.icon,
-        },
-    })
 }

@@ -43,7 +43,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { CATEGORY_ICON_BY_KEY, CATEGORY_ICON_BY_NAME } from '@/constants/categories'
+
+const DEFAULT_CATEGORY_ICON = 'mdi-tag-outline'
 
 const props = defineProps({
   product: {
@@ -66,20 +67,14 @@ const productDisplayName = computed(() => {
 })
 
 const categoryIcon = computed(() => {
-  const category = props.product?.category
+  // Intentar obtener la categoría de diferentes estructuras
+  const category = props.product?.product?.category || props.product?.category
   if (!category) return null
 
-  const metadataKey = category.metadata?.key
-  if (metadataKey && CATEGORY_ICON_BY_KEY[metadataKey]) {
-    return CATEGORY_ICON_BY_KEY[metadataKey]
-  }
+  // Obtener el icono del metadata de la categoría
+  const icon = category.metadata?.icon || DEFAULT_CATEGORY_ICON
 
-  const name = category.name?.toLowerCase()
-  if (name && CATEGORY_ICON_BY_NAME[name]) {
-    return CATEGORY_ICON_BY_NAME[name]
-  }
-
-  return null
+  return icon
 })
 </script>
 
