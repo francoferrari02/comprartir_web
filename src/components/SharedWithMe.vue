@@ -58,26 +58,55 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getShoppingLists } from '@/services/lists'
+import { getShoppingLists, getListItems } from '@/services/lists'
+import { getProfile } from '@/services/auth'
 
 const sharedLists = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    // Obtener todas las listas y filtrar las compartidas conmigo (donde no soy owner)
+    // Obtener usuario actual desde el servidor
+    const currentUser = await getProfile()
+    console.log('👤 Current user:', currentUser)
+
+    // Obtener todas las listas
     const response = await getShoppingLists({ per_page: 100 })
-  const allLists = Array.isArray(response.data) ? response.data : []
+    const allLists = Array.isArray(response.data) ? response.data : []
+    console.log('📋 All lists:', allLists.length)
 
-    // Obtener ID del usuario actual
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+    // Filtrar SOLO las listas donde NO soy el owner (compartidas conmigo)
+    const listsSharedWithMe = allLists.filter(list => {
+      const isShared = list.owner && list.owner.id !== currentUser.id
+      console.log(`Lista "${list.name}" - Owner: ${list.owner?.id}, Current: ${currentUser.id}, Is Shared: ${isShared}`)
+      return isShared
+    })
 
-    // Filtrar listas donde no soy el owner (son compartidas conmigo)
-    sharedLists.value = allLists
-      .filter(list => list.owner && list.owner.id !== currentUser.id)
-      .slice(0, 5) // Mostrar máximo 5
+    console.log('📋 Lists shared with me (filtered):', listsSharedWithMe.length)
 
-    console.log('📋 Shared lists loaded:', sharedLists.value.length)
+    // Obtener el conteo de items para cada lista compartida (máximo 5)
+    const listsToShow = listsSharedWithMe.slice(0, 5)
+    const listsWithCounts = await Promise.all(
+      listsToShow.map(async (list) => {
+        try {
+          const itemsResponse = await getListItems(list.id, { per_page: 1000 })
+          const items = Array.isArray(itemsResponse.data) ? itemsResponse.data : []
+          return {
+            ...list,
+            itemCount: items.length
+          }
+        } catch (error) {
+          console.error(`Error loading items for list ${list.id}:`, error)
+          return {
+            ...list,
+            itemCount: 0
+          }
+        }
+      })
+    )
+
+    sharedLists.value = listsWithCounts
+    console.log('📋 Shared lists with counts:', sharedLists.value)
   } catch (error) {
     console.error('Error loading shared lists:', error)
   } finally {
